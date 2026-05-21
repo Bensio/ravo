@@ -1,0 +1,10 @@
+{
+  "common": {
+    "appName": "Ravo",
+    "loading": "Laden…",
+    "error": "Er ging iets mis"
+  },
+  "marketing": {
+    "tagline": "Festival-ambassadeur attributie en beloningen"
+  }
+}

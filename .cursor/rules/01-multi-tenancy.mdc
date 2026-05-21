@@ -1,0 +1,73 @@
+---
+description: Multi-tenancy and Row Level Security enforcement. Always applied.
+alwaysApply: true
+---
+
+# Multi-tenancy
+
+Every business row has `organization_id`. RLS enforces isolation at the database layer. The application layer also enforces — defense in depth. UI hides what the user can't see; that is UX, never security.
+
+## Rules
+
+1. **Every new business table MUST have `organization_id uuid not null references organizations(id)`** in its first migration. No exceptions for "we'll add it later."
+2. **Every new table MUST ship with RLS policies in the same migration.** A migration that creates a table without `enable row level security` and at least one policy fails CI.
+3. **Every API route MUST resolve the active organization context from the authenticated session** before any query runs. The org context is set per request via Supabase's `set_config('app.current_org_id', ...)` in a middleware.
+4. **Cross-org reads are physically impossible.** The multi-org integration test suite (`tests/multi-org-isolation.test.ts`) creates 3 orgs, populates data, and asserts every cross-org access path is blocked. It runs on every CI build.
+5. **Joins that span tables MUST include `organization_id` in the join predicate**, not rely solely on FK chains. Belt and braces.
+6. **No raw SQL in application code** outside of `src/lib/db/` helpers. All queries go through typed query builders that enforce org-scoping by default.
+
+## Standard policies
+
+For every new business table:
+
+```sql
+alter table <table> enable row level security;
+
+-- All org members can read (refined by role in app layer)
+create policy <table>_org_select on <table>
+  for select using (
+    organization_id in (
+      select organization_id
+      from memberships
+      where user_id = auth.uid() and suspended_at is null
+    )
+  );
+
+-- Writes are restricted by role; specific policies per table
+create policy <table>_org_write on <table>
+  for insert with check (
+    organization_id in (
+      select organization_id
+      from memberships
+      where user_id = auth.uid()
+        and role in ('owner','admin','manager')
+        and suspended_at is null
+    )
+  );
+
+-- updates and deletes get their own policies
+```
+
+For tables an ambassador interacts with directly (rewards, attributions, links, opportunity_acceptances, asset_shares, challenge_participations), add:
+
+```sql
+create policy <table>_ambassador_self on <table>
+  for select using (
+    ambassador_id in (select id from ambassadors where user_id = auth.uid())
+  );
+```
+
+## Identity edge cases (designed in, not discovered)
+
+- **One human, multiple orgs:** `users` table holds identity, `memberships` holds role-in-org. Org switcher in UI; org context set per request.
+- **Same email invited twice:** detect existing user, merge, never duplicate.
+- **Ambassador across multiple festivals:** one `ambassadors` row, multiple `ambassador_campaigns`.
+- **Org owner leaves:** ownership is transferable, 24-hour confirmation cooldown, recovery via second verified admin or platform-admin assist.
+- **GDPR deletion with unpaid rewards:** anonymize, retain financial records 7 years per ADR-015.
+
+## Never do
+
+- Trust the client to send `organization_id` in the request body — always resolve from session
+- Use a service-role Supabase client in user-facing API routes (only for system jobs)
+- Skip RLS "for a quick fix" — there is no quick fix; the policy goes in the same PR
+- Reuse a database connection across requests without resetting `app.current_org_id`

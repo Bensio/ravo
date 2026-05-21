@@ -1,0 +1,177 @@
+---
+description: Inbound webhook handling. Authenticity, idempotency, transactional processing.
+globs:
+  - src/app/api/webhooks/**
+  - src/lib/webhooks/**
+---
+
+# Webhooks
+
+Every inbound webhook handler follows the same template. Deviation is a bug.
+
+## Order of operations
+
+```
+1. Read raw body (NOT parsed JSON yet) — needed for some authenticity checks
+2. Verify authenticity using the provider's mechanism (see "Per-provider authenticity")
+   - If invalid: return the provider's rejection code (typically 401 or 403), do NOT log the payload
+3. Parse payload
+4. Determine idempotency_key (provider-supplied if available, else computed — see "Idempotency")
+5. SELECT from webhook_deliveries WHERE idempotency_key = ?
+   - If found AND processed_at IS NOT NULL: return 200 immediately (already done)
+   - If found AND processed_at IS NULL: another worker is processing; return 200, let it finish
+6. INSERT INTO webhook_deliveries (idempotency_key, payload_hash, received_at, attempts)
+   ON CONFLICT (idempotency_key) DO UPDATE SET attempts = webhook_deliveries.attempts + 1
+   RETURNING id
+7. BEGIN TRANSACTION
+8.   Normalize payload → internal event (via provider.parseWebhook)
+9.   Apply business logic (create/update orders, trigger attribution engine, etc.)
+10.  Insert activity_events row if user-visible
+11. COMMIT
+12. UPDATE webhook_deliveries SET processed_at = now() WHERE id = ?
+13. Return 200
+```
+
+If any step 8–11 throws: the transaction rolls back, `processed_at` is NOT set, the response code is chosen per the provider's retry contract (see "Response status semantics").
+
+## Per-provider authenticity verification
+
+Different providers offer different mechanisms. The `TicketingProvider` interface exposes `verifyWebhookAuthenticity` as a single method; implementations choose what they need.
+
+### HMAC signature (preferred when offered)
+
+For providers that sign payloads (Eventbrite, Shopify, Stripe):
+
+```ts
+const expected = crypto
+  .createHmac('sha256', secret)
+  .update(rawBody)
+  .digest('hex');
+const provided = req.headers.get('x-{provider}-signature');
+if (!provided) return new Response('missing signature', { status: 401 });
+if (!timingSafeEqual(
+  Buffer.from(provided, 'hex'),
+  Buffer.from(expected, 'hex')
+)) {
+  return new Response('invalid signature', { status: 401 });
+}
+```
+
+Always use `crypto.timingSafeEqual` — never `===` on hashes. Equal-length buffer requirement: pad/decode both sides consistently.
+
+### Nonce + secret URL (Weeztix and similar)
+
+For providers without HMAC, use the nonce-plus-secret-URL pattern:
+
+1. The webhook URL itself includes a random per-connection token: `/api/webhooks/{provider}/{secret_url_token}/`. The token is generated at OAuth-connect time, stored encrypted, never logged.
+2. The route handler resolves the connection from the URL token (404 if unknown).
+3. Each webhook subscription has a per-subscription nonce returned at creation time, stored encrypted alongside the subscription record.
+4. Each incoming POST carries the nonce in a provider-specific header (Weeztix: `OpenTicket-Identifier`).
+5. Verification:
+
+```ts
+const provided = req.headers.get('openticket-identifier');
+if (!provided) return new Response('missing nonce', { status: 401 });
+const expected = await getStoredNonceFor(webhookSubscriptionId);
+if (!timingSafeEqual(
+  Buffer.from(provided),
+  Buffer.from(expected)
+)) {
+  return new Response('invalid nonce', { status: 401 });
+}
+```
+
+This is weaker than HMAC (no payload integrity), so combine with:
+- Secret URL token (a third secret beyond nonce + caller IP)
+- Strict idempotency (replays gain nothing)
+- IP allow-listing if the provider publishes their egress range (Weeztix does not publish one as of 2026-05-21)
+- Logging and alerting on rejected attempts (spike = active probe)
+
+### No verification available
+
+If a provider offers neither HMAC nor nonce, document it in `docs/providers/{provider}.md` as a known limitation, require IP allow-listing as the sole signal, and flag the connection's `status` as `degraded`. Treat such integrations as best-effort and never auto-pay cash rewards from their attributions (force `tier_4_payout_policy = 'requires_confirmation'`).
+
+## Idempotency
+
+Always store an idempotency record before processing. Prefer provider-supplied keys when offered:
+
+| Provider | Idempotency source | Stored key |
+|---|---|---|
+| Weeztix | `OpenTicket-Dedupe-Key` header | `weeztix:${header}` |
+| Eventbrite | Event delivery id from payload | `eventbrite:${delivery_id}` |
+| Shopify | `X-Shopify-Webhook-Id` header | `shopify:${header}` |
+| Generic / no key | Computed: `{provider}:{resource_id}:{event_type}:{event_timestamp_iso}` | as computed |
+
+The `webhook_deliveries.idempotency_key` column is unique. The INSERT with ON CONFLICT pattern handles concurrent delivery attempts.
+
+## Response status semantics
+
+**The retry contract varies by provider. Read each provider's docs and codify in their integration.**
+
+| Provider | Retries on | Do NOT retry on |
+|---|---|---|
+| Weeztix | 4xx | 5xx, 2xx, 3xx |
+| Eventbrite (typical) | 5xx, timeouts | 2xx, 4xx |
+| Shopify | 5xx, timeouts | 2xx, 4xx |
+| Stripe | 5xx, timeouts, certain 4xx | 2xx |
+
+**Critical:** Weeztix's behavior is unusual. If our handler crashes and Next.js auto-returns 500, Weeztix does NOT retry — the event is lost. Therefore, our Weeztix handler catches all exceptions and converts them to **4xx** responses (specifically 400 or 503-as-400) so Weeztix retries.
+
+Standard pattern for handlers:
+
+```ts
+try {
+  await processWebhook(...);
+  return new Response('ok', { status: 200 });
+} catch (err) {
+  Sentry.captureException(err);
+  // Retry semantics per provider
+  return new Response('processing error', { status: provider.retryStatusCode });
+}
+```
+
+`provider.retryStatusCode` is part of the provider interface — 400 for Weeztix, 503 for the rest.
+
+## Transactional processing
+
+All side effects from a webhook happen inside a single DB transaction. Including:
+- Inserting/updating orders, order_items, refunds
+- Triggering attribution
+- Inserting activity_events
+- Inserting notifications
+
+If any one fails, all roll back. The webhook is retried per the provider's contract.
+
+External-API side effects (sending an email, calling Mollie) are enqueued via Inngest from inside the transaction. Never call external APIs synchronously from a webhook handler.
+
+## Reconciliation
+
+A nightly Inngest job per provider re-fetches the last 7 days of orders and compares to local state. Drift handling:
+- Order missing locally: process as fresh webhook (idempotent if later arrives)
+- State mismatch: log alert, do not auto-correct
+- Missing refund locally but order shows refunded upstream: apply refund cascade
+
+Reconciliation runs as `provider.reconcile.{provider_id}` with `retries: 3, deadLetter: true`.
+
+## Dead-letter handling
+
+`webhook_deliveries.attempts >= 5` and `processed_at IS NULL` → move to `webhook_deliveries_dlq`, fire critical notification to org admins, surface in admin UI under Settings → Integrations → Health.
+
+## Never do
+
+- Log raw webhook payloads to Sentry/PostHog (PII)
+- Use `JSON.parse(body)` before authenticity verification (the bytes you verify must equal the bytes you parse)
+- Skip the idempotency check "for performance"
+- Use `setTimeout`/`setImmediate` for side effects — use Inngest
+- Reply with the wrong status code for the provider's retry contract
+- Trust an unverified webhook even if "obviously from them" (open URLs are scanned constantly)
+- Log nonces, URL secrets, or any credential
+
+## Testing
+
+Per provider:
+- Authenticity verification: known-good and known-bad payloads
+- Idempotency: submit same event twice → single processing
+- Refund cascade: emit paid + refund → all derived state reversed
+- Reconciliation: simulate missing webhook + cron run + correction
+- Retry status code: simulate handler exception → asserts correct response code

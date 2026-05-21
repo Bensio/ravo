@@ -1,0 +1,233 @@
+---
+description: Rewards engine. Rule evaluation, fulfillment, payout batches.
+globs:
+  - src/lib/rewards/**
+  - src/app/api/rewards/**
+  - src/app/api/payouts/**
+---
+
+# Rewards engine
+
+Rules evaluate independently. Each emits typed reward instances. No aggregation. No points. No internal currency.
+
+## Architecture
+
+```
+src/lib/rewards/
+  types.ts                  — typed reward instance shapes
+  rules/
+    evaluate.ts             — pure: order + rules → reward instances to insert
+    triggers/
+      per_sale.ts
+      milestone.ts
+      challenge_completion.ts
+      opportunity_completion.ts
+      manual.ts
+    eligibility.ts          — pure: ambassador + rule → boolean
+    inventory.ts            — atomic decrement helper
+  state/
+    machine.ts              — single helper for state transitions
+    transitions.ts          — allowed transition table
+  fulfillment/
+    cash.ts                 — Mollie SEPA batch
+    free_ticket.ts          — provider order creation
+    ticket_upgrade.ts
+    guestlist_perk.ts       — QR + guestlist entry
+    branded_merch.ts        — shipping tracking
+    partner_product.ts      — digital code or guestlist entry
+    experience.ts           — guestlist + email
+    discount_code.ts        — provider promo API
+    status.ts               — badge / kit / recognition
+  cascade/
+    refund.ts               — refund → reversal cascade
+```
+
+## Typed reward instances
+
+```ts
+export type RewardInstance =
+  | { type: 'cash'; amount_cents: bigint; currency: string }
+  | { type: 'free_ticket'; shop_id: string; ticket_type: string }
+  | { type: 'ticket_upgrade'; from_ticket_type: string; to_ticket_type: string }
+  | { type: 'guestlist_perk'; perk_name: string; qr_payload?: string }
+  | { type: 'branded_merch'; product_name: string; sku?: string; size?: string }
+  | { type: 'partner_product'; product_name: string; redemption_method: 'digital_code' | 'on_site_pickup'; code?: string }
+  | { type: 'experience'; experience_name: string; date?: Date }
+  | { type: 'discount_code_for_audience'; code: string; discount_type: 'percent' | 'amount'; value: number; currency?: string }
+  | { type: 'status'; recognition: string; physical_kit?: boolean };
+```
+
+The `rewards.payload jsonb` column stores one of these shapes. `rewards.reward_type` is the discriminator (denormalized for query efficiency).
+
+## Rule evaluation
+
+Pure function. No I/O. Inputs: an order, the ambassador, the active rules. Output: a list of reward instances to insert.
+
+```ts
+export function evaluateRules(input: {
+  order: NormalizedOrderEvent;
+  attribution: Attribution;
+  ambassador: Ambassador & { ambassadorCampaign: AmbassadorCampaign };
+  campaign: Campaign;
+  rules: RewardRule[];
+  ambassadorSalesCount: number;  // pre-computed for milestone evaluation
+}): EvaluatedReward[] {
+  const out: EvaluatedReward[] = [];
+  for (const rule of input.rules) {
+    if (!isEligible(rule, input.ambassador)) continue;
+    if (!triggerMatches(rule, input)) continue;
+    if (rule.inventory_remaining !== null && rule.inventory_remaining <= 0) continue;
+
+    const instance = buildRewardInstance(rule, input);
+    out.push({ rule, instance, requiresAdminConfirmation: shouldRequireConfirmation(rule, input) });
+  }
+  return out;
+}
+```
+
+`shouldRequireConfirmation` implements ADR-008: cash rewards on tier-4 attributions with `campaign.tier_4_payout_policy = 'requires_confirmation'`.
+
+The orchestration layer:
+1. Calls `evaluateRules`
+2. For each result: atomically decrement `reward_rule.inventory_remaining` (if capped) AND insert `rewards` row, in one transaction per rule (atomic inventory)
+3. Inserts `audit_log` entries
+4. Enqueues notifications
+
+## State machine
+
+```ts
+const ALLOWED_TRANSITIONS = {
+  pending: ['confirmed', 'reversed'],
+  confirmed: ['fulfilled', 'reversed'],
+  fulfilled: ['reversed'],
+  reversed: [],  // terminal
+} as const;
+
+export async function transitionReward(
+  rewardId: string,
+  to: RewardState,
+  ctx: { actor_user_id?: string; reason?: string }
+) {
+  return db.transaction(async (tx) => {
+    const reward = await tx.rewards.findById(rewardId, { forUpdate: true });
+    if (!reward) throw new Error('reward not found');
+    if (!ALLOWED_TRANSITIONS[reward.state].includes(to)) {
+      throw new InvalidTransitionError(reward.state, to);
+    }
+    if (to === 'fulfilled' && reward.requires_admin_confirmation && !reward.admin_confirmed_at) {
+      throw new RequiresAdminConfirmation(rewardId);
+    }
+    await tx.rewards.update(rewardId, {
+      state: to,
+      ...timestampFor(to),  // confirmed_at, fulfilled_at, reversed_at
+      ...(to === 'reversed' ? { reversal_reason: ctx.reason } : {}),
+    });
+    await tx.audit_log.insert({
+      actor_user_id: ctx.actor_user_id,
+      action: `reward.${to}`,
+      resource_type: 'reward',
+      resource_id: rewardId,
+      before: { state: reward.state },
+      after: { state: to },
+    });
+    await enqueueNotification({ category: `reward_${to}`, reward_id: rewardId });
+  });
+}
+```
+
+Never bypass this. No raw `update rewards set state = ...` anywhere except inside this helper.
+
+## Pending → confirmed (refund window passed)
+
+An Inngest cron job runs hourly:
+
+```ts
+inngest.createFunction(
+  { id: 'rewards-confirm-after-refund-window', retries: 3 },
+  { cron: '0 * * * *' },
+  async ({ step }) => {
+    const due = await step.run('find-due', async () =>
+      db.rewards.findPendingDueForConfirmation(new Date())
+    );
+    for (const reward of due) {
+      await step.run(`confirm-${reward.id}`, () =>
+        transitionReward(reward.id, 'confirmed', { actor_user_id: null, reason: 'refund_window_passed' })
+      );
+    }
+  }
+);
+```
+
+## Fulfillment
+
+Each reward type has a dedicated fulfillment module. The fulfillment orchestrator:
+1. Finds confirmed rewards eligible for fulfillment (per type's rules)
+2. Calls the type's fulfillment module
+3. On success: `confirmed → fulfilled`, write `reward_fulfillments` row
+4. On failure: increment `attempts`, schedule retry, after N retries → alert + dead-letter
+
+### Cash via Mollie SEPA batches
+
+Cash rewards don't fulfill individually. They accumulate in a payout batch:
+
+1. Admin opens "Payout queue" — sees all `confirmed` cash rewards grouped by ambassador
+2. Admin selects rewards to include (or "select all due")
+3. System checks: every selected ambassador has verified KYC and IBAN
+4. Admin creates a `payout_batches` row → calls Mollie batch payment API
+5. Mollie processes, sends webhooks for each payment
+6. Webhooks update `reward_fulfillments` rows; rewards transition to `fulfilled`
+
+Failed payouts: per-ambassador, retryable; if persistent failure (bad IBAN), admin notified, ambassador notified to update details.
+
+### Digital codes
+
+Festival pre-uploads a code pool per reward rule (CSV upload, codes stored in `reward_fulfillments.payload` reserved-but-unsent until needed). On fulfillment, one code is atomically claimed and emailed to the ambassador + visible in-app.
+
+### Guestlist perks
+
+System generates a QR payload (`reward_id` signed with HMAC) and writes to `reward_fulfillments`. Ambassador sees the QR in-app for on-site scan. Festival's entry system can validate via Ravo's public verification endpoint (`/api/public/verify-qr/:payload` — read-only, rate-limited).
+
+### Branded merch & physical shipping
+
+Festival fulfils outside Ravo. Admin updates `reward_fulfillments.external_reference` with a tracking number; ambassador sees status in-app. We don't ship; we track.
+
+### Discount codes for ambassador's audience
+
+Uses provider's promo code API (Weeztix supports this via the relevant endpoint — confirm in integration code). One code generated per ambassador per campaign, e.g., `JESSE10`. Stored in `reward_fulfillments.external_reference`. Ambassador shares it with their audience; redemptions tracked as orders with promo code metadata.
+
+## Refund cascade
+
+See `02-money-and-state.mdc` and `07-attribution.mdc`. Implementation in `cascade/refund.ts`. Triggered by refund webhook processing.
+
+## Inventory
+
+`reward_rules.inventory_remaining` decrements atomically:
+
+```sql
+update reward_rules
+set inventory_remaining = inventory_remaining - 1
+where id = $1 and (inventory_remaining is null or inventory_remaining > 0)
+returning inventory_remaining;
+```
+
+If no row returned: out of inventory, skip emission. The application code checks the return value to decide whether to insert the `rewards` row. Wrap in the same transaction as the `rewards` insert.
+
+## Testing
+
+Required tests in `src/lib/rewards/__tests__/`:
+- Rule evaluation (pure): comprehensive matrix of trigger × eligibility × inventory
+- State machine: every allowed transition + every forbidden transition
+- Tier-4 confirmation: cash on tier-4 with each `tier_4_payout_policy` value
+- Refund cascade: paid → pending reward → refund → reversed reward
+- Refund cascade: paid → fulfilled reward → refund → clawback queued or write-off flagged
+- Inventory: concurrent rule evaluations don't double-emit when capped
+- Payout batch: end-to-end with mock Mollie
+
+## Never do
+
+- Aggregate rewards into a points total or balance — store and display them as discrete typed objects
+- Skip the state machine helper because "it's a simple update"
+- Mark a reward fulfilled before the fulfillment side effect succeeded
+- Process a refund cascade outside a transaction
+- Allow inventory underflow (negative `inventory_remaining`)
+- Pay out a reward where `requires_admin_confirmation = true` and `admin_confirmed_at IS NULL`

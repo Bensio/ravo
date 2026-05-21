@@ -1,0 +1,103 @@
+---
+description: Time, timezone, locale, and currency formatting. Always applied.
+alwaysApply: true
+---
+
+# Time and locale
+
+Time bugs are silent and catastrophic. Lock the rules.
+
+## Storage
+
+All timestamps in DB are `timestamptz`, stored in UTC. Never `timestamp without time zone`. Never store local times.
+
+## Display
+
+Three audiences, three display rules:
+
+| Context | Timezone | Locale |
+|---|---|---|
+| Festival admin views (dashboards, reports, charts) | Festival timezone (`events.timezone`) | Org `default_locale` |
+| Ambassador views (their own stats, rewards) | Festival timezone for festival data; user's local zone for personal timestamps (notifications received, profile last login) | Ambassador's user locale |
+| Platform admin views | UTC by default, with tooltip showing both UTC and festival zone | EN |
+
+**Why festival timezone for festival data:** "festival day" is the meaningful unit. A Spanish ambassador checking a Dutch festival's stats should see the same days as the festival admin. Otherwise comparisons across users are inconsistent.
+
+## Forbidden in render code
+
+```ts
+new Date()         // ❌ — use serverNow() or clientNow() helpers
+date.toString()    // ❌ — uses server locale, unpredictable
+new Date(string)   // ❌ — timezone-ambiguous; use parseISO from date-fns
+date.getHours()    // ❌ — uses local timezone of whichever runtime
+```
+
+Use the helpers:
+
+```ts
+import { formatInFestivalTz, formatInUserTz, toUtc, festivalNow } from '@/lib/time';
+
+formatInFestivalTz(timestamp, event, 'PP')              // "May 21, 2026"
+formatInFestivalTz(timestamp, event, 'PPpp')            // full datetime
+formatInUserTz(timestamp, user, 'p')                    // "3:42 PM"
+```
+
+The helpers wrap `date-fns-tz` and pull timezone from the event or user record.
+
+Lint rule: `new Date()` outside `src/lib/time/` and tests → CI fails. `Date#toLocale*` outside `src/lib/time/` → CI fails.
+
+## Date ranges and "last week"
+
+Comparison periods are computed in the festival's timezone:
+
+```ts
+const period = getComparisonPeriod(event, 'this_week');
+// → { from: UTC, to: UTC, label: 'May 18 – May 24, 2026', tz: 'Europe/Amsterdam' }
+```
+
+"This week" = Monday 00:00 to Sunday 23:59:59 in festival timezone, converted to UTC for the query. DST boundaries are handled by `date-fns-tz`.
+
+## Percentage comparison guards
+
+Per ADR-027:
+
+```ts
+function comparePeriods(current: number, prior: number, minBaseline = 10) {
+  if (prior < minBaseline) return { label: current === 0 ? '—' : 'new', delta: null };
+  const delta = ((current - prior) / prior) * 100;
+  return { label: `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`, delta };
+}
+```
+
+Every percentage display also surfaces the absolute change in its tooltip: `+48.2% (+47 sales)`.
+
+## Locale
+
+`next-intl` configured for EN + NL at launch. Strings live in `src/messages/{en,nl}.json`. No hardcoded English in component JSX. Use `useTranslations('namespace')`.
+
+Number formatting via `Intl.NumberFormat`:
+
+```ts
+import { formatNumber } from '@/lib/i18n';
+formatNumber(14967, locale)   // 'en' → "14,967"; 'nl' → "14.967"
+```
+
+Never hardcode separators. The mockup's "14.967" is Dutch rendering; the underlying value is 14967.
+
+## Currency formatting
+
+```ts
+import { formatMoney } from '@/lib/money';
+formatMoney({ amount_cents: 500n, currency: 'EUR' }, locale)
+// 'en' → "€5.00"; 'nl' → "€ 5,00"
+```
+
+Never `${amount} EUR` string concatenation.
+
+## Holidays and business-day math
+
+For payout batches and refund-window arithmetic, business days are calendar days (no holiday calendar in v1). If a refund window of 14 days lands on a weekend, the reward still confirms at the end of day 14. Simpler is better; document it.
+
+## When in doubt
+
+If the right timezone is ambiguous (e.g., a notification about a refund that occurred during a festival you're an ambassador for), default to festival timezone and include the event name in the notification text so context is unambiguous.

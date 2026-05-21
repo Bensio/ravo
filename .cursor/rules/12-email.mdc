@@ -1,0 +1,144 @@
+---
+description: Email handling — transactional for MVP, editor post-launch.
+globs:
+  - src/lib/email/**
+  - src/emails/**
+  - src/app/api/webhooks/resend/**
+---
+
+# Email
+
+MVP scope: transactional emails only via Resend. No editor, no campaigns, no Gmail OAuth. Post-launch (Phase 10+): festival → audience campaigns via the MailSurge-derived editor with Gmail/custom-domain connection.
+
+## Templates (MVP)
+
+All templates live in `src/emails/` as React Email components:
+
+```
+src/emails/
+  layout/
+    BaseLayout.tsx           — header, footer with unsubscribe + address
+  invite-ambassador.tsx
+  invite-org-member.tsx
+  magic-link.tsx
+  reward-earned.tsx
+  reward-confirmed.tsx
+  reward-fulfilled.tsx
+  reward-reversed.tsx
+  payout-sent.tsx
+  payout-failed.tsx
+  opportunity-assigned.tsx
+  challenge-completed.tsx
+  weekly-digest-ambassador.tsx
+  weekly-digest-admin.tsx
+  account-recovery.tsx
+  integration-broken.tsx
+```
+
+Each template renders both HTML and plain-text alternative. Use `@react-email/render` with the `plainText: true` option for the alternative.
+
+## Sending
+
+Every send goes through `sendTransactional`:
+
+```ts
+async function sendTransactional(args: {
+  to: { email: string; user_id?: string };
+  template: TemplateId;
+  organization_id?: string;  // for org branding (sender name, footer address)
+  data: Record<string, unknown>;
+  category: NotificationCategory;
+  priority?: 'low' | 'normal' | 'high' | 'critical';
+}): Promise<{ message_id: string } | { suppressed: true; reason: string }>;
+```
+
+Steps:
+1. Look up `email_suppressions` for `sha256(lower(email))`. If suppressed for this category or globally → return `{ suppressed: true, reason }`. Do not send.
+2. Look up `notification_preferences` for the user. If email channel disabled for this category → return `{ suppressed: true, reason: 'preference' }`.
+3. Check `priority`. If `critical`, override quiet hours and category preferences.
+4. Render template → { html, text }
+5. Build email:
+   - `from`: org-specific verified sender (default: `Ravo <noreply@ravo.fm>` or `<org-slug>@ravo.fm`)
+   - `reply-to`: org-specific contact email if set
+   - `subject`: from template
+   - `headers`:
+     - `List-Unsubscribe: <mailto:unsubscribe+{token}@ravo.fm>, <https://ravo.fm/u/{token}>`
+     - `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
+     - `X-Entity-Ref-ID: {outbound_email_id}`
+   - `text` and `html` both present
+6. Send via Resend
+7. Insert `outbound_emails` row with status `sent`
+8. Return `{ message_id }`
+
+## Deliverability (Gmail/Yahoo bulk sender compliance)
+
+These are required from day one, not aspirational:
+
+- **SPF, DKIM, DMARC** all configured for `ravo.fm` and any `*.ravo.fm` sender subdomains. DMARC policy at `p=quarantine` minimum (move to `p=reject` after stability).
+- **One-click unsubscribe headers** on every send, even transactional. Gmail's bulk-sender requirements treat the absence as a spam signal.
+- **Plain-text alternative** always present.
+- **Bounce rate < 0.3%** — monitor via Resend webhooks, auto-suppress hard bounces.
+- **Complaint rate < 0.1%** — monitor via webhooks, auto-suppress and log.
+- **Authenticated From domain** — never spoof another domain.
+
+## Suppression handling
+
+Resend webhooks update suppression state:
+
+```
+event=bounce(hard) → email_suppressions.insert(email_hash, reason='bounced')
+event=complaint   → email_suppressions.insert(email_hash, reason='complained')
+event=unsubscribe → handled by /u/{token} endpoint, inserts row with reason='unsubscribed'
+```
+
+The unsubscribe link `https://ravo.fm/u/{token}` works for both one-click and standard unsubscribe. Token is a signed payload encoding `{ email_hash, category? }`. Optionally lets user choose specific categories via a preferences page after clicking.
+
+## Outbound logging
+
+`outbound_emails` rows track delivery lifecycle. Resend webhooks update `status` and `last_event_at`. Used by admin tooling to debug "did the ambassador get the email" questions.
+
+PII: store `to_email_hash`, never plaintext. The body is not stored (templates + structured data = reproducible if needed).
+
+## Senders
+
+- Default: `Ravo <noreply@ravo.fm>` for all platform-level transactional emails (account recovery, etc.)
+- Org-branded: `{Org Name} via Ravo <{org_slug}@ravo.fm>` for festival-related transactional emails (invites, reward updates)
+- Post-MVP: festivals can connect their own Gmail OAuth or custom domain (SES, Postmark, or Resend with verified domain). Then `from` becomes the festival's own address. Until then, Ravo is the sender.
+
+## Critical alerts override
+
+If `priority = 'critical'`:
+- Override quiet hours
+- Override category preferences (the user signed up for service; broken-integration alerts must reach them)
+- Still respect global unsubscribe (legal requirement)
+
+Use sparingly. Only for: integration broken, payout failed, account compromised, mandatory legal notices.
+
+## Testing
+
+- A test-renderer script outputs every template to `tmp/email-previews/` for visual review
+- Each template has a unit test asserting required fields render, unsubscribe link present, no PII in subject line
+- Suppression check has an integration test: insert suppression, attempt send, assert blocked + logged
+- Bounce/complaint webhooks have idempotency + signature tests
+
+## Never do
+
+- Send to a suppressed address
+- Send marketing-style email pretending to be transactional (regulatory + spam signal risk)
+- Store plaintext email body in DB
+- Skip the `List-Unsubscribe-Post` header (Gmail bulk-sender requirement)
+- Use a `from` address on a domain you don't control DNS for
+- Embed tracking pixels in transactional emails (we use Resend's link/open tracking, which is opt-in per send and disabled by default for sensitive categories)
+
+## Post-launch additions (Phase 10+)
+
+When the email editor and campaigns ship:
+- `email_campaigns`, `email_audiences`, `email_sends` tables
+- The MailSurge editor lives at `src/components/admin/email-editor/`
+- Gmail OAuth flow at `src/app/(admin)/[org]/settings/integrations/email/`
+- Domain verification flow with DNS instructions
+- Campaign-level suppression (separate from transactional, but global unsubs still respected)
+- Send-test functionality
+- Scheduling (use Inngest delayed events, not cron)
+
+The infrastructure built for MVP (suppressions, preferences, outbound logging, deliverability) supports campaigns without rework.

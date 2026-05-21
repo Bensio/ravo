@@ -1,0 +1,174 @@
+---
+description: Edge redirector. Sub-50ms, stateless, isolated.
+globs:
+  - src/app/r/**
+  - src/lib/redirect/**
+---
+
+# Edge redirector
+
+`go.ravo.fm/{code}` is the single most performance-critical path in Ravo. Every click that goes through it is potential revenue. It must be fast, available, and minimal.
+
+## Runtime
+
+Vercel Edge Functions (preferred) or Cloudflare Workers. Configurable via `export const runtime = 'edge'` in the route file.
+
+**Not on Node:** Node cold starts and centralized region defeat the purpose. Edge gives us global <50ms p99 with zero infrastructure to manage.
+
+## What it does (and doesn't)
+
+Does:
+1. Receives `GET /r/{code}`
+2. Looks up the link from a fast cache (Upstash Redis edge replication) — fallback to Supabase
+3. Geo-derives from `CF-IPCountry` or Vercel headers
+4. Generates a click ID
+5. Reads/sets the `ravo_v` visitor cookie (first-party, `.ravo.fm`, 1 year)
+6. Composes the destination URL with UTMs, ref, native tracker params
+7. Returns 302 to the destination
+8. Asynchronously POSTs the click event to `/api/ingest/click` (fire-and-forget via `event.waitUntil`)
+
+Does NOT:
+- Query Postgres synchronously in the hot path
+- Write to a database synchronously in the hot path
+- Wait for analytics
+- Render any HTML
+- Run any business logic
+
+## Lookup cache
+
+Links rarely change. Cache `links` by `code` in Upstash Redis with edge replication:
+
+```
+key:    link:{code}
+value:  { link_id, organization_id, campaign_id, ambassador_id,
+          destination_url, native_tracker_id?, utm_overrides?, disabled }
+TTL:    24h (auto-refresh on read)
+```
+
+On link create/update/delete: server writes invalidate the cache key.
+
+If cache miss: query Supabase, populate cache, continue. First request for a new link is ~100ms, subsequent are <20ms.
+
+Disabled link: redirect to a generic "this link is no longer active" page, log the attempt.
+
+## Click ingestion (async)
+
+The redirector calls:
+
+```ts
+event.waitUntil(
+  fetch('https://ravo.fm/api/ingest/click', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-ingest-key': INTERNAL_SECRET },
+    body: JSON.stringify({
+      link_id, organization_id, visitor_cookie_id,
+      country, region, device_type, os, browser, in_app_browser,
+      referrer, user_agent_hash, ip_subnet,
+      occurred_at: new Date().toISOString(),
+    }),
+  })
+);
+```
+
+The ingest endpoint:
+1. Validates `x-ingest-key` (HMAC of body + timestamp)
+2. Inserts the row into `clicks` (partitioned table)
+3. Upserts the `visitors` row
+4. Returns 202
+
+If ingestion fails, the redirect still succeeded; the click is lost. This is an acceptable tradeoff (vs. blocking the user). We monitor ingest success rate; <99% is an incident.
+
+For higher-throughput needs, swap the direct insert for an Inngest event or a Kafka-like queue. For MVP, direct insert is fine.
+
+## URL composition
+
+```ts
+function buildDestinationUrl(link, click): URL {
+  const url = new URL(link.destination_url);
+  // Native tracker param (provider-specific)
+  if (link.native_tracker_id) {
+    // Weeztix uses ?tracker=<id>
+    url.searchParams.set('tracker', link.native_tracker_id);
+  }
+  // Our click id
+  url.searchParams.set('ref', click.id);
+  // UTMs
+  url.searchParams.set('utm_source', 'ravo');
+  url.searchParams.set('utm_medium', 'ambassador');
+  url.searchParams.set('utm_campaign', link.campaign_slug);
+  url.searchParams.set('utm_content', link.ambassador_slug);
+  if (link.label) url.searchParams.set('utm_term', link.label);
+  return url;
+}
+```
+
+If the destination URL already has UTMs (festival pasted a custom URL with UTMs), Ravo's UTMs override. Document this behavior. Festivals who want their own UTMs preserved should not include them in the destination; they'll be appended by Ravo.
+
+## Cookie
+
+```
+name: ravo_v
+value: visitor_id (uuid)
+domain: .ravo.fm
+path: /
+HttpOnly: true
+Secure: true
+SameSite: Lax
+Max-Age: 31536000  (1 year)
+```
+
+If the cookie is missing, generate a new visitor_id and set it. If present, read and pass along.
+
+## In-app browser detection
+
+Detect via User-Agent:
+- `Instagram` → `in_app_browser = 'instagram'`
+- `TikTok` → `in_app_browser = 'tiktok'`
+- `Snapchat` → `in_app_browser = 'snapchat'`
+- `FBAN`/`FBAV` → `in_app_browser = 'facebook'`
+- `Line/` → `in_app_browser = 'line'`
+
+This flag matters for the rest of the system (auth flow uses code fallback in-app; analytics surface in-app traffic shape).
+
+## Bot filtering
+
+Block at the redirector level (return 404 with no body):
+- Known bot UA patterns (`googlebot`, `bingbot`, `slack-bot`, etc.) — except those a festival might intentionally want to crawl their link previews; let Slack/Twitter/Facebook bots through so link unfurls work, but mark `bot: true` so they don't count toward attribution
+- Empty or trivially-spoofed user agents
+- Requests with no `Accept` header at all
+
+Don't be too aggressive — false positives cost real conversions.
+
+## Disabled / not-found
+
+- Link not found → redirect to `https://ravo.fm/link-not-found` (or `?l=:code` for context)
+- Link disabled → redirect to `https://ravo.fm/link-inactive`
+- Both pages explain the situation and offer a way to contact the festival
+
+Never silently 404 a click — the user clicked expecting something.
+
+## Observability
+
+- Latency histogram per code (p50, p95, p99)
+- Cache hit rate
+- Ingest success rate
+- 4xx / 5xx rates
+- Top destinations by volume
+
+Surface in BetterStack dashboard.
+
+## Rate limiting (optional)
+
+If a single IP /24 hits the redirector > 1000 times in 60s, return 429. This protects against trivial abuse without affecting legitimate traffic (a festival blasting a link to a huge audience is fine; bots are not).
+
+Implement via Upstash Redis sliding window. Default off; toggle per-org if needed.
+
+## Never do
+
+- Sync DB write in the redirector handler
+- Render HTML or hydrate React in the redirector
+- Block on the click ingest call
+- Trust input — sanitize the `code` (alphanumeric + `-`/`_`, length-bounded)
+- Log raw IPs
+- Set a tracking cookie on the destination domain (only on `.ravo.fm`)
+- Use `Date.now()` for the click id — use a uuid (collision-safe across edge instances)

@@ -1,0 +1,163 @@
+---
+description: Frontend conventions. Components, state, accessibility, UX patterns.
+globs:
+  - src/app/**
+  - src/components/**
+---
+
+# Frontend
+
+Two products in one codebase. Admin: desktop-first, dense, professional. Ambassador: mobile-first, glanceable, motivating. Both: accessible, fast, beautiful.
+
+## Routing
+
+```
+src/app/
+  (marketing)/             — public pages, no auth (post-MVP)
+  (auth)/                  — login, signup, recovery
+  (admin)/[org_slug]/      — festival staff UI
+    overview/
+    leaderboard/
+    analytics/
+    ambassadors/
+    content/
+    tracklinks/
+    sales-feed/
+    rewards/
+    challenges/
+    opportunities/
+    reports/
+    settings/
+  (ambassador)/[campaign_slug]?/   — ambassador PWA
+    (or single-campaign default)
+    home/
+    share/
+    stats/
+    rewards/
+    community/
+    profile/
+  r/[code]/                — edge redirector (separate runtime)
+  api/                     — route handlers
+```
+
+Org context: subdomain (post-MVP) or `[org_slug]` path segment. Ambassador context: their active campaign (if multiple) is in a switcher or via path.
+
+## Component library
+
+Use shadcn/ui as the primitive layer (Button, Dialog, Form, Sheet, etc.). Build Ravo-specific composites on top:
+
+```
+src/components/
+  ui/                     — shadcn/ui primitives (generated)
+  primitives/             — small Ravo wrappers (RavoCard, RavoStat, etc.)
+  charts/                 — Recharts wrappers with locked themes
+  admin/                  — admin-only composites (LeaderboardTable, RewardRuleEditor, etc.)
+  ambassador/             — ambassador-only composites (HomeFeed, ShareSheet, RewardTile, etc.)
+  shared/                 — used in both (Avatar, EmptyState, ErrorBoundary, etc.)
+```
+
+Never import an admin component into the ambassador product or vice versa. Shared logic goes to `shared/` or to a hook in `src/lib/`.
+
+## Theme
+
+Dark theme matches the mockup: deep purple/black background, vibrant accents (purple, gold, magenta), white text. Light theme deferred to post-MVP. CSS variables in `src/styles/theme.css`. Tailwind config consumes the variables. Never hardcode hex values in components.
+
+```css
+:root {
+  --ravo-bg: #0a0814;
+  --ravo-surface: #14101f;
+  --ravo-surface-elev: #1c1730;
+  --ravo-accent: #8b5cf6;
+  --ravo-accent-2: #fbbf24;
+  /* ... */
+}
+```
+
+## State management
+
+- **Server state:** Supabase queries via TanStack Query. Cache key includes `org_id`. Invalidations are scoped.
+- **Realtime:** Supabase Realtime → TanStack Query cache updates. Surfaced via a `useRealtime(channel)` hook.
+- **UI state:** local `useState`. For complex flows (multi-step forms), use `useReducer` or Zustand store scoped to the route.
+- **Forms:** react-hook-form + zod schemas. Schemas live next to the form in a `*.schema.ts` file.
+
+No Redux. No global Zustand for everything. Local state by default; lift only when needed.
+
+## Accessibility
+
+- All interactive elements keyboard-accessible
+- Color contrast ≥ 4.5:1 for text, ≥ 3:1 for large text and UI elements
+- All form fields have visible labels (never placeholder-as-label)
+- All buttons and links have accessible names
+- Focus visible on every focusable element
+- Skip links on every page
+- Live regions for the live activity feed (`aria-live="polite"`)
+- Prefers-reduced-motion respected for animations
+
+CI runs axe-core against key pages on every build.
+
+## States every screen must have
+
+Per ADR-029, design these BEFORE the happy path:
+
+1. **Loading** — skeleton (matching the final layout's shape) or progress indicator. Never a blank screen.
+2. **Empty** — context-aware copy ("No ambassadors yet — invite your first") + a primary action. Never just "No data."
+3. **Error** — clear message, retry action, link to help if user-actionable, link to status page if not.
+4. **Degraded** — banner when realtime is offline, integration is down, or data may be stale. Polling fallback.
+5. **Happy path** — the default.
+
+For ambassador screens, also design:
+6. **Day-zero** — what the screen looks like for an ambassador with zero clicks, zero sales, zero rewards. Onboarding-shaped, not bare.
+
+## Charts (Recharts)
+
+- All charts use the Ravo theme via a shared `ChartContainer` component
+- Tooltips show absolute values alongside percentages
+- Dual-axis charts only when ADR-028's scaling rule is applied
+- Empty states for "no data in this period" inside the chart frame
+- Loading skeletons sized to match the final chart
+
+## Number, money, date display
+
+- All numbers via `formatNumber(value, locale)` — never raw string interpolation
+- All money via `formatMoney({ amount_cents, currency }, locale)`
+- All dates via `formatInFestivalTz(date, event, format)` for festival data, `formatInUserTz(date, user, format)` for personal data
+- Lint rule blocks raw `toLocaleString`, `toFixed` in components
+
+## Percentage comparison guards
+
+Per ADR-027, always use the `comparePeriods` helper. Never compute `(current - prior) / prior * 100` inline.
+
+## Mobile (ambassador app)
+
+- Mobile-first breakpoints; design at 360px width baseline
+- PWA manifest + service worker (Workbox)
+- Installable (Add to Home Screen prompt after 2nd session)
+- Native share sheet via `navigator.share` where available; fallback to copy-to-clipboard + per-platform deeplinks
+- Push notifications via Web Push API (post-Phase 6 — needs HTTPS + service worker)
+- Tap targets ≥ 44×44 px
+- Sticky bottom nav for the 6 surfaces (Home, Share, Stats, Rewards, Community, Profile)
+
+## Ambassador-specific UX rules
+
+- **Leaderboard view:** show top 10 + the viewer's own position + gap to next rank. Never show absolute rank deep in the tail (ADR-023).
+- **Stats framing:** cohort-relative wherever possible ("top 20% this week"), then personal trajectory ("3 sales away from your personal best"), then absolute (ADR-024).
+- **Rewards view:** each reward shown as itself with its branding (collaboration label logo if set). Never aggregated. State badges (`pending`, `confirmed`, `fulfilled`, `reversed`) with timeline.
+- **Share flow:** asset → tap → app generates link + caption + opens share sheet. Two taps maximum (ADR-025).
+
+## Admin-specific UX rules
+
+- **Sales Feed:** real-time stream, click any sale → trace view with attribution chain + reassign action
+- **Reward fulfillment queue:** grouped by reward type; bulk-select for batch actions; clear "requires admin confirmation" badge on tier-4 cash items
+- **Integration health:** persistent indicator in the sidebar/header showing provider connection status
+- **Audit log:** filterable, exportable, never editable
+
+## Never do
+
+- Hardcode strings — use next-intl
+- Hardcode colors — use CSS variables
+- Hardcode separators or formats — use Intl helpers
+- Show "Loading..." text — use skeletons
+- Show "Error" with no action — give the user something to do
+- Use placeholder text as a label
+- Animate without checking prefers-reduced-motion
+- Lock the user out of features without explaining why (e.g., "Connect Weeztix to enable this" with a link, not a grey button)

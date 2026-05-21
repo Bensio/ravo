@@ -1,0 +1,271 @@
+---
+description: Ticketing provider integrations. Interface contract, capability declarations.
+globs:
+  - src/lib/providers/**
+  - src/app/api/providers/**
+---
+
+# Providers
+
+Every ticketing platform integration implements the same `TicketingProvider` interface. The attribution and rewards engines consume the interface, never provider-specific code.
+
+## The interface
+
+```ts
+// src/lib/providers/types.ts
+
+export type ProviderId =
+  | 'weeztix'
+  | 'manual_utm'
+  | 'eventbrite'    // post-MVP
+  | 'eventix'       // post-MVP — same company as Weeztix; check if same API
+  | 'shopify'       // post-MVP
+  | 'stripe';       // post-MVP
+
+export type AuthenticityMechanism =
+  | { kind: 'hmac'; algorithm: 'sha256'; header: string; encoding: 'hex' | 'base64' }
+  | { kind: 'nonce'; header: string }
+  | { kind: 'none' };
+
+export interface ProviderCapabilities {
+  nativeTrackers: boolean;
+  webhooks: boolean;
+  refundEvents: boolean;            // true if a dedicated trigger; false if inferred from updates
+  refundInferenceField?: string;    // if refundEvents=false, the payload field signalling refund
+  orderLookup: boolean;
+  promoCodes: boolean;
+  reconciliation: boolean;
+  authenticity: AuthenticityMechanism;
+  providerSuppliedIdempotencyHeader?: string;  // e.g. 'OpenTicket-Dedupe-Key'
+  retryStatusCode: 400 | 503;       // status to return on transient failure to trigger retry
+}
+
+export interface NormalizedOrderEvent {
+  provider: ProviderId;
+  externalOrderId: string;
+  externalShopId: string;
+  externalEventId?: string;
+  status: 'pending' | 'paid' | 'partially_refunded' | 'refunded' | 'cancelled';
+  currency: string;
+  grossAmountCents: bigint;
+  netAmountCents: bigint;
+  lineItems: Array<{
+    providerItemId?: string;
+    ticketType: string;
+    quantity: number;
+    unitAmountCents: bigint;
+    currency: string;
+  }>;
+  buyerEmailHash: string;
+  buyerCountry?: string;
+  placedAt: Date;
+  paidAt?: Date;
+  occurredAt: Date;
+  attributionHint?: {
+    trackerExternalId?: string;
+    refParam?: string;
+    utm?: { source?: string; medium?: string; campaign?: string; content?: string; term?: string };
+  };
+  rawMetadata?: Record<string, unknown>;
+}
+
+export interface CreateTrackerInput {
+  campaignId: string;
+  ambassadorId: string;
+  shopExternalId: string;
+  name: string;
+  destinationContext?: { assetId?: string; label?: string };
+}
+
+export interface CreatedTracker {
+  providerTrackerId: string;
+  shopExternalId: string;
+  destinationUrl: string;
+  /** Provider-issued nonce for webhook authentication, if applicable. */
+  webhookNonce?: string;
+}
+
+export interface ProviderCredentials {
+  // Decrypted at use, never logged
+  [key: string]: string | number;
+}
+
+export interface TicketingProvider {
+  id: ProviderId;
+  capabilities: ProviderCapabilities;
+
+  // Tracker lifecycle
+  createTracker?(input: CreateTrackerInput): Promise<CreatedTracker>;
+  deleteTracker?(providerTrackerId: string): Promise<void>;
+
+  // URL construction
+  buildDestinationUrl(args: {
+    baseUrl: string;
+    nativeTracker?: { providerTrackerId: string };
+    clickId: string;
+    utm: { source: string; medium: string; campaign: string; content: string; term?: string };
+  }): string;
+
+  // Webhook authenticity (replaces verifyWebhookSignature)
+  verifyWebhookAuthenticity?(args: {
+    rawBody: string;
+    headers: Headers;
+    storedSecret: string;  // HMAC secret OR nonce, depending on capabilities.authenticity
+  }): boolean;
+
+  // Webhook parsing
+  parseWebhook?(args: { rawBody: string; headers: Headers }): NormalizedOrderEvent | null;
+
+  // Idempotency key derivation (use provider-supplied if available)
+  deriveIdempotencyKey?(args: { rawBody: string; headers: Headers; parsed?: NormalizedOrderEvent }): string;
+
+  // On-demand
+  fetchOrder?(args: { externalOrderId: string; credentials: ProviderCredentials }): Promise<NormalizedOrderEvent | null>;
+
+  // Reconciliation
+  listOrdersSince?(args: { since: Date; credentials: ProviderCredentials }): AsyncIterable<NormalizedOrderEvent>;
+
+  // Promo codes
+  createDiscountCode?(args: {
+    code: string;
+    discountPercent?: number;
+    discountAmountCents?: bigint;
+    currency?: string;
+    shopExternalId: string;
+    credentials: ProviderCredentials;
+  }): Promise<{ externalCodeId: string }>;
+
+  // OAuth-based providers (Weeztix, Eventbrite, Shopify)
+  oauth?: {
+    authorizeUrl(args: { state: string; redirectUri: string }): string;
+    exchangeCode(args: { code: string; redirectUri: string }): Promise<{
+      accessToken: string;
+      refreshToken: string;
+      accessTokenExpiresAt: Date;
+      refreshTokenExpiresAt?: Date;
+    }>;
+    refresh(args: { refreshToken: string }): Promise<{
+      accessToken: string;
+      refreshToken: string;
+      accessTokenExpiresAt: Date;
+      refreshTokenExpiresAt?: Date;
+    }>;
+  };
+}
+```
+
+## Rules for adding a provider
+
+1. Create `src/lib/providers/{provider}/index.ts` exporting a `TicketingProvider` implementation
+2. Declare capabilities honestly. If the provider has webhooks but they're unsigned, set `webhooks: true` and document the nonce or IP-allowlist mitigation
+3. Add a test fixture set in `src/lib/providers/{provider}/__fixtures__/` with at minimum: a paid order webhook, a refund webhook, a signature-failing payload
+4. Add tests: authenticity verification, parse correctness, idempotency, refund cascade end-to-end
+5. Register the provider in `src/lib/providers/registry.ts`
+6. Add a migration row in `provider_connections` check constraint to allow the new id
+7. Document in `docs/providers/{provider}.md`: auth flow, webhook setup steps, known quirks
+
+## Weeztix (v1)
+
+Reference: `docs/providers/weeztix.md` — authoritative for Weeztix-specific details. Read first.
+
+**Capabilities:**
+
+```ts
+{
+  nativeTrackers: true,
+  webhooks: true,
+  refundEvents: false,                       // refunds inferred from Order.updated
+  refundInferenceField: 'invalidated_since', // confirmed in smoke test #9
+  orderLookup: true,
+  promoCodes: false,                          // deferred to post-MVP
+  reconciliation: true,
+  authenticity: { kind: 'nonce', header: 'OpenTicket-Identifier' },
+  providerSuppliedIdempotencyHeader: 'OpenTicket-Dedupe-Key',
+  retryStatusCode: 400,                       // Weeztix retries on 4xx, NOT 5xx
+}
+```
+
+**Auth:** OAuth2 Authorization Code via `https://auth.openticket.tech/tokens`. Credentials from `apiteam@weeztix.com`. Access tokens expire in 3 days; refresh tokens last ~1 year. Refresh 6 hours before expiry via Inngest cron.
+
+**Tracker creation:**
+```
+POST https://api.weeztix.com/trackers
+Authorization: Bearer <access_token>
+Content-Type: application/x-www-form-urlencoded
+
+shop_id=<guid>&name=<name>&type=Other
+```
+Returns `{ guid, code, name, type, shop_id, created_at, updated_at }`. Store `guid` as `trackers.provider_tracker_id`. The tracker URL is `https://api.weeztix.com/<guid>` which 302s to the shop with attribution attached.
+
+**Webhook creation:**
+```
+POST https://webhooks.weeztix.com/webhook
+Authorization: Bearer <access_token>
+
+name=<descriptive>&url=<our_endpoint>&resource=order&trigger=paid&retries=3
+```
+Subscribe to `order.paid` and `order.updated` separately. Store the returned nonce (in the creation response) per subscription. Webhook URL uses our per-connection secret URL token: `https://ravo.fm/api/webhooks/weeztix/{url_token}/`.
+
+**Webhook headers received:**
+- `OpenTicket-Identifier` — nonce, verify against stored value
+- `OpenTicket-Dedupe-Key` — idempotency key, use directly
+- `OpenTicket-Trigger` — event type, e.g. `order.paid`, `order.updated`
+- `User-Agent: OpenTicket/Webhook`
+- `Content-Type: application/json`
+
+**Payload shape (Order trigger):** see `docs/providers/weeztix.md`. Key fields for normalization:
+- `guid` → `externalOrderId`
+- `shop_id` → `externalShopId`
+- `currency` → `currency`
+- `price` (cents) → `grossAmountCents`
+- `value` + `service_fee` → use `price` as the source of truth for gross
+- `status` → mapped to our normalized status
+- `email` → SHA-256 hash → `buyerEmailHash`
+- `firstname`, `lastname` → discarded (PII rule)
+- `tracking_info.tracker_id` → `attributionHint.trackerExternalId`
+- `tracking_info.click_id` → `attributionHint.refParam`
+- `tracking_info.utm_*` → `attributionHint.utm`
+- `tracking_info.purchaser_ip_address` → truncate to /24, derive country, discard
+- `tickets[]` → mapped to line items
+- `created_at` → `placedAt`
+- `payment.status === 'completed'` ? → `paidAt = updated_at`
+
+**Refund detection on `order.updated`:** check `invalidated_since` (non-null = refund) OR `returns` (non-null = refund). Smoke test confirms exact semantics; document in `docs/providers/weeztix.md`.
+
+**Reconciliation:** confirm via smoke test whether `/orders` supports time-range filters. If yes, daily fetch of last 7 days; if no, escalate to Weeztix.
+
+## Manual UTM (v1, universal fallback)
+
+- `capabilities`: all false except `reconciliation: false`; `authenticity: { kind: 'none' }`; `retryStatusCode: 503`
+- No native trackers, no webhooks, no auth flow
+- The festival pastes the destination URL into Ravo
+- `buildDestinationUrl` appends UTMs + `ref` to whatever URL the festival provided
+- Conversion data comes from either:
+  - A tracking pixel they paste on their thank-you page (POSTs to `/api/webhooks/pixel/{token}`)
+  - A CSV upload via admin UI (parsed, normalized, fed into the same attribution pipeline)
+  - A Zapier/Make bridge they configure pointing to our generic webhook endpoint
+- UI labels Manual UTM data as **"estimated"** vs **"verified"** for native integrations
+- Tier 4 attribution policy applies; cash rewards default to `requires_confirmation`
+
+## Credential handling
+
+- Store encrypted in `provider_connections.credentials_encrypted` (bytea) using pgsodium or Supabase Vault
+- Decrypt only at the moment of use, inside the provider implementation
+- Never log credentials, never include them in error messages
+- Rotate by inserting a new credential and marking the old one `status = 'rotating'`, dual-run for a grace period, then disable old
+
+## Health checks
+
+Every provider integration includes a `healthcheck` method called by an Inngest job every 15 minutes:
+- For webhook-based providers: assert the webhook URL is reachable from their side (some providers expose this; for others, check time since last webhook delivery — if >24h on a known-active campaign, raise alert)
+- For polling/fetch-based: make a trivial authenticated API call
+
+Result writes to `provider_connections.last_healthcheck_at` and `.status`. Status transitions raise notifications to org admins per `notification_preferences`.
+
+## Never do
+
+- Hard-code provider logic outside `src/lib/providers/{provider}/`
+- Add `if (provider === 'weeztix') ...` branches in attribution or rewards engines
+- Skip the capability check before calling an optional method
+- Trust webhook payloads without verification + idempotency check (see `06-webhooks.mdc`)
+- Log raw credentials, webhook nonces, or URL secrets

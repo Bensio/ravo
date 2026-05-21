@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Production
+build/
+dist/
+
+# Env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cursor (keep rules, ignore local state)
+.cursor/state/
+.cursor/cache/
+
+# Email previews
+tmp/email-previews/
+
+# Sentry
+.sentryclirc
+
+# Local notes
+notes.md
+scratch/
+
+# Phase 0 smoke test artifacts
+tmp/weeztix-smoke-results.json
+tmp/weeztix-smoke-webhook.log

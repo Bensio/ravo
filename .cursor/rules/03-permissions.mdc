@@ -1,0 +1,143 @@
+---
+description: RBAC and permissions enforcement. Always applied.
+alwaysApply: true
+---
+
+# Permissions
+
+Three layers, every time. Skipping any one is a security bug.
+
+## Roles
+
+Per-membership, not per-user. Same human can hold different roles in different orgs.
+
+- `owner` — full control + billing + delete org. Only one per org. Transferable.
+- `admin` — all except billing/destructive actions
+- `manager` — ambassadors, campaigns, rewards, opportunities, challenges, content; no settings or integrations
+- `analyst` — read-only dashboards and reports
+- `ambassador` — their own data only, scoped per campaign
+
+## Three-layer enforcement
+
+### Layer 1: Database (RLS)
+
+Every table has RLS policies (see `01-multi-tenancy.mdc`). RLS is the floor — even if the application layer is bypassed, the DB refuses cross-role access.
+
+### Layer 2: API middleware
+
+Every API route in `src/app/api/**` declares its required permission:
+
+```ts
+// src/app/api/campaigns/[id]/route.ts
+import { requirePermission } from '@/lib/auth/permissions';
+
+export const GET = requirePermission('campaign.read', async ({ params, ctx }) => {
+  // ctx.user, ctx.org, ctx.membership are guaranteed set
+  // org-scoped query happens here
+});
+```
+
+The middleware:
+1. Resolves session → user
+2. Resolves active org from request (subdomain, header, or query)
+3. Resolves membership → role
+4. Maps role → permissions
+5. Throws 403 if required permission missing
+6. Sets `app.current_org_id` for RLS
+7. Calls handler with typed `ctx`
+
+CI check: every route file must export handlers wrapped in `requirePermission`. A grep finds untyped exports and fails.
+
+### Layer 3: UI
+
+The UI hides what the user can't access. This is for UX, never for security. A user calling the API directly with curl will be blocked by Layers 1 and 2 even if the UI never showed the button.
+
+```tsx
+const { can } = usePermissions();
+{can('reward.fulfill') && <Button onClick={fulfill}>Mark paid</Button>}
+```
+
+## Permission catalog
+
+Define permissions in `src/lib/auth/permissions.ts`. Each permission maps to which roles can use it:
+
+```ts
+export const PERMISSIONS = {
+  // Org & settings
+  'org.update':            ['owner', 'admin'],
+  'org.delete':            ['owner'],
+  'org.billing':           ['owner'],
+  'org.members.invite':    ['owner', 'admin'],
+  'org.members.update':    ['owner', 'admin'],
+  'org.integrations':      ['owner', 'admin'],
+
+  // Campaigns
+  'campaign.read':         ['owner', 'admin', 'manager', 'analyst'],
+  'campaign.create':       ['owner', 'admin', 'manager'],
+  'campaign.update':       ['owner', 'admin', 'manager'],
+  'campaign.archive':      ['owner', 'admin'],
+
+  // Ambassadors
+  'ambassador.read':       ['owner', 'admin', 'manager', 'analyst'],
+  'ambassador.invite':     ['owner', 'admin', 'manager'],
+  'ambassador.suspend':    ['owner', 'admin', 'manager'],
+
+  // Rewards
+  'reward.rule.create':    ['owner', 'admin', 'manager'],
+  'reward.fulfill':        ['owner', 'admin', 'manager'],
+  'reward.confirm':        ['owner', 'admin', 'manager'], // tier-4 admin confirmation
+  'reward.reverse':        ['owner', 'admin'],
+  'payout.batch.create':   ['owner', 'admin'],
+  'payout.batch.submit':   ['owner', 'admin'],
+
+  // Attribution
+  'attribution.reassign':  ['owner', 'admin'],
+
+  // Reports
+  'report.export':         ['owner', 'admin', 'manager', 'analyst'],
+
+  // Ambassador-self (special: scoped by ambassador_id match)
+  'self.rewards.read':     ['ambassador'],
+  'self.links.read':       ['ambassador'],
+  'self.opportunities.accept': ['ambassador'],
+  // ... etc
+} as const;
+```
+
+## Audit logging
+
+Every action mapped to a permission containing one of `update`, `create`, `delete`, `archive`, `suspend`, `reverse`, `confirm`, `fulfill`, `reassign`, `submit` writes an `audit_log` entry with:
+
+- `actor_user_id`
+- `action` — the permission name
+- `resource_type`, `resource_id`
+- `before` / `after` jsonb
+- `metadata` — IP /24 subnet, user agent
+
+Audit log is insert-only at the RLS level. Never updated, never deleted via the app.
+
+## Org switching
+
+Users with multiple memberships see an org switcher. The active org is stored in:
+- A signed cookie (server-readable)
+- The URL where appropriate (`/[org_slug]/...`)
+
+When the user switches, the cookie updates, the page reloads with the new org context, and all queries re-scope. Never trust the URL param alone — verify against the cookie + membership.
+
+## Sole-owner recovery
+
+If the only owner is locked out:
+1. They request recovery from the login page
+2. Email sent to their verified primary email with a 24-hour cooldown link
+3. After cooldown, link reactivates owner access
+4. If their email is also lost: platform-admin assist via verified ID check (manual process, audit-logged at platform level)
+
+Never expose this as a button anyone clicks instantly.
+
+## Never do
+
+- Check permissions only in the UI
+- Use a service-role Supabase client in a user-facing route to "make the query work"
+- Allow a manager to elevate themselves to admin via any endpoint
+- Skip the audit log on a destructive action because "it's obvious"
+- Send sensitive resources in URLs (use POST + signed body for things like reward IDs)

@@ -1,0 +1,139 @@
+---
+description: Database migrations and schema rules.
+globs:
+  - supabase/migrations/**
+  - src/lib/db/**
+---
+
+# Database
+
+The schema is documented in `docs/data-model.md`. Migrations implement it. Drift between the two = a bug.
+
+## Migration rules
+
+1. **Migrations are append-only.** Once a migration is in `main`, never edit it. Create a new migration to change the schema.
+2. **Filename:** `YYYYMMDDHHMMSS_descriptive_snake_case.sql`. Timestamp must be monotonically increasing across the repo.
+3. **Every migration runs in a single transaction** (Supabase default). Don't disable.
+4. **Every new table includes in the same file:**
+   - `enable row level security`
+   - At least one RLS policy
+   - Required indexes for foreign keys + query patterns documented in data-model.md
+   - Triggers if state machines or audit log writes are needed
+5. **Every new column on an existing table that's nullable today but should be non-null long-term: add as nullable, backfill, add NOT NULL in a follow-up migration.** Never add NOT NULL to a populated table in one shot.
+6. **Update `docs/data-model.md` in the same PR** as the migration. CI fails if migrations changed but data-model.md didn't.
+
+## Migration template
+
+```sql
+-- supabase/migrations/20260521120000_create_campaigns.sql
+
+create table campaigns (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references organizations(id) on delete cascade,
+  event_id uuid not null references events(id) on delete restrict,
+  name text not null,
+  slug text not null,
+  state text not null check (state in ('draft','active','paused','closed','archived')),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  refund_window_days int not null default 14 check (refund_window_days >= 0),
+  tier_definitions jsonb,
+  tier_4_payout_policy text not null default 'requires_confirmation'
+    check (tier_4_payout_policy in ('auto','requires_confirmation','denied')),
+  created_at timestamptz not null default now(),
+  unique (organization_id, slug)
+);
+
+create index campaigns_org_event_idx on campaigns (organization_id, event_id);
+create index campaigns_state_idx on campaigns (organization_id, state) where state = 'active';
+
+alter table campaigns enable row level security;
+
+create policy campaigns_org_select on campaigns
+  for select using (
+    organization_id in (
+      select organization_id from memberships
+      where user_id = auth.uid() and suspended_at is null
+    )
+  );
+
+create policy campaigns_org_write on campaigns
+  for insert with check (
+    organization_id in (
+      select organization_id from memberships
+      where user_id = auth.uid()
+        and role in ('owner','admin','manager')
+        and suspended_at is null
+    )
+  );
+
+create policy campaigns_org_update on campaigns
+  for update using (
+    organization_id in (
+      select organization_id from memberships
+      where user_id = auth.uid()
+        and role in ('owner','admin','manager')
+        and suspended_at is null
+    )
+  );
+
+-- Audit trigger
+create trigger campaigns_audit
+  after insert or update or delete on campaigns
+  for each row execute function audit_log_trigger('campaign');
+
+comment on table campaigns is 'Configured ambassador program for an event. Holds reward rules, challenges, opportunities.';
+comment on column campaigns.tier_definitions is 'null = tiers off; else jsonb array of { name, threshold_sales }';
+comment on column campaigns.tier_4_payout_policy is 'See ADR-008. Default requires_confirmation for cash rewards from tier-4 attributions.';
+```
+
+## DB access from application
+
+Never raw SQL in route files. Always via `src/lib/db/`:
+
+```
+src/lib/db/
+  index.ts             — client factory (per-request, with org context)
+  campaigns.ts         — typed query functions
+  rewards.ts           — typed query functions, includes state machine helper
+  attributions.ts
+  ...
+```
+
+Each query function takes a typed ctx that includes `org_id` and `user_id` (already authenticated). Functions return typed rows.
+
+For complex aggregations: write a view or materialized view in a migration, query the view. Don't inline complex SQL in TS.
+
+## Realtime
+
+Use Supabase Realtime selectively:
+- `activity_events` for the live feed
+- `rewards` for the ambassador-self view (filtered by ambassador_id)
+- `notifications` for the bell badge
+
+Subscriptions are RLS-scoped automatically. Do not subscribe to high-volume tables (`clicks`, `orders`) directly from the client — go through a normalized realtime channel published by the server.
+
+## Indexes
+
+Lookup paths that need indexes (already noted in data-model.md):
+- `links.code` — unique, used by edge redirector
+- `webhook_deliveries.idempotency_key` — unique
+- `orders (organization_id, placed_at desc)`
+- `attributions (organization_id, ambassador_id, created_at desc)`
+- `attributions (order_id)` — unique
+- `rewards (organization_id, ambassador_id, state, created_at desc)`
+- `clicks (organization_id, link_id, created_at desc)` — partitioned table
+- `activity_events (organization_id, occurred_at desc)`
+- `notifications (user_id, read_at, created_at desc)`
+
+## Partitioning
+
+`clicks` and `activity_events` are partitioned monthly (by `created_at` / `occurred_at`). Migration adds partition automation via `pg_partman` or scripted Inngest job (TBD; choose during Phase 2).
+
+## Never do
+
+- Use `text` for enums — use a CHECK constraint or a real enum type
+- Add a column without a default to a table with rows
+- Drop a column in the same migration that adds its replacement — use a multi-step migration
+- Use `cascade` on delete for anything except parent-child relationships where deletion of the parent legitimately means the child no longer exists (e.g., `events → shops` is cascade; `events → campaigns` is restrict to avoid accidental data loss)
+- Skip the comment block; future readers need it

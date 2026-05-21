@@ -1,0 +1,130 @@
+---
+description: PII handling, GDPR compliance, data residency. Always applied.
+alwaysApply: true
+---
+
+# PII and GDPR
+
+Ravo is EU-resident. All data lives in the EU. GDPR is the baseline, not an aspiration.
+
+## What counts as PII here
+
+| Field | Treatment |
+|---|---|
+| User email (auth identity) | Plaintext; encrypted at rest by Supabase; RLS-enforced |
+| Buyer email (from provider webhook) | SHA-256 hashed at ingest; plaintext discarded |
+| Display name, avatar, bio | Plaintext; user-controlled; can be anonymized on deletion |
+| IBAN, account holder name | Encrypted at rest with pgsodium; RLS-enforced; visible only to org owner/admin and Mollie integration |
+| Phone number | If collected: encrypted at rest |
+| Buyer name from order | Not collected. The order line stores only ticket type + amount + hashed buyer email |
+| IP address | Geo-derived (country, region) at the edge, then truncated to /24 for fraud signal; raw IP never persists |
+| Device fingerprint | Hashed UA, OS, browser strings only; no canvas/font fingerprinting |
+| Social handles | Plaintext (these are public anyway); user-controlled |
+
+Tag every PII column in DB with `-- @pii` for the export/deletion tooling.
+
+## Lawful basis
+
+| Processing activity | Basis | Notes |
+|---|---|---|
+| Org member auth | Contract | Org's terms with Ravo |
+| Ambassador auth | Contract | Ambassador's terms with festival via Ravo |
+| Click logging on `go.ravo.fm` | Legitimate interest | Attribution = contractual purpose between festival and ambassador; document this in DPA |
+| Buyer email hashing for attribution | Legitimate interest | Hash, not plaintext; used solely for join logic |
+| Outbound transactional email | Contract / legitimate interest | Account-related; reward updates etc. |
+| Marketing announcements (post-MVP email) | Consent | Opt-in required; one-click unsubscribe |
+
+A DPA template lives in `docs/legal/dpa-template.md` (to be drafted before first paying customer). Festivals sign as data controllers; Ravo is processor.
+
+## Cookies
+
+The redirector sets one first-party cookie:
+- Name: `ravo_v` (visitor id)
+- Value: opaque random uuid
+- HttpOnly: false (needed for client to dedup if it ever runs client-side joins — but currently server-side only, so set HttpOnly: true)
+- Secure: true
+- SameSite: Lax
+- Domain: `.ravo.fm`
+- Max-Age: 1 year
+
+This is a functional/strictly-necessary cookie (it fulfills the click the user just initiated). No banner needed for this. The destination site (the ticketing platform) handles their own consent.
+
+In the app itself (admin and ambassador), no third-party tracking cookies. PostHog runs first-party with anonymized identifiers; opt-out available.
+
+## Data subject rights
+
+### Right to access
+
+User clicks "Export my data" in profile settings. An Inngest job:
+1. Gathers all rows where `user_id = <id>` or `ambassador_id` joins to the user
+2. Includes all `@pii`-tagged columns
+3. Produces a JSON file
+4. Stores temporarily in Supabase Storage with a 24-hour signed URL
+5. Emails the user the link
+
+### Right to erasure (anonymize)
+
+User clicks "Delete my account". A confirmation flow:
+1. 7-day grace period (cancelable from email) — prevents impulsive deletion mistakes
+2. After grace period, an Inngest job runs `anonymize_user(user_id)`:
+   - `users.email` → `deleted_<uuid>@anonymized.ravo.fm`
+   - `users.display_name` → `Deleted User`
+   - `users.avatar_url` → null
+   - `ambassadors.bio` → null, `social_links` → '{}'
+   - `ambassador_payout_details` → all encrypted fields → null
+   - `email_addresses` → all rows deleted
+   - `audit_log` entries: actor_user_id retained (audit integrity), but no joined PII visible
+3. Financial records (rewards, payouts, orders, attributions) retain non-identifying references
+4. A scheduled purge job (Inngest, runs monthly) deletes anonymized records older than 7 years
+5. Audit log entries: `user.deletion_requested`, `user.anonymized`, `user.purged`
+
+Right to erasure does not delete:
+- Order records (financial / tax retention)
+- Audit log entries (legal / forensic requirement)
+- Aggregated/anonymized analytics
+
+### Right to portability
+
+Same as access export, structured JSON.
+
+### Right to rectification
+
+Self-service via profile UI. Org-level corrections (e.g., fixing an attribution) handled in admin with audit log.
+
+## Suppression list
+
+`email_suppressions` is platform-wide. One opt-out applies across all festivals (per ADR-020). Festivals cannot bypass suppression. The list is checked before every outbound email send (both transactional and post-MVP campaigns).
+
+## Provider data handling
+
+Provider webhooks may include buyer emails, names, addresses. Ravo's policy:
+
+- Hash emails at ingest, store hash only
+- Discard names, addresses, phone numbers (we don't need them; festival has them via the provider directly)
+- Document this in the provider integration code with comments
+
+If a future business requirement forces us to retain buyer plaintext (e.g., a refund-handling flow that emails buyers directly), it gets a new ADR and an explicit lawful-basis review.
+
+## Logging and observability
+
+- Sentry: PII filters configured to scrub `email`, `iban`, `account_holder_name`, `phone` fields automatically
+- PostHog: identified events use `user_id` only; never `email` or names; opt-out respected
+- Application logs: no PII. Log `user_id` and `org_id` only
+
+Lint rule: console.log/error/warn with arguments named `email`, `iban`, `*name*` → CI fails.
+
+## Data residency
+
+- Supabase: EU region (Frankfurt or Dublin)
+- Vercel: Frankfurt
+- Upstash Redis: EU
+- Resend: EU sending region
+- Mollie: NL (data stays in EU by default)
+- Sentry: EU instance
+- PostHog: EU Cloud
+
+No US-region services in the data plane. If a service has only US options, it's not in the stack.
+
+## Subprocessors
+
+Maintain a list at `docs/legal/subprocessors.md`. Update before adding any new vendor that processes personal data on behalf of orgs. Notify orgs 30 days before changes (per standard DPA template).

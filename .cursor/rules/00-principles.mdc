@@ -1,0 +1,57 @@
+---
+description: Core product principles for Ravo. Always applied.
+alwaysApply: true
+---
+
+# Ravo product principles
+
+Ravo is a multi-tenant festival ambassador platform: attribution + rewards orchestration between any traffic source (ambassador) and any conversion source (ticketing provider).
+
+## What Ravo IS
+
+- An attribution layer that joins ambassador-driven clicks to real ticket sales
+- A typed-rewards engine where each reward keeps its identity (no points, no internal currency)
+- A challenges and opportunities engine for festival → ambassador engagement
+- Two products in one codebase: admin (festival staff, desktop-first) and ambassador (mobile-first PWA)
+
+## What Ravo is NOT
+
+- Not a ticketing platform (Weeztix and others handle that)
+- Not a bank (no internal currency or wallet)
+- Not an email marketing tool (transactional only for MVP; editor post-launch)
+- Not a single-festival dashboard (multi-tenant from row 1)
+
+## Non-negotiable rules
+
+1. **Multi-tenancy:** every business row has `organization_id`. RLS enforced. Multi-org isolation test must pass on every CI build.
+2. **Rewards are typed objects, never aggregated into points or currency.** A free ticket is a free ticket. €5 is €5. A Heineken wristband is a Heineken wristband.
+3. **Money in integer minor units (`amount_cents bigint`) + ISO currency code.** Never floats. Never `number` for money.
+4. **All timestamps UTC in DB; festival-timezone in display.** Ambassador profile times are in their local zone (only exception).
+5. **PII minimized.** Buyer emails hashed at ingest. IPs truncated to /24 then discarded. PII fields tagged `-- @pii`.
+6. **No sponsor users.** Brands/partners are `collaboration_labels` — metadata, not auth identities.
+7. **Permissions enforced in 3 layers:** RLS (DB), middleware (API), UI (UX only). Never UI-only.
+8. **Webhook handlers idempotent + signature-verified, always.**
+9. **Refund cascades reverse rewards.** Order refunded → attribution invalidated → rewards reversed → audit log → ambassador notified.
+10. **Tier 4 (UTM-only) attributions do not auto-pay cash rewards.** Require admin confirmation. Non-cash rewards on tier 4 fulfill normally.
+11. **Audit log on every money-affecting and destructive action.** Insert-only, never updated/deleted via app.
+12. **GDPR: anonymize, don't delete.** Profile fields replaced; financial records retained 7 years; then purged.
+
+## Stack (locked, no exceptions)
+
+Next.js 15 App Router + TypeScript • Supabase EU • Tailwind + shadcn/ui • Recharts • next-intl (EN, NL) • Upstash Redis • Inngest • Vercel/Cloudflare edge (redirector only) • Resend • Mollie • Sentry • BetterStack • PostHog. All EU-resident.
+
+Do not introduce: GraphQL, microservices, custom auth, separate backend, ORM other than Supabase client + raw SQL where needed.
+
+## Before writing code
+
+1. Read `docs/decisions.md` if the task touches an architectural choice
+2. Read `docs/glossary.md` if you're unsure what a term means here
+3. Read `docs/data-model.md` for the schema; don't invent tables
+4. Check existing `.cursor/rules/` for the relevant scoped rule
+
+## When in doubt
+
+- Pick the boring option
+- Optimize for clarity over cleverness
+- Write the test first when the logic involves money, state transitions, or attribution
+- If you're about to add a "TODO" or "placeholder", stop and ask

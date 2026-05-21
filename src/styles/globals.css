@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import './theme.css';
+
+@layer base {
+  :root {
+    --background: 260 40% 4%;
+    --foreground: 210 40% 98%;
+    --card: 260 35% 8%;
+    --card-foreground: 210 40% 98%;
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 260 25% 14%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 260 40% 4%;
+    --border: 260 25% 18%;
+    --input: 260 25% 18%;
+    --ring: 258 90% 66%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+}

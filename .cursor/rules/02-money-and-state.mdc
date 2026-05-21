@@ -1,0 +1,102 @@
+---
+description: Money handling and reward state machine. Always applied.
+alwaysApply: true
+---
+
+# Money and reward state
+
+Money in Ravo is not a number. It is a typed object. The reward lifecycle is a state machine. The refund cascade is non-negotiable.
+
+## Money representation
+
+Every monetary value in the database and in TypeScript is:
+
+```ts
+type Money = {
+  amount_cents: bigint;  // never a float, never a Number
+  currency: string;      // ISO 4217, 3 chars uppercase, e.g. 'EUR'
+};
+```
+
+Database columns: `amount_cents bigint not null` + `currency char(3) not null`. Never `numeric`, never `decimal`, never `float`, never `double`.
+
+Display formatting happens at the render edge only, via a single helper:
+
+```ts
+formatMoney({ amount_cents, currency }, locale): string
+```
+
+Conversions for multi-currency display use ECB reference rates fetched daily; the rate used is stored on each conversion event. Commissions are calculated in the underlying sale's native currency. Aggregates show the org's `default_currency`.
+
+## Reward state machine
+
+States: `pending` → `confirmed` → `fulfilled`. Terminal: `reversed`.
+
+Allowed transitions:
+
+```
+pending    → confirmed     (refund window passed, no refund occurred)
+pending    → reversed      (refund occurred before window passed)
+confirmed  → fulfilled     (delivered: cash paid, code sent, etc.)
+confirmed  → reversed      (rare; refund after window — see clawback policy)
+fulfilled  → reversed      (refund after fulfillment; cash → clawback queue or write-off)
+```
+
+All other transitions are forbidden and must throw. State changes go through a single helper that:
+
+1. Reads the current state in a transaction (SELECT ... FOR UPDATE)
+2. Validates the transition is allowed
+3. Writes the new state + timestamp
+4. Appends an `audit_log` entry
+5. Emits a notification if required
+
+Never `update rewards set state = ...` directly anywhere. Always via the helper.
+
+## Tier-4 attribution & cash rewards
+
+Per ADR-008: cash rewards from tier-4 attributions are created with `requires_admin_confirmation = true`. They cannot transition `confirmed → fulfilled` until `admin_confirmed_at` is set. The admin UI surfaces these in a "needs review" queue per campaign.
+
+Festival can override via `campaigns.tier_4_payout_policy`:
+- `'auto'` — tier-4 cash auto-confirms like tier 1–3
+- `'requires_confirmation'` — default
+- `'denied'` — tier-4 attributions never emit cash rewards (non-cash still emit)
+
+## Refund cascade
+
+When a refund webhook arrives (or reconciliation detects a refund):
+
+```
+1. Mark the order: status → 'refunded' or 'partially_refunded', adjust net_amount_cents
+2. Insert a `refunds` row with cascade_applied = false
+3. Find the attribution for the order
+4. If full refund: attribution.state → 'invalidated', invalidation_reason = 'order_refunded'
+5. For each reward derived from that attribution:
+     a. If reward.state in ('pending','confirmed'): state → 'reversed', reversed_at = now()
+     b. If reward.state = 'fulfilled' and reversible (cash not yet paid out):
+          state → 'reversed', queue clawback (deduct from next payout batch)
+     c. If reward.state = 'fulfilled' and not reversible:
+          state → 'reversed', flag for write-off (festival-configurable threshold)
+6. For each affected reward, write audit_log + notification to ambassador
+7. Mark refunds.cascade_applied = true, cascade_applied_at = now()
+```
+
+Partial refunds: prorate by line items if the refunded items can be identified; otherwise treat as full refund of the most recent matching line item. Document the rule applied in `refunds.metadata`.
+
+The cascade runs inside an Inngest job with retry + dead-letter. If the cascade fails midway, the job retries; idempotency keys ensure no double-reversal.
+
+## Currency in multi-currency orgs
+
+For now (v1), assume each org has a single `default_currency` and all rewards in that currency. Orders in other currencies are recorded with their native currency for accuracy but the dashboard converts to the org default for aggregate display.
+
+When an org enables multi-currency rewards (post-MVP): each reward instance stores its own currency. Aggregations group by currency or convert via stored daily rate. Never silently mix currencies in a sum.
+
+## Lint rules / CI checks
+
+- No `number` type for any field named `*_amount*`, `*_cents`, `*price*`, `*cost*`, `*commission*`. Use `bigint`.
+- No `parseFloat`/`Number()` on amount fields anywhere
+- Direct `update rewards set state` in code → CI fails
+- New reward type without an entry in the state machine helper → CI fails
+
+## When in doubt
+
+If you're tempted to do "just this once" with floats or skip the state machine, the right move is to stop and add a test that proves the right behavior, then implement it the right way. Money bugs do not stay small.

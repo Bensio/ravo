@@ -1,0 +1,139 @@
+---
+description: Attribution engine. Tiered waterfall, refund handling, dispute flows.
+globs:
+  - src/lib/attribution/**
+  - src/app/api/attribution/**
+---
+
+# Attribution
+
+Server-side only. The accuracy of money depends on this code.
+
+## The four-tier waterfall
+
+When an order arrives (via webhook), the engine attempts attribution in tier order:
+
+```
+Tier 1 — Native tracker ID in webhook payload
+  Provider's webhook includes its tracker GUID
+  We look up: trackers WHERE provider_tracker_id = ? AND provider_connection_id = ?
+  → links → ambassador_id
+  Confidence: 0.99
+
+Tier 2 — Click ID echoed via custom URL param
+  Provider's order metadata includes ?ref=<click_id> we set at redirect
+  We look up: clicks WHERE id = <click_id>
+  → links → ambassador_id
+  Confidence: 0.95
+
+Tier 3 — First-party cookie match on buyer email hash
+  Provider includes buyer email; we hash and check:
+  Did this buyer visit any link in the last 30 days?
+  → visitors → clicks → links → ambassador_id
+  Last-click attribution within 30-day window
+  Confidence: 0.80
+
+Tier 4 — UTM + 7-day click window match
+  Provider's order metadata includes UTM parameters
+  We match utm_content (ambassador slug) against active ambassador_campaigns
+  Last click on a link with that ambassador's UTMs in last 7 days
+  Confidence: 0.60
+```
+
+Take the **first** tier that produces a match. Don't try lower tiers if a higher one fired.
+
+## Stored attribution
+
+Insert into `attributions`:
+- `tier` — 1–4
+- `confidence` — the value above
+- `signal` — string: `'native_tracker' | 'ref_param' | 'cookie_email_hash' | 'utm_window'`
+- `link_id`, `click_id`, `visitor_id`, `ambassador_id`, `campaign_id` — populated to whatever depth the tier provides
+- `state = 'active'`
+
+If no tier produces a match: insert nothing. The order is "unattributed". The dashboard surfaces unattributed sales with their conversion data so the festival can investigate.
+
+## Reward emission
+
+After attribution succeeds, run the reward rules engine for that order:
+
+```
+For each active reward_rule in the campaign:
+  Evaluate eligibility (tier, custom ambassadors, performance gates)
+  Evaluate trigger (per_sale + matches this order? milestone hit? etc.)
+  If matched:
+    Compute reward payload from rule.reward_config + order context
+    If reward_type == 'cash' AND attribution.tier == 4 AND campaign.tier_4_payout_policy == 'requires_confirmation':
+      Insert reward with requires_admin_confirmation = true
+    If reward_type == 'cash' AND campaign.tier_4_payout_policy == 'denied' AND attribution.tier == 4:
+      Skip
+    Else: insert reward normally
+    Decrement reward_rule.inventory_remaining if capped
+    Insert audit_log
+    Enqueue notification
+```
+
+The engine is pure where possible (input order + rules → list of reward instances to insert), with side effects (DB writes, notifications) at the boundary.
+
+## Refund cascade
+
+See `02-money-and-state.mdc`. The refund handler:
+1. Reads the existing attribution for the refunded order
+2. Sets `attributions.state = 'invalidated'`, `invalidation_reason = 'order_refunded'`
+3. Triggers reward reversal cascade
+
+Partial refunds: prorate where line items are identifiable; otherwise treat as full refund of newest matching items. Document the rule applied.
+
+## Dispute / re-attribution
+
+Admin UI exposes per-order trace:
+```
+Order #ABC123 — €100 EUR
+Buyer: hash:8f3a... — placed 2026-05-18 14:32 (festival tz)
+
+Click chain:
+  2026-05-11 09:14 | Jesse | go.ravo.fm/k3p2x9 | Instagram bio
+  2026-05-15 19:02 | Monse | go.ravo.fm/m7q1z8 | TikTok story
+  2026-05-18 14:28 | Jesse | go.ravo.fm/k3p2x9 | Instagram story  ← last click
+
+Attribution: Jesse (tier 2 via ref param)
+  Confidence: 0.95
+  Signal: ref_param
+
+[Reassign] [Mark as fraud] [Mark as unattributed]
+```
+
+Reassignment requires `attribution.reassign` permission. Writes an audit log entry. If reassignment changes the ambassador:
+1. Reverse rewards from old ambassador (state → reversed, reason = 'attribution_reassigned')
+2. Re-run reward rules for new ambassador
+3. Notify both ambassadors
+
+## Bot and fraud filtering
+
+Before recording a click:
+- User agent matches known bot patterns → log with `bot: true`, exclude from attribution
+- Same `user_agent_hash` + IP /24 hits the same link > 50 times in 5 minutes → flag, exclude
+- Click from datacenter ASN → flag, still log but lower confidence in tier 3/4
+
+Self-purchase detection (runs as Inngest job on each attribution):
+- Buyer email hash matches ambassador's `users.email` hash → flag, hold reward
+- Buyer IP /24 matches click IP /24 from the same ambassador's last 24h of clicks → flag for admin review
+- Flagged rewards go into `hold` state (extends pending until admin reviews)
+
+## Performance
+
+Attribution runs inside the webhook transaction (see `06-webhooks.mdc`). It must be fast:
+- Tier 1: single indexed lookup, <5ms
+- Tier 2: single indexed lookup, <5ms
+- Tier 3: indexed lookup on visitor cookies; expect <20ms
+- Tier 4: indexed lookup on clicks by campaign + utm_content + time window; expect <30ms
+
+Indexes (see `docs/data-model.md`) ensure this.
+
+## Never do
+
+- Run attribution on the client
+- Skip the audit log on reassignment
+- Trust UTM data without a baseline guard (a UTM with a non-existent ambassador slug → unattributed, never auto-create the ambassador)
+- Process a refund cascade outside a transaction
+- Use floats for confidence (use numeric(4,3) in DB, number in TS — confidence is 0–1, not currency)
