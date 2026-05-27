@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import type { Permission } from './permissions';
+import { roleHasPermission, type Permission } from './permissions';
+import { getSessionUser } from './session';
+import { resolveActiveOrg } from './org-context';
+import type { Role } from './permissions';
 
 export type RequestContext = {
   user: { id: string; email: string };
-  org: { id: string; slug: string };
-  membership: { role: string };
+  org: { id: string; slug: string; name: string };
+  membership: { role: Role; organizationId: string };
 };
 
 type RouteHandlerArgs = {
@@ -14,20 +17,32 @@ type RouteHandlerArgs = {
 
 type RouteHandler = (args: RouteHandlerArgs) => Promise<Response> | Response;
 
-/**
- * Wraps API route handlers with permission enforcement (Layer 2).
- * Resolves session, org, membership — then calls the handler with typed ctx.
- * Full implementation ships in Phase 1; scaffold returns 501 until auth is wired.
- */
 export function requirePermission(permission: Permission, handler: RouteHandler) {
-  void permission;
+  return async function routeHandler(
+    _request: Request,
+    segmentData: { params: Promise<Record<string, string>> },
+  ): Promise<Response> {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
 
-  return async function routeHandler(): Promise<Response> {
-    // TODO Phase 1: resolve session → user, org from cookie, membership → role
-    void handler;
-    return NextResponse.json(
-      { error: 'not_implemented', message: 'Auth middleware not wired yet' },
-      { status: 501 },
-    );
+    const resolved = await resolveActiveOrg(user.id);
+    if (!resolved) {
+      return NextResponse.json({ error: 'no_organization' }, { status: 403 });
+    }
+
+    if (!roleHasPermission(resolved.membership.role, permission)) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    }
+
+    return handler({
+      params: segmentData.params,
+      ctx: {
+        user,
+        org: resolved.org,
+        membership: resolved.membership,
+      },
+    });
   };
 }
