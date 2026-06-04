@@ -18,7 +18,7 @@ export default async function AmbassadorLayout({ children, params }: Props) {
   }
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="ravo-shell-bg min-h-screen pb-20">
       {children}
       <AmbassadorBottomNav locale={locale} />
     </div>

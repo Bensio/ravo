@@ -1,40 +1,42 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-
-const NAV_ITEMS = [
-  { key: 'overview', href: 'overview' },
-  { key: 'ambassadors', href: 'ambassadors' },
-  { key: 'tracklinks', href: 'tracklinks' },
-  { key: 'salesFeed', href: 'sales-feed' },
-  { key: 'rewards', href: 'rewards' },
-  { key: 'settings', href: 'settings' },
-] as const;
+import { RavoLogo } from '@/components/shared/ravo-logo';
+import { AdminNavLink } from './admin-nav-link';
+import { ADMIN_NAV_ITEMS } from './admin-nav-config';
+import { AdminEventCard } from './admin-event-card';
+import { AdminSidebarUser } from './admin-sidebar-user';
 
 export async function AdminSidebar({
   locale,
   orgSlug,
+  userEmail,
+  userRole,
 }: {
   locale: string;
   orgSlug: string;
+  userEmail: string;
+  userRole: string;
 }) {
   const t = await getTranslations('admin.nav');
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card p-4">
-      <p className="mb-6 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Ravo
-      </p>
-      <nav className="flex flex-1 flex-col gap-1">
-        {NAV_ITEMS.map((item) => (
-          <Link
+    <aside className="ravo-sidebar flex w-[15.5rem] shrink-0 flex-col border-r border-white/[0.06]">
+      <div className="flex h-16 items-center border-b border-white/[0.06] px-4">
+        <RavoLogo />
+      </div>
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
+        {ADMIN_NAV_ITEMS.map((item) => (
+          <AdminNavLink
             key={item.key}
             href={`/${locale}/${orgSlug}/${item.href}`}
-            className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            {t(item.key)}
-          </Link>
+            label={t(item.key)}
+            iconName={item.iconName}
+          />
         ))}
       </nav>
+      <div className="shrink-0 space-y-3 border-t border-white/[0.06] p-4">
+        <AdminEventCard />
+        <AdminSidebarUser email={userEmail} role={userRole} />
+      </div>
     </aside>
   );
 }

@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import { RavoLogo } from '@/components/shared/ravo-logo';
 import { LoginForm } from './login-form';
 import { getSessionUser } from '@/lib/auth/session';
 import { getUserMemberships } from '@/lib/auth/org-context';
@@ -26,14 +27,15 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const t = await getTranslations('auth');
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold">{t('loginTitle')}</h1>
+    <main className="ravo-shell-bg flex min-h-screen flex-col items-center justify-center p-6">
+      <div className="ravo-glass-panel w-full max-w-md space-y-6 p-8">
+        <div className="flex flex-col items-center text-center">
+          <RavoLogo className="mb-4" />
+          <h1 className="text-2xl font-semibold tracking-tight">{t('loginTitle')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t('loginSubtitle')}</p>
         </div>
         {query.reason === 'expired' && (
-          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
             {t('linkExpired')}
           </p>
         )}

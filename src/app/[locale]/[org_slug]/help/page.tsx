@@ -1,14 +1,11 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { PageShell } from '@/components/shared/page-shell';
 
-type Props = {
-  params: Promise<{ locale: string; org_slug: string }>;
-};
+type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
-export default async function OverviewPage({ params }: Props) {
+export default async function HelpPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('admin.overview');
-
+  const t = await getTranslations('admin.help');
   return <PageShell title={t('title')} description={t('empty')} />;
 }

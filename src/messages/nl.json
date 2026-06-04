@@ -2,7 +2,8 @@
   "common": {
     "appName": "Ravo",
     "loading": "Laden…",
-    "error": "Er ging iets mis"
+    "error": "Er ging iets mis",
+    "signOut": "Uitloggen"
   },
   "marketing": {
     "tagline": "Festival-ambassadeur attributie en beloningen",
@@ -29,15 +30,79 @@
   "admin": {
     "nav": {
       "overview": "Overzicht",
+      "leaderboard": "Leaderboard",
+      "analytics": "Analytics",
       "ambassadors": "Ambassadeurs",
+      "content": "Content",
       "tracklinks": "Tracklinks",
       "salesFeed": "Verkoopfeed",
       "rewards": "Beloningen",
-      "settings": "Instellingen"
+      "reports": "Rapporten",
+      "settings": "Instellingen",
+      "help": "Help & support"
+    },
+    "roles": {
+      "owner": "Eigenaar",
+      "admin": "Admin",
+      "manager": "Manager",
+      "analyst": "Analist"
+    },
+    "sidebarUser": {
+      "nameRole": "{name} ({role})"
+    },
+    "header": {
+      "greeting": "Welkom terug, {name}",
+      "subtitle": "Zo presteren je festival creators op dit moment.",
+      "notifications": "Meldingen"
+    },
+    "eventCard": {
+      "label": "Actief event",
+      "noEventTitle": "Nog geen event",
+      "noEventHint": "Maak een event en campagne aan om festivaldata hier te zien."
     },
     "overview": {
       "title": "Overzicht",
-      "empty": "Nog geen data. Koppel een ticketprovider wanneer je klaar bent."
+      "empty": "KPI-kaarten, grafieken, top-ambassadeurs, live activity en fastest-growing uit het design komen in fase 5 zodra attributiedata er is."
+    },
+    "leaderboard": {
+      "title": "Leaderboard",
+      "empty": "Volledige ambassadeur-ranglijsten voor festivalstaff. Podium en top-10 volgen het mockup in fase 5."
+    },
+    "analytics": {
+      "title": "Analytics",
+      "empty": "Diepere funnel- en cohort-analyse naast het overzichtsdashboard. Gepland na de kernmetrics live zijn."
+    },
+    "ambassadors": {
+      "title": "Ambassadeurs",
+      "empty": "Nodig ambassadeurs uit en koppel ze aan campagnes. Volgt in de volgende sprint."
+    },
+    "content": {
+      "title": "Content",
+      "empty": "Best presterende posts en assets (bv. aftermovie) met verkopen en conversie per stuk."
+    },
+    "tracklinks": {
+      "title": "Tracklinks",
+      "empty": "Maak korte links voor ambassadeurs in fase 2. Elke link logt clicks door naar je ticketshop."
+    },
+    "salesFeed": {
+      "title": "Verkoopfeed",
+      "empty": "Toegeschreven ticketverkopen verschijnen hier na koppeling met Weeztix of een andere provider."
+    },
+    "rewards": {
+      "title": "Beloningen",
+      "empty": "Stel beloningsregels in en verzilver perks. Wordt gebouwd na live attributie."
+    },
+    "reports": {
+      "title": "Rapporten",
+      "empty": "Exporteerbare rapporten voor finance en nazorg. Beschikbaar zodra verkoop- en beloningsdata loopt."
+    },
+    "settings": {
+      "title": "Instellingen",
+      "empty": "Organisatie-instellingen en ticketintegraties (Weeztix OAuth) komen in fase 3."
+    },
+    "help": {
+      "title": "Help & support",
+      "empty": "Documentatie, statuspagina en contact voor je team komen hier."
     }
   },
   "ambassador": {
@@ -51,7 +116,27 @@
     },
     "home": {
       "title": "Home",
-      "dayZero": "Je ambassadeur-dashboard toont hier clicks, verkopen en beloningen."
+      "dayZero": "Je feed toont clicks, verkopen en nieuwe beloningen zodra je op een actieve campagne zit."
+    },
+    "share": {
+      "title": "Delen",
+      "empty": "Je persoonlijke tracklinks en QR-codes komen hier in fase 2."
+    },
+    "stats": {
+      "title": "Stats",
+      "empty": "Clicks, verkopen en tier-voortgang voor dit festival komen hier."
+    },
+    "rewards": {
+      "title": "Beloningen",
+      "empty": "Gratis tickets, cash en partner-perks die je verdient verschijnen hier met duidelijke vervolgstappen."
+    },
+    "community": {
+      "title": "Community",
+      "empty": "Leaderboard en challenges met andere ambassadeurs komen met de engagement-engine."
+    },
+    "profile": {
+      "title": "Profiel",
+      "empty": "Werk je handle, socials en uitbetalingsgegevens bij wanneer die flows live zijn."
     }
   }
 }

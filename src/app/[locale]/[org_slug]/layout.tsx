@@ -32,11 +32,22 @@ export default async function AdminOrgLayout({ children, params }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <AdminSidebar locale={locale} orgSlug={org_slug} />
-      <div className="flex min-h-screen flex-1 flex-col">
-        <AdminHeader orgName={membership.org.name} email={user.email} />
-        <main className="flex-1 p-6">{children}</main>
+    <div className="ravo-shell-bg flex min-h-screen">
+      <AdminSidebar
+        locale={locale}
+        orgSlug={org_slug}
+        userEmail={user.email}
+        userRole={membership.role}
+      />
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <AdminHeader
+          orgName={membership.org.name}
+          orgId={membership.org.id}
+          email={user.email}
+          locale={locale}
+          orgs={memberships.map((m) => m.org)}
+        />
+        <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

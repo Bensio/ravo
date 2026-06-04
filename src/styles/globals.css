@@ -12,14 +12,14 @@
     --card-foreground: 210 40% 98%;
     --primary: 258 90% 66%;
     --primary-foreground: 0 0% 100%;
-    --muted: 260 25% 14%;
-    --muted-foreground: 215 16% 65%;
+    --muted: 260 28% 12%;
+    --muted-foreground: 215 16% 62%;
     --accent: 43 96% 56%;
     --accent-foreground: 260 40% 4%;
-    --border: 260 25% 18%;
-    --input: 260 25% 18%;
+    --border: 260 22% 16%;
+    --input: 260 22% 20%;
     --ring: 258 90% 66%;
-    --radius: 0.5rem;
+    --radius: 0.625rem;
   }
 
   * {
@@ -27,7 +27,23 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: var(--font-sans), system-ui, sans-serif;
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .ravo-shell-bg {
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -10%, hsl(var(--primary) / 0.12), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 100% 0%, hsl(var(--primary) / 0.06), transparent 50%),
+      hsl(var(--background));
+  }
+
+  .ravo-sidebar {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.95) 0%, hsl(260 35% 6%) 100%);
+  }
+
+  .ravo-glass-panel {
+    @apply rounded-2xl border border-white/[0.06] bg-card/70 shadow-lg shadow-black/20 backdrop-blur-md;
   }
 }

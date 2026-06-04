@@ -2,7 +2,8 @@
   "common": {
     "appName": "Ravo",
     "loading": "Loading…",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "signOut": "Sign out"
   },
   "marketing": {
     "tagline": "Festival ambassador attribution and rewards",
@@ -29,15 +30,79 @@
   "admin": {
     "nav": {
       "overview": "Overview",
+      "leaderboard": "Leaderboard",
+      "analytics": "Analytics",
       "ambassadors": "Ambassadors",
+      "content": "Content",
       "tracklinks": "Tracklinks",
       "salesFeed": "Sales feed",
       "rewards": "Rewards",
-      "settings": "Settings"
+      "reports": "Reports",
+      "settings": "Settings",
+      "help": "Help & Support"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "manager": "Manager",
+      "analyst": "Analyst"
+    },
+    "sidebarUser": {
+      "nameRole": "{name} ({role})"
+    },
+    "header": {
+      "greeting": "Welcome back, {name}",
+      "subtitle": "Here's how your festival creators are performing right now.",
+      "notifications": "Notifications"
+    },
+    "eventCard": {
+      "label": "Active event",
+      "noEventTitle": "No event yet",
+      "noEventHint": "Create an event and campaign to see festival dates here."
     },
     "overview": {
       "title": "Overview",
-      "empty": "No data yet. Connect a ticketing provider when ready."
+      "empty": "KPI cards, charts, top ambassadors, live activity, and fastest-growing widgets from the design mockup wire up in Phase 5 once attribution data exists."
+    },
+    "leaderboard": {
+      "title": "Leaderboard",
+      "empty": "Full ambassador rankings for festival staff. Podium and top-10 views match the mockup in Phase 5."
+    },
+    "analytics": {
+      "title": "Analytics",
+      "empty": "Deeper funnel and cohort analysis beyond the overview dashboard. Planned after core metrics are live."
+    },
+    "ambassadors": {
+      "title": "Ambassadors",
+      "empty": "Invite ambassadors and assign them to campaigns. Coming in the next sprint."
+    },
+    "content": {
+      "title": "Content",
+      "empty": "Top-performing posts and assets (e.g. aftermovie drops) appear here with sales and conversion per piece."
+    },
+    "tracklinks": {
+      "title": "Tracklinks",
+      "empty": "Create short links for ambassadors in Phase 2. Each link logs clicks and forwards to your ticket shop."
+    },
+    "salesFeed": {
+      "title": "Sales feed",
+      "empty": "Attributed ticket sales will stream here after Weeztix (or another provider) is connected."
+    },
+    "rewards": {
+      "title": "Rewards",
+      "empty": "Configure reward rules and fulfill perks. Built after attribution is live."
+    },
+    "reports": {
+      "title": "Reports",
+      "empty": "Exportable reports for finance and post-festival review. Available once sales and rewards data is flowing."
+    },
+    "settings": {
+      "title": "Settings",
+      "empty": "Organization settings and ticketing integrations (Weeztix OAuth) land in Phase 3."
+    },
+    "help": {
+      "title": "Help & Support",
+      "empty": "Documentation, status page, and contact options for your team will live here."
     }
   },
   "ambassador": {
@@ -51,7 +116,27 @@
     },
     "home": {
       "title": "Home",
-      "dayZero": "Your ambassador dashboard will show clicks, sales, and rewards here."
+      "dayZero": "Your feed will show clicks, sales, and new rewards once you are on an active campaign."
+    },
+    "share": {
+      "title": "Share",
+      "empty": "Your personal tracklinks and QR codes will live here in Phase 2."
+    },
+    "stats": {
+      "title": "Stats",
+      "empty": "Clicks, sales, and tier progress for this festival will show here."
+    },
+    "rewards": {
+      "title": "Rewards",
+      "empty": "Free tickets, cash, and partner perks you earn will appear here with clear next steps."
+    },
+    "community": {
+      "title": "Community",
+      "empty": "Leaderboard and challenges with other ambassadors arrive with the engagement engine."
+    },
+    "profile": {
+      "title": "Profile",
+      "empty": "Update your handle, social links, and payout details when those flows are wired."
     }
   }
 }

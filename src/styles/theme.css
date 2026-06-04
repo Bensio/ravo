@@ -6,4 +6,6 @@
   --ravo-accent-2: #fbbf24;
   --ravo-text: #f8fafc;
   --ravo-text-muted: #94a3b8;
+  --ravo-border-subtle: rgba(255, 255, 255, 0.06);
+  --ravo-glow: rgba(139, 92, 246, 0.35);
 }

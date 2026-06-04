@@ -35,7 +35,7 @@ export function LoginForm({ locale }: { locale: string }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
       <Button type="submit" className="w-full" disabled={status === 'loading'}>
