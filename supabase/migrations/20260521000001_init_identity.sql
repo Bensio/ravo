@@ -61,14 +61,7 @@ comment on column organizations.billing_email is '@pii — used for invoices and
 
 alter table organizations enable row level security;
 
--- Members can read their orgs
-create policy organizations_member_select on organizations
-  for select using (
-    id in (
-      select organization_id from memberships
-      where user_id = auth.uid() and suspended_at is null
-    )
-  );
+-- organizations_member_select is created after memberships (policy references memberships).
 
 -- ============================================================================
 -- memberships
@@ -119,6 +112,15 @@ create policy memberships_org_update on memberships
   );
 
 -- Only owners can transfer ownership or remove other owners (enforced in app layer too)
+
+-- Members can read orgs they belong to (requires memberships table)
+create policy organizations_member_select on organizations
+  for select using (
+    id in (
+      select organization_id from memberships
+      where user_id = auth.uid() and suspended_at is null
+    )
+  );
 
 -- ============================================================================
 -- invitations
