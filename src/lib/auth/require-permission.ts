@@ -27,7 +27,10 @@ export function requirePermission(permission: Permission, handler: RouteHandler)
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }
 
-    const resolved = await resolveActiveOrg(user.id);
+    const params = await segmentData.params;
+    const resolved = await resolveActiveOrg(user.id, {
+      orgSlug: typeof params.org_slug === 'string' ? params.org_slug : null,
+    });
     if (!resolved) {
       return NextResponse.json({ error: 'no_organization' }, { status: 403 });
     }

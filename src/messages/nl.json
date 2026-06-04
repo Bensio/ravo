@@ -15,7 +15,8 @@
     "sendMagicLink": "Stuur magic link",
     "sending": "Versturen…",
     "checkEmail": "Check je e-mail voor de inloglink.",
-    "loginError": "Link versturen mislukt. Probeer opnieuw."
+    "loginError": "Inloggen mislukt. Vraag een nieuwe magic link aan.",
+    "linkExpired": "Die inloglink is verlopen. Vraag hieronder een nieuwe aan."
   },
   "onboarding": {
     "title": "Maak je organisatie aan",

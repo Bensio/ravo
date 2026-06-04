@@ -58,9 +58,16 @@ export async function getUserMemberships(userId: string) {
   });
 }
 
+export type ResolveActiveOrgOptions = {
+  /** Prefer org from URL path segment (admin routes). */
+  orgSlug?: string | null;
+  /** Prefer org by id (e.g. from cookie or explicit switch). */
+  orgId?: string | null;
+};
+
 export async function resolveActiveOrg(
   userId: string,
-  preferredOrgId?: string | null,
+  options?: ResolveActiveOrgOptions,
 ): Promise<{ org: ActiveOrg; membership: MembershipContext } | null> {
   const memberships = await getUserMemberships(userId);
   if (memberships.length === 0) {
@@ -68,25 +75,18 @@ export async function resolveActiveOrg(
   }
 
   const cookieStore = await cookies();
-  const cookieOrgId = preferredOrgId ?? cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
+  const cookieOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
 
-  const match = cookieOrgId
-    ? memberships.find((m) => m.org.id === cookieOrgId) ?? memberships[0]
-    : memberships[0];
+  const match =
+    (options?.orgSlug
+      ? memberships.find((m) => m.org.slug === options.orgSlug)
+      : undefined) ??
+    (options?.orgId ? memberships.find((m) => m.org.id === options.orgId) : undefined) ??
+    (cookieOrgId ? memberships.find((m) => m.org.id === cookieOrgId) : undefined) ??
+    memberships[0];
 
   return {
     org: { id: match.org.id, slug: match.org.slug, name: match.org.name },
     membership: { role: match.role, organizationId: match.organizationId },
   };
-}
-
-export async function setActiveOrgCookie(orgId: string) {
-  const cookieStore = await cookies();
-  cookieStore.set(ACTIVE_ORG_COOKIE, orgId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 365,
-  });
 }

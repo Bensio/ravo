@@ -15,7 +15,8 @@
     "sendMagicLink": "Send magic link",
     "sending": "Sending…",
     "checkEmail": "Check your email for the sign-in link.",
-    "loginError": "Could not send the link. Try again."
+    "loginError": "Could not sign in. Request a new magic link.",
+    "linkExpired": "That sign-in link expired. Request a new one below."
   },
   "onboarding": {
     "title": "Create your organization",

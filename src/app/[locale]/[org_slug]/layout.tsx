@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { getSessionUser } from '@/lib/auth/session';
-import { getUserMemberships, setActiveOrgCookie } from '@/lib/auth/org-context';
+import { getUserMemberships } from '@/lib/auth/org-context';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
 
@@ -30,8 +30,6 @@ export default async function AdminOrgLayout({ children, params }: Props) {
   if (!STAFF_ROLES.has(membership.role)) {
     redirect(`/${locale}/app/home`);
   }
-
-  await setActiveOrgCookie(membership.org.id);
 
   return (
     <div className="flex min-h-screen">

@@ -6,10 +6,12 @@ import { getUserMemberships } from '@/lib/auth/org-context';
 
 type Props = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ error?: string; reason?: string }>;
 };
 
-export default async function LoginPage({ params }: Props) {
+export default async function LoginPage({ params, searchParams }: Props) {
   const { locale } = await params;
+  const query = await searchParams;
   setRequestLocale(locale);
 
   const user = await getSessionUser();
@@ -30,6 +32,14 @@ export default async function LoginPage({ params }: Props) {
           <h1 className="text-2xl font-semibold">{t('loginTitle')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t('loginSubtitle')}</p>
         </div>
+        {query.reason === 'expired' && (
+          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+            {t('linkExpired')}
+          </p>
+        )}
+        {query.error === 'auth' && query.reason !== 'expired' && (
+          <p className="text-sm text-red-400">{t('loginError')}</p>
+        )}
         <LoginForm locale={locale} />
       </div>
     </main>
