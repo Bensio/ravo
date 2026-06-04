@@ -5,6 +5,52 @@
     "error": "Something went wrong"
   },
   "marketing": {
-    "tagline": "Festival ambassador attribution and rewards"
+    "tagline": "Festival ambassador attribution and rewards",
+    "signIn": "Sign in"
+  },
+  "auth": {
+    "loginTitle": "Sign in to Ravo",
+    "loginSubtitle": "We'll email you a magic link — no password needed.",
+    "emailLabel": "Email",
+    "sendMagicLink": "Send magic link",
+    "sending": "Sending…",
+    "checkEmail": "Check your email for the sign-in link.",
+    "loginError": "Could not send the link. Try again."
+  },
+  "onboarding": {
+    "title": "Create your organization",
+    "subtitle": "Any festival can use Ravo. This creates your workspace.",
+    "orgName": "Organization name",
+    "orgSlug": "URL slug (lowercase, hyphens)",
+    "create": "Create organization",
+    "creating": "Creating…"
+  },
+  "admin": {
+    "nav": {
+      "overview": "Overview",
+      "ambassadors": "Ambassadors",
+      "tracklinks": "Tracklinks",
+      "salesFeed": "Sales feed",
+      "rewards": "Rewards",
+      "settings": "Settings"
+    },
+    "overview": {
+      "title": "Overview",
+      "empty": "No data yet. Connect a ticketing provider when ready."
+    }
+  },
+  "ambassador": {
+    "nav": {
+      "home": "Home",
+      "share": "Share",
+      "stats": "Stats",
+      "rewards": "Rewards",
+      "community": "Community",
+      "profile": "Profile"
+    },
+    "home": {
+      "title": "Home",
+      "dayZero": "Your ambassador dashboard will show clicks, sales, and rewards here."
+    }
   }
 }

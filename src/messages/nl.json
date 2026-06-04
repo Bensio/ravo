@@ -5,6 +5,52 @@
     "error": "Er ging iets mis"
   },
   "marketing": {
-    "tagline": "Festival-ambassadeur attributie en beloningen"
+    "tagline": "Festival-ambassadeur attributie en beloningen",
+    "signIn": "Inloggen"
+  },
+  "auth": {
+    "loginTitle": "Inloggen bij Ravo",
+    "loginSubtitle": "We sturen je een magic link — geen wachtwoord nodig.",
+    "emailLabel": "E-mail",
+    "sendMagicLink": "Stuur magic link",
+    "sending": "Versturen…",
+    "checkEmail": "Check je e-mail voor de inloglink.",
+    "loginError": "Link versturen mislukt. Probeer opnieuw."
+  },
+  "onboarding": {
+    "title": "Maak je organisatie aan",
+    "subtitle": "Elk festival kan Ravo gebruiken. Dit maakt je workspace aan.",
+    "orgName": "Organisatienaam",
+    "orgSlug": "URL-slug (kleine letters, koppeltekens)",
+    "create": "Organisatie aanmaken",
+    "creating": "Aanmaken…"
+  },
+  "admin": {
+    "nav": {
+      "overview": "Overzicht",
+      "ambassadors": "Ambassadeurs",
+      "tracklinks": "Tracklinks",
+      "salesFeed": "Verkoopfeed",
+      "rewards": "Beloningen",
+      "settings": "Instellingen"
+    },
+    "overview": {
+      "title": "Overzicht",
+      "empty": "Nog geen data. Koppel een ticketprovider wanneer je klaar bent."
+    }
+  },
+  "ambassador": {
+    "nav": {
+      "home": "Home",
+      "share": "Delen",
+      "stats": "Stats",
+      "rewards": "Beloningen",
+      "community": "Community",
+      "profile": "Profiel"
+    },
+    "home": {
+      "title": "Home",
+      "dayZero": "Je ambassadeur-dashboard toont hier clicks, verkopen en beloningen."
+    }
   }
 }
