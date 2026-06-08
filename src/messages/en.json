@@ -149,6 +149,7 @@
       "emptyCta": "Go to Tracklinks",
       "loading": "Loading sales…",
       "loadError": "Could not load sales.",
+      "loadErrorSchema": "Orders table missing — run migration 20260524000001_phase3_orders.sql in Supabase.",
       "refresh": "Refresh",
       "kpiOrders": "Orders",
       "kpiRevenue": "Gross revenue",

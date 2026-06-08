@@ -149,6 +149,7 @@
       "emptyCta": "Naar Tracklinks",
       "loading": "Verkopen laden…",
       "loadError": "Verkopen laden mislukt.",
+      "loadErrorSchema": "Orderstabel ontbreekt — voer migratie 20260524000001_phase3_orders.sql uit in Supabase.",
       "refresh": "Verversen",
       "kpiOrders": "Orders",
       "kpiRevenue": "Bruto omzet",

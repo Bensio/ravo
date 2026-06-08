@@ -13,10 +13,15 @@ export const GET = requirePermission('order.read', async ({ ctx }) => {
     const orders = await listOrdersForOrg(supabase, ctx.org.id);
     return NextResponse.json({ orders }, { headers: noStoreHeaders });
   } catch (err) {
-    console.error('orders list failed', {
-      orgId: ctx.org.id,
-      message: err instanceof Error ? err.message : 'unknown',
-    });
+    const message = err instanceof Error ? err.message : 'unknown';
+    const code =
+      err && typeof err === 'object' && 'code' in err
+        ? String((err as { code: string }).code)
+        : undefined;
+    console.error('orders list failed', { orgId: ctx.org.id, code, message });
+    if (code === 'PGRST205' || message.includes('orders')) {
+      return NextResponse.json({ error: 'schema_missing' }, { status: 503 });
+    }
     return NextResponse.json({ error: 'query_failed' }, { status: 500 });
   }
 });

@@ -38,25 +38,78 @@ type OrderRow = {
   } | null;
   provider_connections: { provider: string; display_name: string } | null;
   order_items: Array<{ ticket_type: string; quantity: number }> | null;
-  attributions:
-    | {
-        tier: number;
-        signal: string;
-        state: string;
-        ambassadors: { display_handle: string | null } | null;
-      }
-    | {
-        tier: number;
-        signal: string;
-        state: string;
-        ambassadors: { display_handle: string | null } | null;
-      }[]
-    | null;
+};
+
+type AttributionRow = {
+  order_id: string;
+  tier: number;
+  signal: string;
+  state: string;
+  ambassador_id: string | null;
 };
 
 function ticketSummary(items: OrderRow['order_items']): string {
   if (!items?.length) return '—';
   return items.map((i) => `${i.quantity}× ${i.ticket_type}`).join(', ');
+}
+
+function isAttributionsUnavailable(error: { code?: string; message?: string }): boolean {
+  const code = error.code ?? '';
+  const message = error.message ?? '';
+  return (
+    code === 'PGRST200' ||
+    code === 'PGRST205' ||
+    code === '42P01' ||
+    message.includes('attributions') ||
+    message.includes('does not exist') ||
+    message.includes('relationship')
+  );
+}
+
+/** Fetched separately — nested embed on orders breaks when schema cache is stale. */
+async function fetchAttributionMap(
+  supabase: SupabaseClient,
+  orderIds: string[],
+): Promise<Map<string, OrderListItem['attribution']>> {
+  const result = new Map<string, OrderListItem['attribution']>();
+  if (orderIds.length === 0) return result;
+
+  const { data, error } = await supabase
+    .from('attributions')
+    .select('order_id, tier, signal, state, ambassador_id')
+    .in('order_id', orderIds);
+
+  if (error) {
+    if (!isAttributionsUnavailable(error)) {
+      console.warn('attributions fetch failed', { code: error.code, message: error.message });
+    }
+    return result;
+  }
+
+  const rows = (data ?? []) as AttributionRow[];
+  const ambassadorIds = [
+    ...new Set(rows.map((r) => r.ambassador_id).filter((id): id is string => Boolean(id))),
+  ];
+
+  let handles: Record<string, string | null> = {};
+  if (ambassadorIds.length > 0) {
+    const { data: ambassadors } = await supabase
+      .from('ambassadors')
+      .select('id, display_handle')
+      .in('id', ambassadorIds);
+    handles = Object.fromEntries((ambassadors ?? []).map((a) => [a.id, a.display_handle]));
+  }
+
+  for (const row of rows) {
+    result.set(row.order_id, {
+      tier: row.tier,
+      signal: row.signal,
+      state: row.state,
+      ambassador_handle: row.ambassador_id ? (handles[row.ambassador_id] ?? null) : null,
+    });
+  }
+
+  return result;
 }
 
 export async function listOrdersForOrg(
@@ -79,8 +132,7 @@ export async function listOrdersForOrg(
       paid_at,
       metadata,
       provider_connections ( provider, display_name ),
-      order_items ( ticket_type, quantity ),
-      attributions ( tier, signal, state, ambassadors ( display_handle ) )
+      order_items ( ticket_type, quantity )
     `,
     )
     .eq('organization_id', organizationId)
@@ -91,17 +143,17 @@ export async function listOrdersForOrg(
     throw error;
   }
 
-  return ((data ?? []) as unknown as OrderRow[]).map((row) => {
+  const rows = (data ?? []) as unknown as OrderRow[];
+  const orderIds = rows.map((r) => r.id);
+  const attributionByOrder = await fetchAttributionMap(supabase, orderIds);
+
+  return rows.map((row) => {
     const rawConn = row.provider_connections as
       | { provider: string; display_name: string }
       | { provider: string; display_name: string }[]
       | null;
     const conn = Array.isArray(rawConn) ? rawConn[0] : rawConn;
     const provider = conn?.provider ?? 'unknown';
-    const rawAttr = row.attributions;
-    const attrRow = Array.isArray(rawAttr) ? rawAttr[0] : rawAttr;
-    const rawAmb = attrRow?.ambassadors;
-    const amb = Array.isArray(rawAmb) ? rawAmb[0] : rawAmb;
 
     return {
       id: row.id,
@@ -118,14 +170,7 @@ export async function listOrdersForOrg(
       verification: provider === 'manual_utm' ? 'estimated' : 'verified',
       ticket_summary: ticketSummary(row.order_items),
       ref_param: row.metadata?.attribution_hint?.refParam ?? null,
-      attribution: attrRow
-        ? {
-            tier: attrRow.tier,
-            signal: attrRow.signal,
-            state: attrRow.state,
-            ambassador_handle: amb?.display_handle ?? null,
-          }
-        : null,
+      attribution: attributionByOrder.get(row.id) ?? null,
     };
   });
 }

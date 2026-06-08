@@ -56,7 +56,8 @@ export function SalesFeedDashboard({
       const data = await res.json();
       setOrders(data.orders ?? []);
     } else {
-      setLoadError(t('loadError'));
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setLoadError(data.error === 'schema_missing' ? t('loadErrorSchema') : t('loadError'));
     }
     setLoading(false);
   }, [orgSlug, t]);
