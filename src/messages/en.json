@@ -125,6 +125,7 @@
       "loading": "Loading links…",
       "loadError": "Could not load tracklinks. Refresh the page.",
       "updateError": "Could not update this link. Try again.",
+      "updateErrorSchema": "Link update is unavailable — run the latest database migration in Supabase, then try again.",
       "clicks": "Clicks",
       "copy": "Copy link",
       "disable": "Disable",

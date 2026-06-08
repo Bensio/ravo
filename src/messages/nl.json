@@ -125,6 +125,7 @@
       "loading": "Links laden…",
       "loadError": "Tracklinks laden mislukt. Vernieuw de pagina.",
       "updateError": "Link bijwerken mislukt. Probeer opnieuw.",
+      "updateErrorSchema": "Link bijwerken niet beschikbaar — voer de nieuwste databasemigratie uit in Supabase en probeer opnieuw.",
       "clicks": "Clicks",
       "copy": "Link kopiëren",
       "disable": "Uitschakelen",

@@ -41,7 +41,7 @@ export function TracklinksDashboard({
       setLoading(true);
     }
     setLoadError(null);
-    const res = await fetch(`/api/${orgSlug}/links`);
+    const res = await fetch(`/api/${orgSlug}/links`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       setLinks(data.links ?? []);
@@ -115,12 +115,16 @@ export function TracklinksDashboard({
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ disabled: nextDisabled }),
+      cache: 'no-store',
     });
     if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
       setLinks((prev) =>
         prev.map((l) => (l.id === link.id ? { ...l, disabled: link.disabled } : l)),
       );
-      setError(t('updateError'));
+      const errorKey =
+        data.error === 'rpc_missing' ? 'updateErrorSchema' : 'updateError';
+      setError(t(errorKey));
       return;
     }
     setError(null);
@@ -139,7 +143,10 @@ export function TracklinksDashboard({
     const previous = links;
     setLinks((prev) => prev.filter((l) => l.id !== link.id));
 
-    const res = await fetch(`/api/${orgSlug}/links/${link.id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/${orgSlug}/links/${link.id}`, {
+      method: 'DELETE',
+      cache: 'no-store',
+    });
     setRemovingId(null);
 
     if (!res.ok) {

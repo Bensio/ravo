@@ -9,6 +9,10 @@ import { invalidateLinkCache } from '@/lib/links/link-cache';
 import { isValidHttpUrl, normalizeDestinationUrl } from '@/lib/links/destination-url';
 import { listLinksForOrg } from '@/lib/links/list-links';
 
+export const dynamic = 'force-dynamic';
+
+const noStoreHeaders = { 'Cache-Control': 'no-store, private' } as const;
+
 const createSchema = z.object({
   destination_url: z
     .string()
@@ -34,7 +38,7 @@ export const GET = requirePermission('link.read', async ({ ctx }) => {
   try {
     const supabase = await createClient();
     const links = await listLinksForOrg(supabase, ctx.org.id);
-    return NextResponse.json({ links });
+    return NextResponse.json({ links }, { headers: noStoreHeaders });
   } catch (err) {
     console.error('link list failed', {
       orgId: ctx.org.id,

@@ -18,7 +18,7 @@ type RpcRow = {
   code: string;
   label: string | null;
   destination_url: string;
-  disabled: boolean;
+  disabled: boolean | string;
   created_at: string;
   click_count: number;
   ambassador_display_handle: string | null;
@@ -42,7 +42,7 @@ export async function listLinksForOrg(
     code: row.code,
     label: row.label,
     destination_url: row.destination_url,
-    disabled: row.disabled,
+    disabled: row.disabled === true || row.disabled === 'true' || row.disabled === 't',
     created_at: row.created_at,
     public_url: buildPublicLinkUrl(row.code),
     click_count: Number(row.click_count),

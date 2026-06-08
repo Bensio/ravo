@@ -6,6 +6,8 @@ import { deleteLink } from '@/lib/links/delete-link';
 import { invalidateLinkCache } from '@/lib/links/link-cache';
 import { updateLinkDisabled } from '@/lib/links/update-link';
 
+export const dynamic = 'force-dynamic';
+
 const patchSchema = z.object({
   disabled: z.boolean(),
 });
