@@ -23,7 +23,7 @@ export function AdminHeader({
   const displayName = (email.split('@')[0] ?? 'there').replace(/[._]/g, ' ');
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/[0.06] bg-background/80 px-6 backdrop-blur-sm">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-white/[0.06] bg-background/80 px-5 backdrop-blur-sm">
       <div className="min-w-0">
         <h1 className="truncate text-base font-semibold tracking-tight">
           {tHeader('greeting', { name: displayName })}

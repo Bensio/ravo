@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 
 type Props = {
   label: string;
@@ -10,7 +10,7 @@ type Props = {
   delta?: number | null;
   deltaLabel?: string;
   icon: LucideIcon;
-  spark: number[];
+  spark?: number[];
   className?: string;
   compact?: boolean;
 };
@@ -21,7 +21,7 @@ export function DashboardKpiCard({
   delta,
   deltaLabel,
   icon: Icon,
-  spark,
+  spark = [],
   className,
   compact = false,
 }: Props) {
@@ -34,37 +34,21 @@ export function DashboardKpiCard({
   const showSpark = !compact && spark.some((v) => v > 0);
 
   return (
-    <div
-      className={cn(
-        'ravo-glass-panel relative overflow-hidden',
-        compact ? 'p-3.5' : 'p-5',
-        className,
-      )}
-    >
+    <DashboardPanel className={className}>
       <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
       <div className="relative flex items-start justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {label}
         </p>
-        <span
-          className={cn(
-            'grid shrink-0 place-items-center rounded-lg border border-white/[0.06] bg-white/[0.03] text-primary',
-            compact ? 'h-7 w-7' : 'h-9 w-9 rounded-xl',
-          )}
-        >
-          <Icon className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} aria-hidden />
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/[0.06] bg-white/[0.03] text-primary">
+          <Icon className="h-3.5 w-3.5" aria-hidden />
         </span>
       </div>
-      <p
-        className={cn(
-          'relative font-bold tabular-nums tracking-tight text-foreground',
-          compact ? 'mt-2 text-2xl' : 'mt-4 text-3xl',
-        )}
-      >
+      <p className="relative mt-auto pt-3 text-2xl font-bold tabular-nums tracking-tight text-foreground">
         {value}
       </p>
-      {typeof delta === 'number' && (
-        <div className={cn('relative flex items-center gap-1', compact ? 'mt-1 text-[11px]' : 'mt-2 text-xs')}>
+      {typeof delta === 'number' ? (
+        <div className="relative mt-1 flex items-center gap-1 text-[11px]">
           {delta >= 0 ? (
             <ArrowUp className="h-3 w-3 text-emerald-400" aria-hidden />
           ) : (
@@ -76,9 +60,11 @@ export function DashboardKpiCard({
           </span>
           {deltaLabel && <span className="text-muted-foreground">{deltaLabel}</span>}
         </div>
+      ) : (
+        <div className="h-4" aria-hidden />
       )}
       {showSpark && (
-        <svg viewBox={`0 0 ${w} ${h}`} className="relative mt-3 h-7 w-full" preserveAspectRatio="none">
+        <svg viewBox={`0 0 ${w} ${h}`} className="relative mt-2 h-6 w-full" preserveAspectRatio="none">
           <polyline
             fill="none"
             stroke="hsl(var(--primary))"
@@ -90,6 +76,6 @@ export function DashboardKpiCard({
           />
         </svg>
       )}
-    </div>
+    </DashboardPanel>
   );
 }

@@ -34,14 +34,14 @@ export default async function AdminOrgLayout({ children, params }: Props) {
   await setRequestOrgContext(membership.org.id);
 
   return (
-    <div className="ravo-shell-bg flex min-h-screen">
+    <div className="ravo-shell-bg flex h-screen overflow-hidden">
       <AdminSidebar
         locale={locale}
         orgSlug={org_slug}
         userEmail={user.email}
         userRole={membership.role}
       />
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AdminHeader
           orgName={membership.org.name}
           orgId={membership.org.id}
@@ -49,7 +49,7 @@ export default async function AdminOrgLayout({ children, params }: Props) {
           locale={locale}
           orgs={memberships.map((m) => m.org)}
         />
-        <main className="flex-1 overflow-auto p-4 md:p-5">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">{children}</main>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { Crown, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
+import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
@@ -126,15 +127,15 @@ export function LeaderboardDashboard({
         </div>
       </div>
 
-      <section className="grid gap-3 lg:grid-cols-12">
+      <section className="grid auto-rows-fr gap-3 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <AmbassadorPodium compact rows={initialData.rows} title={t('podiumTitle')} />
+          <AmbassadorPodium rows={initialData.rows} title={t('podiumTitle')} />
         </div>
-        <div className="ravo-glass-panel space-y-4 p-4 lg:col-span-4">
+        <DashboardPanel className="lg:col-span-4">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {t('snapshotTitle')}
           </p>
-          <div className="space-y-4">
+          <div className="mt-auto space-y-4 pt-3">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted-foreground">{t('snapshotAmbassadors')}</span>
               <span className="text-2xl font-bold tabular-nums text-primary">
@@ -157,10 +158,10 @@ export function LeaderboardDashboard({
               </span>
             </div>
           </div>
-        </div>
+        </DashboardPanel>
       </section>
 
-      <section className="ravo-glass-panel space-y-2 p-4">
+      <DashboardPanel className="space-y-2">
         <div className="hidden px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground sm:grid sm:grid-cols-[40px_minmax(0,1.4fr)_80px_80px_100px_90px] sm:gap-3">
           <span>{t('colRank')}</span>
           <span>{t('colAmbassador')}</span>
@@ -182,7 +183,7 @@ export function LeaderboardDashboard({
             />
           ))
         )}
-      </section>
+      </DashboardPanel>
     </div>
   );
 }
