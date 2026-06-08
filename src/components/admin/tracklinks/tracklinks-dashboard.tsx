@@ -242,11 +242,11 @@ export function TracklinksDashboard({
               <div
                 key={link.id}
                 className={cn(
-                  'grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-colors hover:border-primary/30 hover:bg-primary/5 md:grid-cols-[1fr_auto_auto_auto_auto]',
+                  'flex flex-col gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-colors hover:border-primary/30 hover:bg-primary/5 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
                   link.disabled && 'opacity-50',
                 )}
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 font-mono text-sm text-primary">
                     <Link2 className="h-4 w-4 shrink-0" />
                     <span className="truncate">{link.public_url}</span>
@@ -260,42 +260,51 @@ export function TracklinksDashboard({
                     </p>
                   )}
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">{t('clicks')}</p>
-                  <p className="text-lg font-semibold tabular-nums">{link.click_count}</p>
+
+                <div className="flex shrink-0 items-center gap-3 self-end sm:self-auto">
+                  <div className="min-w-[3.5rem] text-center">
+                    <p className="text-xs text-muted-foreground">{t('clicks')}</p>
+                    <p className="text-lg font-semibold tabular-nums leading-none">
+                      {link.click_count}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 shrink-0 px-0"
+                      onClick={() => void copy(link.public_url, link.id)}
+                      aria-label={t('copy')}
+                    >
+                      {copied === link.id ? (
+                        <Check className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0"
+                      onClick={() => void toggleDisabled(link)}
+                    >
+                      {link.disabled ? t('enable') : t('disable')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={removingId === link.id}
+                      className="h-9 w-9 shrink-0 px-0 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      onClick={() => void removeLink(link)}
+                      aria-label={t('remove')}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void copy(link.public_url, link.id)}
-                  aria-label={t('copy')}
-                >
-                  {copied === link.id ? (
-                    <Check className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void toggleDisabled(link)}
-                >
-                  {link.disabled ? t('enable') : t('disable')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={removingId === link.id}
-                  onClick={() => void removeLink(link)}
-                  aria-label={t('remove')}
-                  className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             ))}
           </div>
