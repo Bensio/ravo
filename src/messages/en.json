@@ -83,11 +83,38 @@
     },
     "overview": {
       "title": "Overview",
-      "empty": "Charts and live metrics from the design mockup ship in Phase 5 once clicks and sales data flow. Use Tracklinks today to verify the redirect loop."
+      "subtitle": "Clicks, attributed sales, and top ambassadors for your festival.",
+      "empty": "No activity yet. Create a tracklink and simulate a sale to populate this dashboard.",
+      "emptyCta": "Go to Tracklinks →",
+      "loadError": "Could not load dashboard metrics.",
+      "chartTitle": "Clicks & sales over time",
+      "kpiClicks": "Total clicks",
+      "kpiSales": "Attributed sales",
+      "kpiConversion": "Conversion rate",
+      "vsLastWeek": "vs last week",
+      "topPerformer": "Top performer",
+      "salesUnit": "sales",
+      "conversionUnit": "conv.",
+      "podiumTitle": "Top ambassadors",
+      "viewLeaderboard": "View leaderboard →"
     },
     "leaderboard": {
       "title": "Leaderboard",
-      "empty": "Full ambassador rankings for festival staff. Podium and top-10 views match the mockup in Phase 5."
+      "subtitle": "Full ranking of every ambassador by clicks, sales, and revenue.",
+      "empty": "No ambassadors match your search.",
+      "loadError": "Could not load leaderboard.",
+      "searchPlaceholder": "Search ambassador…",
+      "podiumTitle": "Top ambassadors",
+      "snapshotTitle": "Season snapshot",
+      "snapshotAmbassadors": "Active ambassadors",
+      "snapshotRevenue": "Total revenue",
+      "snapshotConversion": "Avg conversion",
+      "colRank": "Rank",
+      "colAmbassador": "Ambassador",
+      "colClicks": "Clicks",
+      "colSales": "Sales",
+      "colRevenue": "Revenue",
+      "colConversion": "Conv."
     },
     "analytics": {
       "title": "Analytics",

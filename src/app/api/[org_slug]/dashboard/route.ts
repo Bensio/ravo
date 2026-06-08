@@ -1,0 +1,24 @@
+import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/auth/require-permission';
+import { fetchOrgDashboard } from '@/lib/dashboard/fetch-org-dashboard';
+import { serializeOrgDashboard } from '@/lib/dashboard/types';
+
+export const dynamic = 'force-dynamic';
+
+const noStoreHeaders = { 'Cache-Control': 'no-store, private' } as const;
+
+export const GET = requirePermission('campaign.read', async ({ ctx }) => {
+  try {
+    const dashboard = await fetchOrgDashboard(ctx.org.id);
+    return NextResponse.json(
+      { dashboard: serializeOrgDashboard(dashboard) },
+      { headers: noStoreHeaders },
+    );
+  } catch (err) {
+    console.error('dashboard fetch failed', {
+      orgId: ctx.org.id,
+      message: err instanceof Error ? err.message : 'unknown',
+    });
+    return NextResponse.json({ error: 'query_failed' }, { status: 500 });
+  }
+});

@@ -83,11 +83,38 @@
     },
     "overview": {
       "title": "Overzicht",
-      "empty": "Grafieken en live metrics uit het design komen in fase 5 zodra clicks en verkoopdata lopen. Gebruik Tracklinks vandaag om de redirect-loop te testen."
+      "subtitle": "Clicks, toegeschreven verkopen en top-ambassadeurs voor je festival.",
+      "empty": "Nog geen activiteit. Maak een tracklink en simuleer een verkoop om dit dashboard te vullen.",
+      "emptyCta": "Naar Tracklinks →",
+      "loadError": "Dashboardmetrics laden mislukt.",
+      "chartTitle": "Clicks & verkopen over tijd",
+      "kpiClicks": "Totaal clicks",
+      "kpiSales": "Toegeschreven verkopen",
+      "kpiConversion": "Conversie",
+      "vsLastWeek": "vs vorige week",
+      "topPerformer": "Toppresteerder",
+      "salesUnit": "verkopen",
+      "conversionUnit": "conv.",
+      "podiumTitle": "Top-ambassadeurs",
+      "viewLeaderboard": "Bekijk leaderboard →"
     },
     "leaderboard": {
       "title": "Leaderboard",
-      "empty": "Volledige ambassadeur-ranglijsten voor festivalstaff. Podium en top-10 volgen het mockup in fase 5."
+      "subtitle": "Volledige ranglijst op clicks, verkopen en omzet.",
+      "empty": "Geen ambassadeurs gevonden voor je zoekopdracht.",
+      "loadError": "Leaderboard laden mislukt.",
+      "searchPlaceholder": "Zoek ambassadeur…",
+      "podiumTitle": "Top-ambassadeurs",
+      "snapshotTitle": "Seizoensnapshot",
+      "snapshotAmbassadors": "Actieve ambassadeurs",
+      "snapshotRevenue": "Totale omzet",
+      "snapshotConversion": "Gem. conversie",
+      "colRank": "Rang",
+      "colAmbassador": "Ambassadeur",
+      "colClicks": "Clicks",
+      "colSales": "Verkopen",
+      "colRevenue": "Omzet",
+      "colConversion": "Conv."
     },
     "analytics": {
       "title": "Analytics",
