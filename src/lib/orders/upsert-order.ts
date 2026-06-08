@@ -1,10 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { attributeOrder } from '@/lib/attribution/attribute-order';
 import type { NormalizedOrderEvent } from '@/lib/providers/types';
 import { resolveShopId } from '@/lib/webhooks/resolve-connection';
 
 export type UpsertOrderResult = {
   orderId: string;
   created: boolean;
+  attributed: boolean;
 };
 
 export async function upsertOrderFromWebhook(
@@ -80,7 +82,13 @@ export async function upsertOrderFromWebhook(
     await recordRefundIfNeeded(admin, organizationId, orderId, event);
   }
 
-  return { orderId, created: !existing };
+  let attributed = false;
+  if (event.status === 'paid' || event.status === 'pending') {
+    const attr = await attributeOrder(organizationId, orderId, providerConnectionId, event);
+    attributed = attr !== null;
+  }
+
+  return { orderId, created: !existing, attributed };
 }
 
 async function recordRefundIfNeeded(

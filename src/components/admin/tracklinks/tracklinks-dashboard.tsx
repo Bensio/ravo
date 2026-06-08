@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy, Link2, Plus, Trash2 } from 'lucide-react';
+import { Check, Copy, Link2, Plus, Trash2, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,8 @@ export function TracklinksDashboard({
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [simulatingId, setSimulatingId] = useState<string | null>(null);
+  const [simulateMessage, setSimulateMessage] = useState<string | null>(null);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -129,6 +131,36 @@ export function TracklinksDashboard({
     }
     setError(null);
     await load({ silent: true });
+  };
+
+  const simulateSale = async (link: TracklinkRow) => {
+    setSimulatingId(link.id);
+    setSimulateMessage(null);
+    setError(null);
+    const res = await fetch(`/api/${orgSlug}/links/${link.id}/simulate-sale`, {
+      method: 'POST',
+      cache: 'no-store',
+    });
+    setSimulatingId(null);
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (data.error === 'attributions_missing') {
+        setError(t('simulateErrorSchema'));
+      } else {
+        setError(t('simulateError'));
+      }
+      return;
+    }
+    const data = (await res.json()) as {
+      attributed?: boolean;
+      ambassadorHandle?: string | null;
+    };
+    await load({ silent: true });
+    if (data.attributed && data.ambassadorHandle) {
+      setSimulateMessage(t('simulateSuccess', { ambassador: data.ambassadorHandle }));
+    } else {
+      setSimulateMessage(t('simulateSuccessUnattributed'));
+    }
   };
 
   const removeLink = async (link: TracklinkRow) => {
@@ -226,6 +258,9 @@ export function TracklinksDashboard({
         </div>
         {loadError && <p className="text-sm text-red-400">{loadError}</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
+        {simulateMessage && (
+          <p className="text-sm text-emerald-400">{simulateMessage}</p>
+        )}
       </section>
 
       <section className="ravo-glass-panel overflow-hidden p-4 md:p-6">
@@ -289,6 +324,18 @@ export function TracklinksDashboard({
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0 gap-1"
+                      disabled={link.disabled || simulatingId === link.id}
+                      onClick={() => void simulateSale(link)}
+                      title={t('simulate')}
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      {simulatingId === link.id ? t('simulating') : t('simulate')}
                     </Button>
                     <Button
                       type="button"

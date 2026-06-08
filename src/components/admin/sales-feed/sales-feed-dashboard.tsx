@@ -20,6 +20,12 @@ export type SalesFeedRow = {
   verification: 'estimated' | 'verified';
   ticket_summary: string;
   ref_param: string | null;
+  attribution: {
+    tier: number;
+    signal: string;
+    ambassador_handle: string | null;
+    state: string;
+  } | null;
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -104,7 +110,7 @@ export function SalesFeedDashboard({
             <p className="text-sm text-muted-foreground">{t('empty')}</p>
             <p className="mt-2 text-xs text-muted-foreground">{t('emptyHint')}</p>
             <Link
-              href={`/${locale}/${orgSlug}/settings`}
+              href={`/${locale}/${orgSlug}/tracklinks`}
               className="mt-4 inline-block text-sm text-primary hover:underline"
             >
               {t('emptyCta')}
@@ -134,11 +140,27 @@ export function SalesFeedDashboard({
                         {t('estimated')}
                       </span>
                     )}
+                    {order.attribution ? (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                        {t('attributed', {
+                          ambassador: order.attribution.ambassador_handle ?? t('unknownAmbassador'),
+                        })}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        {t('unattributed')}
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 font-mono text-sm">{order.provider_order_id}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {order.ticket_summary} · {order.provider_display_name}
                   </p>
+                  {order.attribution && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {t('tierLabel', { tier: order.attribution.tier })}
+                    </p>
+                  )}
                   {order.ref_param && (
                     <p className="mt-0.5 truncate font-mono text-xs text-primary/80">
                       ref={order.ref_param}
