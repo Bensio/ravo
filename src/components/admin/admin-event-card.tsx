@@ -1,8 +1,10 @@
-import { CalendarDays } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+'use client';
 
-export async function AdminEventCard() {
-  const t = await getTranslations('admin.eventCard');
+import { CalendarDays } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
+export function AdminEventCard() {
+  const t = useTranslations('admin.eventCard');
 
   return (
     <div className="ravo-glass-panel p-3.5">

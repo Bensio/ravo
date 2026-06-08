@@ -1,10 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import { LogOut, Smartphone } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 import { signOutAction } from '@/lib/auth/admin-actions';
 import { Button } from '@/components/ui/button';
 
-export async function AdminSidebarUser({
+export function AdminSidebarUser({
   email,
   role,
   locale,
@@ -13,9 +15,9 @@ export async function AdminSidebarUser({
   role: string;
   locale: string;
 }) {
-  const t = await getTranslations('admin.sidebarUser');
-  const tRoles = await getTranslations('admin.roles');
-  const tCommon = await getTranslations('common');
+  const t = useTranslations('admin.sidebarUser');
+  const tRoles = useTranslations('admin.roles');
+  const tCommon = useTranslations('common');
   const staffRoles = ['owner', 'admin', 'manager', 'analyst'] as const;
   const roleLabel = staffRoles.includes(role as (typeof staffRoles)[number])
     ? tRoles(role as (typeof staffRoles)[number])
