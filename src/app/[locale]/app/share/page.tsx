@@ -8,7 +8,7 @@ export default async function SharePage({ params }: Props) {
   setRequestLocale(locale);
   return (
     <main className="p-6 md:p-8">
-      <ShareLinks />
+      <ShareLinks locale={locale} />
     </main>
   );
 }

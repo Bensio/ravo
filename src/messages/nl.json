@@ -157,9 +157,21 @@
     },
     "share": {
       "title": "Delen",
-      "subtitle": "Je persoonlijke tracklinks — kopieer en deel overal.",
+      "subtitle": "Jouw persoonlijke tracklinks — kopieer, scan of deel overal.",
       "empty": "Nog geen links. Je festival wijst tracklinks toe zodra je op een campagne zit.",
-      "loading": "Je links laden…"
+      "emptyHint": "Ben je festivalbeheerder? Maak eerst een link in Tracklinks — die verschijnt hier automatisch.",
+      "loading": "Je links laden…",
+      "loadError": "Links laden mislukt. Probeer het opnieuw.",
+      "copy": "Kopiëren",
+      "copied": "Gekopieerd",
+      "clicks": "{count} clicks",
+      "showQr": "QR-code tonen",
+      "hideQr": "QR-code verbergen",
+      "shareLink": "Link delen",
+      "shareTitle": "Mijn festivallink",
+      "shareText": "Tickets via mijn link",
+      "qrHint": "Screenshot of laat vrienden scannen om je tracklink te openen.",
+      "qrFor": "QR-code voor {url}"
     },
     "stats": {
       "title": "Stats",
