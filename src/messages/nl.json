@@ -155,6 +155,7 @@
       "kpiRevenue": "Bruto omzet",
       "estimated": "Geschat",
       "unattributed": "Niet toegeschreven",
+      "attributionPending": "Ref vastgelegd — ververs na het uitvoeren van de attributiemigratie.",
       "attributed": "@{ambassador}",
       "unknownAmbassador": "ambassadeur",
       "tierLabel": "Tier {tier} attributie",

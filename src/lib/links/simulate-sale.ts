@@ -114,6 +114,15 @@ export async function simulateSaleForLink(
     }
   }
 
+  if (!attributed) {
+    console.error('simulate sale: attribution not created', {
+      organizationId,
+      linkId,
+      orderId,
+      clickId,
+    });
+  }
+
   return {
     clickId,
     orderId,

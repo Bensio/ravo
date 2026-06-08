@@ -162,6 +162,9 @@ export function SalesFeedDashboard({
                       {t('tierLabel', { tier: order.attribution.tier })}
                     </p>
                   )}
+                  {order.ref_param && !order.attribution && (
+                    <p className="mt-0.5 text-xs text-amber-400">{t('attributionPending')}</p>
+                  )}
                   {order.ref_param && (
                     <p className="mt-0.5 truncate font-mono text-xs text-primary/80">
                       ref={order.ref_param}

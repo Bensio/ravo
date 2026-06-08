@@ -155,6 +155,7 @@
       "kpiRevenue": "Gross revenue",
       "estimated": "Estimated",
       "unattributed": "Unattributed",
+      "attributionPending": "Ref captured — refresh after running the attributions migration.",
       "attributed": "@{ambassador}",
       "unknownAmbassador": "ambassador",
       "tierLabel": "Tier {tier} attribution",

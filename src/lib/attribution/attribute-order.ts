@@ -22,11 +22,11 @@ function hintFromMetadata(metadata: unknown): AttributionHint | null {
 }
 
 /** Runs waterfall and inserts attribution row (idempotent per order). */
-export async function attributeOrder(
+export async function attributeOrderFromHint(
   organizationId: string,
   orderId: string,
   providerConnectionId: string,
-  event: NormalizedOrderEvent,
+  hint: AttributionHint,
 ): Promise<AttributionRecord | null> {
   const admin = createAdminClient();
 
@@ -38,7 +38,6 @@ export async function attributeOrder(
 
   if (existing) return null;
 
-  const hint = hintFromEvent(event);
   const resolved = await resolveAttribution(admin, organizationId, providerConnectionId, hint);
   if (!resolved) return null;
 
@@ -81,6 +80,74 @@ export async function attributeOrder(
     ambassadorId: inserted.ambassador_id,
     ambassadorHandle: ambassador?.display_handle ?? null,
   };
+}
+
+export async function attributeOrder(
+  organizationId: string,
+  orderId: string,
+  providerConnectionId: string,
+  event: NormalizedOrderEvent,
+): Promise<AttributionRecord | null> {
+  const hint = hintFromEvent(event);
+  if (!hint) return null;
+  return attributeOrderFromHint(organizationId, orderId, providerConnectionId, hint);
+}
+
+type OrderForReconcile = {
+  id: string;
+  provider_connection_id: string;
+  metadata: unknown;
+  status: string;
+};
+
+function hasAttributionSignal(hint: AttributionHint): boolean {
+  if (hint.refParam?.trim()) return true;
+  if (hint.trackerExternalId?.trim()) return true;
+  return Boolean(hint.utm?.content?.trim() && hint.utm?.campaign?.trim());
+}
+
+/** Backfill attributions for paid/pending orders that stored a hint but have no row yet. */
+export async function reconcileMissingAttributions(
+  organizationId: string,
+  orders: OrderForReconcile[],
+): Promise<void> {
+  if (orders.length === 0) return;
+
+  const admin = createAdminClient();
+  const orderIds = orders.map((o) => o.id);
+
+  const { data: existing, error: existingError } = await admin
+    .from('attributions')
+    .select('order_id')
+    .in('order_id', orderIds);
+
+  if (existingError) {
+    if (existingError.code !== 'PGRST205' && existingError.code !== '42P01') {
+      console.warn('reconcile attributions skipped', {
+        code: existingError.code,
+        message: existingError.message,
+      });
+    }
+    return;
+  }
+
+  const attributed = new Set((existing ?? []).map((row) => row.order_id));
+
+  for (const order of orders) {
+    if (attributed.has(order.id)) continue;
+    if (order.status !== 'paid' && order.status !== 'pending') continue;
+
+    const hint = hintFromMetadata(order.metadata);
+    if (!hint || !hasAttributionSignal(hint)) continue;
+
+    const record = await attributeOrderFromHint(
+      organizationId,
+      order.id,
+      order.provider_connection_id,
+      hint,
+    );
+    if (record) attributed.add(order.id);
+  }
 }
 
 export async function getAttributionForOrder(
