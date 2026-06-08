@@ -45,7 +45,7 @@ function pixelProbePage(): string {
   <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#888">Ravo</p>
   <h1 style="font-size:1.125rem;font-weight:600;margin:0.5rem 0 0">Conversion pixel active</h1>
   <p style="color:#aaa;font-size:0.875rem;margin:0.75rem 0 0">This endpoint is working. <strong style="color:#e8e8e8">No sale was recorded.</strong> Opening this URL only checks that the pixel is reachable.</p>
-  <p style="color:#666;font-size:0.8125rem;margin:1rem 0 0">To see a sale in Sales feed, use <strong style="color:#888">Send test sale</strong> in Settings → Integrations, or paste the thank-you page snippet on your ticket shop.</p>
+  <p style="color:#666;font-size:0.8125rem;margin:1rem 0 0">To demo the full click-to-sale funnel, use <strong style="color:#888">Simulate sale</strong> on a tracklink in the admin.</p>
 </body>
 </html>`;
 }
