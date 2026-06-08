@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { createClient } from '@/lib/supabase/server';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
-import { buildPublicLinkUrl, generateLinkCode } from '@/lib/links/code';
+import { buildPublicLinkUrl } from '@/lib/links/code';
+import { createTracklink } from '@/lib/links/create-link';
 import { isValidHttpUrl, normalizeDestinationUrl } from '@/lib/links/destination-url';
 
 const createSchema = z.object({
@@ -113,46 +114,41 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
     }
   }
 
-  let code = generateLinkCode();
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const { data, error } = await supabase
-      .from('links')
-      .insert({
-        organization_id: ctx.org.id,
-        campaign_id: campaignId,
-        ambassador_id: ambassadorId,
-        code,
-        destination_url: parsed.data.destination_url,
-        label: parsed.data.label ?? null,
-      })
-      .select('id, code')
-      .single();
-
-    if (!error && data) {
-      return NextResponse.json(
-        {
-          link: {
-            id: data.id,
-            code: data.code,
-            public_url: buildPublicLinkUrl(data.code),
-          },
-        },
-        { status: 201 },
-      );
-    }
-    if (error?.code !== '23505') {
-      console.error('link insert failed', {
-        orgId: ctx.org.id,
-        code: error?.code,
-        message: error?.message,
-      });
-      if (error?.code === '42P01') {
-        return NextResponse.json({ error: 'schema_missing' }, { status: 503 });
-      }
-      return NextResponse.json({ error: 'create_failed' }, { status: 500 });
-    }
-    code = generateLinkCode();
+  if (!campaignId || !ambassadorId) {
+    return NextResponse.json({ error: 'bootstrap_failed' }, { status: 500 });
   }
 
-  return NextResponse.json({ error: 'code_collision' }, { status: 500 });
+  const result = await createTracklink(supabase, {
+    organizationId: ctx.org.id,
+    campaignId,
+    ambassadorId,
+    destinationUrl: parsed.data.destination_url,
+    label: parsed.data.label ?? null,
+  });
+
+  if (!result.ok) {
+    const status =
+      result.error === 'unauthorized'
+        ? 401
+        : result.error === 'forbidden'
+          ? 403
+          : result.error === 'invalid_url'
+            ? 400
+            : 500;
+    if (result.error === 'create_failed' || result.error === 'rpc_missing') {
+      return NextResponse.json({ error: result.error }, { status: 503 });
+    }
+    return NextResponse.json({ error: result.error }, { status });
+  }
+
+  return NextResponse.json(
+    {
+      link: {
+        id: result.link.id,
+        code: result.link.code,
+        public_url: buildPublicLinkUrl(result.link.code),
+      },
+    },
+    { status: 201 },
+  );
 });

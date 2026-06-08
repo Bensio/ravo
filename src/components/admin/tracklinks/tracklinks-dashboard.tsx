@@ -79,9 +79,11 @@ export function TracklinksDashboard({
             ? 'createErrorBootstrap'
             : data.error === 'missing_service_role'
               ? 'createErrorServiceRole'
-              : data.error === 'schema_missing'
+              : data.error === 'schema_missing' || data.error === 'rpc_missing'
                 ? 'createErrorSchema'
-                : 'createError';
+                : data.error === 'forbidden'
+                  ? 'createErrorForbidden'
+                  : 'createError';
       setError(t(errorKey));
       return;
     }
