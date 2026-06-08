@@ -110,6 +110,7 @@
       "tableTitle": "All tracklinks",
       "live": "Live click stream",
       "loading": "Loading links…",
+      "loadError": "Could not load tracklinks. Refresh the page.",
       "clicks": "Clicks",
       "copy": "Copy link",
       "disable": "Disable",

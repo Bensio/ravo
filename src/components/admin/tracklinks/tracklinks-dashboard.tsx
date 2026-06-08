@@ -33,16 +33,22 @@ export function TracklinksDashboard({
   const [label, setLabel] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+    }
+    setLoadError(null);
     const res = await fetch(`/api/${orgSlug}/links`);
     if (res.ok) {
       const data = await res.json();
       setLinks(data.links ?? []);
+    } else {
+      setLoadError(t('loadError'));
     }
     setLoading(false);
-  }, [orgSlug]);
+  }, [orgSlug, t]);
 
   useEffect(() => {
     void load();
@@ -89,7 +95,14 @@ export function TracklinksDashboard({
     }
     setDestinationUrl('');
     setLabel('');
-    await load();
+    const created = (await res.json()) as { link?: TracklinkRow };
+    if (created.link) {
+      setLinks((prev) => {
+        if (prev.some((l) => l.id === created.link!.id)) return prev;
+        return [created.link!, ...prev];
+      });
+    }
+    await load({ silent: true });
   };
 
   const toggleDisabled = async (link: TracklinkRow) => {
@@ -168,6 +181,7 @@ export function TracklinksDashboard({
             {creating ? t('creating') : t('create')}
           </Button>
         </div>
+        {loadError && <p className="text-sm text-red-400">{loadError}</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
       </section>
 

@@ -6,6 +6,7 @@ import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
 import { buildPublicLinkUrl } from '@/lib/links/code';
 import { createTracklink } from '@/lib/links/create-link';
 import { isValidHttpUrl, normalizeDestinationUrl } from '@/lib/links/destination-url';
+import { listLinksForOrg } from '@/lib/links/list-links';
 
 const createSchema = z.object({
   destination_url: z
@@ -29,58 +30,16 @@ function bootstrapErrorResponse(err: unknown): NextResponse {
 }
 
 export const GET = requirePermission('link.read', async ({ ctx }) => {
-  const supabase = await createClient();
-  const { data: links, error } = await supabase
-    .from('links')
-    .select(
-      `
-      id,
-      code,
-      label,
-      destination_url,
-      disabled,
-      created_at,
-      campaign_id,
-      ambassador_id,
-      ambassadors ( display_handle, user_id ),
-      campaigns ( name, slug )
-    `,
-    )
-    .eq('organization_id', ctx.org.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
+  try {
+    const links = await listLinksForOrg(ctx.org.id);
+    return NextResponse.json({ links });
+  } catch (err) {
+    console.error('link list failed', {
+      orgId: ctx.org.id,
+      message: err instanceof Error ? err.message : 'unknown',
+    });
     return NextResponse.json({ error: 'query_failed' }, { status: 500 });
   }
-
-  const linkIds = (links ?? []).map((l) => l.id);
-  let clickCounts: Record<string, number> = {};
-  if (linkIds.length > 0) {
-    const { data: clicks } = await supabase
-      .from('clicks')
-      .select('link_id')
-      .eq('organization_id', ctx.org.id)
-      .in('link_id', linkIds);
-    clickCounts = (clicks ?? []).reduce<Record<string, number>>((acc, row) => {
-      acc[row.link_id] = (acc[row.link_id] ?? 0) + 1;
-      return acc;
-    }, {});
-  }
-
-  const items = (links ?? []).map((link) => ({
-    id: link.id,
-    code: link.code,
-    label: link.label,
-    destination_url: link.destination_url,
-    disabled: link.disabled,
-    created_at: link.created_at,
-    public_url: buildPublicLinkUrl(link.code),
-    click_count: clickCounts[link.id] ?? 0,
-    campaign: link.campaigns,
-    ambassador: link.ambassadors,
-  }));
-
-  return NextResponse.json({ links: items });
 });
 
 export const POST = requirePermission('link.create', async ({ ctx, request }) => {
@@ -146,7 +105,12 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
       link: {
         id: result.link.id,
         code: result.link.code,
+        label: parsed.data.label ?? null,
+        destination_url: parsed.data.destination_url,
+        disabled: false,
         public_url: buildPublicLinkUrl(result.link.code),
+        click_count: 0,
+        ambassador: null,
       },
     },
     { status: 201 },

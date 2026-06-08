@@ -22,6 +22,22 @@ function mapRpcError(message: string, code?: string): string {
   return 'create_failed';
 }
 
+function parseRpcRow(data: unknown): CreateLinkResult | null {
+  if (Array.isArray(data) && data.length > 0) {
+    return data[0] as CreateLinkResult;
+  }
+  if (
+    data &&
+    typeof data === 'object' &&
+    'id' in data &&
+    'code' in data &&
+    typeof (data as CreateLinkResult).id === 'string'
+  ) {
+    return data as CreateLinkResult;
+  }
+  return null;
+}
+
 /**
  * Creates a tracklink via security-definer RPC (auth + org checks in DB).
  */
@@ -47,8 +63,8 @@ export async function createTracklink(
       p_label: params.label ?? null,
     });
 
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      const row = data[0] as CreateLinkResult;
+    const row = parseRpcRow(data);
+    if (!error && row) {
       return { ok: true, link: row };
     }
 

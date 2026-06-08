@@ -110,6 +110,7 @@
       "tableTitle": "Alle tracklinks",
       "live": "Live click-stream",
       "loading": "Links laden…",
+      "loadError": "Tracklinks laden mislukt. Vernieuw de pagina.",
       "clicks": "Clicks",
       "copy": "Link kopiëren",
       "disable": "Uitschakelen",
