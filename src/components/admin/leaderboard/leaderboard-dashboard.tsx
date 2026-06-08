@@ -107,11 +107,11 @@ export function LeaderboardDashboard({
       : 0;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+          <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
+          <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
         </div>
         <div
           className="flex min-w-[220px] items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-2"
@@ -126,11 +126,11 @@ export function LeaderboardDashboard({
         </div>
       </div>
 
-      <section className="grid gap-6 lg:grid-cols-12">
+      <section className="grid gap-3 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <AmbassadorPodium rows={initialData.rows} title={t('podiumTitle')} />
+          <AmbassadorPodium compact rows={initialData.rows} title={t('podiumTitle')} />
         </div>
-        <div className="ravo-glass-panel space-y-5 p-5 lg:col-span-4">
+        <div className="ravo-glass-panel space-y-4 p-4 lg:col-span-4">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {t('snapshotTitle')}
           </p>
@@ -160,7 +160,7 @@ export function LeaderboardDashboard({
         </div>
       </section>
 
-      <section className="ravo-glass-panel space-y-3 p-5">
+      <section className="ravo-glass-panel space-y-2 p-4">
         <div className="hidden px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground sm:grid sm:grid-cols-[40px_minmax(0,1.4fr)_80px_80px_100px_90px] sm:gap-3">
           <span>{t('colRank')}</span>
           <span>{t('colAmbassador')}</span>

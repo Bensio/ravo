@@ -24,11 +24,9 @@ export function OverviewDashboard({
 
   if (!data) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-          <p className="mt-1 text-sm text-red-400">{t('loadError')}</p>
-        </div>
+      <div>
+        <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
+        <p className="mt-1 text-sm text-red-400">{t('loadError')}</p>
       </div>
     );
   }
@@ -41,48 +39,35 @@ export function OverviewDashboard({
   const hasActivity = data.totals.clicks > 0 || data.totals.sales > 0;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
+          <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
+        </div>
+        <Link
+          href={`/${locale}/${orgSlug}/leaderboard`}
+          className="text-xs text-primary hover:underline"
+        >
+          {t('viewLeaderboard')}
+        </Link>
       </div>
 
       {!hasActivity && (
-        <section className="ravo-glass-panel p-6">
+        <section className="ravo-glass-panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="text-sm text-muted-foreground">{t('empty')}</p>
           <Link
             href={`/${locale}/${orgSlug}/tracklinks`}
-            className="mt-3 inline-block text-sm text-primary hover:underline"
+            className="shrink-0 text-sm text-primary hover:underline"
           >
             {t('emptyCta')}
           </Link>
         </section>
       )}
 
-      <section className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8">
-          <ClicksSalesChart
-            data={data.series}
-            title={t('chartTitle')}
-            clicksLabel={t('kpiClicks')}
-            salesLabel={t('kpiSales')}
-            timezone={data.timezone}
-          />
-        </div>
-        <div className="lg:col-span-4">
-          <TopPerformerCard
-            top={top}
-            labels={{
-              title: t('topPerformer'),
-              sales: t('salesUnit'),
-              conversion: t('conversionUnit'),
-            }}
-          />
-        </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardKpiCard
+          compact
           label={t('kpiClicks')}
           value={formatNumber(data.totals.clicks, locale)}
           delta={data.deltas.clicks}
@@ -91,6 +76,7 @@ export function OverviewDashboard({
           spark={sparkClicks}
         />
         <DashboardKpiCard
+          compact
           label={t('kpiSales')}
           value={formatNumber(data.totals.sales, locale)}
           delta={data.deltas.sales}
@@ -99,6 +85,7 @@ export function OverviewDashboard({
           spark={sparkSales}
         />
         <DashboardKpiCard
+          compact
           label={t('kpiConversion')}
           value={`${(data.totals.conversion * 100).toFixed(1)}%`}
           delta={data.deltas.conversion}
@@ -106,15 +93,37 @@ export function OverviewDashboard({
           icon={Percent}
           spark={sparkConv}
         />
+        <TopPerformerCard
+          compact
+          top={top}
+          labels={{
+            title: t('topPerformer'),
+            sales: t('salesUnit'),
+            conversion: t('conversionUnit'),
+          }}
+        />
       </section>
 
-      <section>
-        <AmbassadorPodium
-          rows={data.rows}
-          title={t('podiumTitle')}
-          viewAllHref={`/${locale}/${orgSlug}/leaderboard`}
-          viewAllLabel={t('viewLeaderboard')}
-        />
+      <section className="grid gap-3 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <ClicksSalesChart
+            compact
+            data={data.series}
+            title={t('chartTitle')}
+            clicksLabel={t('kpiClicks')}
+            salesLabel={t('kpiSales')}
+            timezone={data.timezone}
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <AmbassadorPodium
+            compact
+            rows={data.rows}
+            title={t('podiumTitle')}
+            viewAllHref={`/${locale}/${orgSlug}/leaderboard`}
+            viewAllLabel={t('viewLeaderboard')}
+          />
+        </div>
       </section>
     </div>
   );

@@ -49,7 +49,7 @@ export default async function AdminOrgLayout({ children, params }: Props) {
           locale={locale}
           orgs={memberships.map((m) => m.org)}
         />
-        <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-5">{children}</main>
       </div>
     </div>
   );

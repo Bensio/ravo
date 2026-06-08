@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
 import { formatInFestivalTz } from '@/lib/time';
+import { cn } from '@/lib/utils';
 
 type Point = SerializedOrgDashboard['series'][number];
 
@@ -12,20 +13,22 @@ export function ClicksSalesChart({
   clicksLabel,
   salesLabel,
   timezone,
+  compact = false,
 }: {
   data: Point[];
   title: string;
   clicksLabel: string;
   salesLabel: string;
   timezone: string;
+  compact?: boolean;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const slice = useMemo(() => data.slice(-14), [data]);
 
   const w = 600;
-  const h = 220;
+  const h = compact ? 140 : 220;
   const padX = 32;
-  const padY = 20;
+  const padY = compact ? 14 : 20;
   const maxClicks = Math.max(1, ...slice.map((d) => d.clicks));
   const maxSales = Math.max(1, ...slice.map((d) => d.sales));
 
@@ -42,33 +45,33 @@ export function ClicksSalesChart({
     formatInFestivalTz(`${hoverPoint.day}T12:00:00.000Z`, { timezone }, 'MMM d');
 
   return (
-    <div className="ravo-glass-panel relative overflow-hidden p-5">
+    <div className={cn('ravo-glass-panel relative overflow-hidden', compact ? 'p-4' : 'p-5')}>
       <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
-      <div className="relative flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="relative flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {title}
           </p>
-          <div className="mt-2 flex items-center gap-4 text-xs">
-            <span className="inline-flex items-center gap-1.5 text-primary">
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="inline-flex items-center gap-1 text-primary">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {clicksLabel}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-accent">
+            <span className="inline-flex items-center gap-1 text-accent">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               {salesLabel}
             </span>
           </div>
         </div>
         {hoverLabel && (
-          <p className="text-xs tabular-nums text-muted-foreground">
+          <p className="text-[11px] tabular-nums text-muted-foreground">
             {hoverLabel}: {hoverPoint?.clicks} / {hoverPoint?.sales}
           </p>
         )}
       </div>
       <svg
         viewBox={`0 0 ${w} ${h}`}
-        className="relative mt-4 h-[220px] w-full"
+        className={cn('relative w-full', compact ? 'mt-2 h-[140px]' : 'mt-4 h-[220px]')}
         onMouseLeave={() => setHover(null)}
       >
         {slice.map((_, i) => (
