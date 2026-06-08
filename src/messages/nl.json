@@ -135,7 +135,22 @@
     },
     "settings": {
       "title": "Instellingen",
-      "empty": "Organisatie-instellingen en ticketintegraties (Weeztix OAuth) komen in fase 3."
+      "subtitle": "Organisatieprofiel en ticketintegraties.",
+      "integrations": {
+        "title": "Integraties",
+        "subtitle": "Koppel je ticketshop zodat verkopen automatisch in Ravo verschijnen.",
+        "weeztixTitle": "Weeztix",
+        "weeztixDescription": "Native trackers, betaalde-order webhooks en nachtelijke reconciliatie.",
+        "connectWeeztix": "Weeztix koppelen",
+        "weeztixPending": "OAuth-credentials wachten op apiteam@weeztix.com. Webhook-handler is klaar zodra de koppeling actief is.",
+        "loading": "Integraties laden…",
+        "loadError": "Integraties laden mislukt.",
+        "empty": "Nog geen provider-koppelingen. Manual UTM wordt automatisch aangemaakt bij je eerste tracklink.",
+        "webhookUrl": "Webhook-URL",
+        "copyWebhook": "URL kopiëren",
+        "copied": "Gekopieerd",
+        "noSubscriptions": "Nog geen webhook-abonnementen geregistreerd."
+      }
     },
     "help": {
       "title": "Help & support",

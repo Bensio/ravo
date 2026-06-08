@@ -135,7 +135,22 @@
     },
     "settings": {
       "title": "Settings",
-      "empty": "Organization settings and ticketing integrations (Weeztix OAuth) land in Phase 3."
+      "subtitle": "Organization profile and ticketing integrations.",
+      "integrations": {
+        "title": "Integrations",
+        "subtitle": "Connect your ticket shop so sales appear in Ravo automatically.",
+        "weeztixTitle": "Weeztix",
+        "weeztixDescription": "Native trackers, paid-order webhooks, and nightly reconciliation.",
+        "connectWeeztix": "Connect Weeztix",
+        "weeztixPending": "OAuth credentials pending from apiteam@weeztix.com. Webhook handler is ready to receive events once connected.",
+        "loading": "Loading integrations…",
+        "loadError": "Could not load integrations.",
+        "empty": "No provider connections yet. Manual UTM is created automatically when you add your first tracklink.",
+        "webhookUrl": "Webhook URL",
+        "copyWebhook": "Copy URL",
+        "copied": "Copied",
+        "noSubscriptions": "No webhook subscriptions registered yet."
+      }
     },
     "help": {
       "title": "Help & Support",
