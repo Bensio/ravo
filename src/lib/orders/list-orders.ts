@@ -29,8 +29,8 @@ type OrderRow = {
   provider_order_id: string;
   status: string;
   currency: string;
-  gross_amount_cents: number | string;
-  net_amount_cents: number | string;
+  gross_amount_cents: string | bigint;
+  net_amount_cents: string | bigint;
   buyer_country: string | null;
   placed_at: string;
   paid_at: string | null;
