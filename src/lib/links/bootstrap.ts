@@ -1,6 +1,131 @@
 import { addDays } from 'date-fns';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { serverNow } from '@/lib/time';
+
+const DEFAULT_EVENT_SLUG = 'default-festival';
+const DEFAULT_CAMPAIGN_SLUG = 'default-campaign';
+
+async function ensureAmbassador(
+  admin: SupabaseClient,
+  ownerUserId: string,
+): Promise<string> {
+  const { data: ambassador } = await admin
+    .from('ambassadors')
+    .select('id')
+    .eq('user_id', ownerUserId)
+    .maybeSingle();
+
+  if (ambassador) {
+    return ambassador.id;
+  }
+
+  const { data: created, error } = await admin
+    .from('ambassadors')
+    .insert({ user_id: ownerUserId, display_handle: 'owner' })
+    .select('id')
+    .single();
+  if (error || !created) {
+    throw error ?? new Error('Failed to create ambassador row');
+  }
+  return created.id;
+}
+
+async function ensureAmbassadorCampaign(
+  admin: SupabaseClient,
+  organizationId: string,
+  ambassadorId: string,
+  campaignId: string,
+): Promise<void> {
+  const { data: ac } = await admin
+    .from('ambassador_campaigns')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('campaign_id', campaignId)
+    .eq('ambassador_id', ambassadorId)
+    .maybeSingle();
+
+  if (!ac) {
+    const { error } = await admin.from('ambassador_campaigns').insert({
+      organization_id: organizationId,
+      ambassador_id: ambassadorId,
+      campaign_id: campaignId,
+      state: 'active',
+    });
+    if (error) {
+      throw error;
+    }
+  }
+}
+
+async function ensureManualUtmConnection(
+  admin: SupabaseClient,
+  organizationId: string,
+  ownerUserId: string,
+): Promise<string> {
+  const { data: connection } = await admin
+    .from('provider_connections')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('provider', 'manual_utm')
+    .limit(1)
+    .maybeSingle();
+
+  if (connection) {
+    return connection.id;
+  }
+
+  const token = crypto.randomUUID().replace(/-/g, '');
+  const { data: created, error } = await admin
+    .from('provider_connections')
+    .insert({
+      organization_id: organizationId,
+      provider: 'manual_utm',
+      display_name: 'Manual UTM',
+      created_by: ownerUserId,
+      webhook_url_token: token,
+    })
+    .select('id')
+    .single();
+  if (error || !created) {
+    throw error ?? new Error('Failed to create provider connection');
+  }
+  return created.id;
+}
+
+async function ensureCampaignForEvent(
+  admin: SupabaseClient,
+  organizationId: string,
+  eventId: string,
+): Promise<string> {
+  const { data: existing } = await admin
+    .from('campaigns')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('event_id', eventId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    return existing.id;
+  }
+
+  const { data: campaign, error } = await admin
+    .from('campaigns')
+    .insert({
+      organization_id: organizationId,
+      event_id: eventId,
+      name: 'Default campaign',
+      slug: DEFAULT_CAMPAIGN_SLUG,
+      state: 'active',
+    })
+    .select('id')
+    .single();
+  if (error || !campaign) {
+    throw error ?? new Error('Failed to create campaign');
+  }
+  return campaign.id;
+}
 
 /**
  * Ensures org has at least one campaign + ambassador_campaign for link creation.
@@ -11,6 +136,7 @@ export async function bootstrapCampaignForOrg(
   ownerUserId: string,
 ): Promise<{ campaignId: string; ambassadorId: string }> {
   const admin = createAdminClient();
+  const ambassadorId = await ensureAmbassador(admin, ownerUserId);
 
   const { data: existingCampaign } = await admin
     .from('campaigns')
@@ -19,76 +145,34 @@ export async function bootstrapCampaignForOrg(
     .limit(1)
     .maybeSingle();
 
-  let ambassadorId: string;
-  const { data: ambassador } = await admin
-    .from('ambassadors')
-    .select('id')
-    .eq('user_id', ownerUserId)
-    .maybeSingle();
-
-  if (ambassador) {
-    ambassadorId = ambassador.id;
-  } else {
-    const { data: created, error } = await admin
-      .from('ambassadors')
-      .insert({ user_id: ownerUserId, display_handle: 'owner' })
-      .select('id')
-      .single();
-    if (error || !created) {
-      throw error ?? new Error('Failed to create ambassador row');
-    }
-    ambassadorId = created.id;
-  }
-
   if (existingCampaign) {
-    const { data: ac } = await admin
-      .from('ambassador_campaigns')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .eq('campaign_id', existingCampaign.id)
-      .eq('ambassador_id', ambassadorId)
-      .maybeSingle();
-
-    if (!ac) {
-      await admin.from('ambassador_campaigns').insert({
-        organization_id: organizationId,
-        ambassador_id: ambassadorId,
-        campaign_id: existingCampaign.id,
-        state: 'active',
-      });
-    }
+    await ensureAmbassadorCampaign(
+      admin,
+      organizationId,
+      ambassadorId,
+      existingCampaign.id,
+    );
     return { campaignId: existingCampaign.id, ambassadorId };
   }
 
-  let connectionId: string;
-  const { data: connection } = await admin
-    .from('provider_connections')
+  const { data: existingEvent } = await admin
+    .from('events')
     .select('id')
     .eq('organization_id', organizationId)
-    .eq('provider', 'manual_utm')
-    .limit(1)
+    .eq('slug', DEFAULT_EVENT_SLUG)
     .maybeSingle();
 
-  if (connection) {
-    connectionId = connection.id;
-  } else {
-    const token = crypto.randomUUID().replace(/-/g, '');
-    const { data: created, error } = await admin
-      .from('provider_connections')
-      .insert({
-        organization_id: organizationId,
-        provider: 'manual_utm',
-        display_name: 'Manual UTM',
-        created_by: ownerUserId,
-        webhook_url_token: token,
-      })
-      .select('id')
-      .single();
-    if (error || !created) {
-      throw error ?? new Error('Failed to create provider connection');
-    }
-    connectionId = created.id;
+  if (existingEvent) {
+    const campaignId = await ensureCampaignForEvent(
+      admin,
+      organizationId,
+      existingEvent.id,
+    );
+    await ensureAmbassadorCampaign(admin, organizationId, ambassadorId, campaignId);
+    return { campaignId, ambassadorId };
   }
+
+  const connectionId = await ensureManualUtmConnection(admin, organizationId, ownerUserId);
 
   const now = serverNow();
   const startAt = now.toISOString();
@@ -101,7 +185,7 @@ export async function bootstrapCampaignForOrg(
       provider_connection_id: connectionId,
       provider_event_id: `bootstrap-${organizationId.slice(0, 8)}`,
       name: 'Default festival',
-      slug: 'default-festival',
+      slug: DEFAULT_EVENT_SLUG,
       start_at: startAt,
       end_at: endAt,
       timezone: 'Europe/Amsterdam',
@@ -112,27 +196,8 @@ export async function bootstrapCampaignForOrg(
     throw eventError ?? new Error('Failed to create event');
   }
 
-  const { data: campaign, error: campaignError } = await admin
-    .from('campaigns')
-    .insert({
-      organization_id: organizationId,
-      event_id: event.id,
-      name: 'Default campaign',
-      slug: 'default-campaign',
-      state: 'active',
-    })
-    .select('id')
-    .single();
-  if (campaignError || !campaign) {
-    throw campaignError ?? new Error('Failed to create campaign');
-  }
+  const campaignId = await ensureCampaignForEvent(admin, organizationId, event.id);
+  await ensureAmbassadorCampaign(admin, organizationId, ambassadorId, campaignId);
 
-  await admin.from('ambassador_campaigns').insert({
-    organization_id: organizationId,
-    ambassador_id: ambassadorId,
-    campaign_id: campaign.id,
-    state: 'active',
-  });
-
-  return { campaignId: campaign.id, ambassadorId };
+  return { campaignId, ambassadorId };
 }

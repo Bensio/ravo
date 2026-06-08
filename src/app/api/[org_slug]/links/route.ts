@@ -4,14 +4,28 @@ import { requirePermission } from '@/lib/auth/require-permission';
 import { createClient } from '@/lib/supabase/server';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
 import { buildPublicLinkUrl, generateLinkCode } from '@/lib/links/code';
+import { isValidHttpUrl, normalizeDestinationUrl } from '@/lib/links/destination-url';
 
 const createSchema = z.object({
-  destination_url: z.string().url(),
+  destination_url: z
+    .string()
+    .min(1)
+    .transform(normalizeDestinationUrl)
+    .refine(isValidHttpUrl, { message: 'invalid_url' }),
   label: z.string().max(64).optional(),
   campaign_id: z.string().uuid().optional(),
   ambassador_id: z.string().uuid().optional(),
   bootstrap: z.boolean().optional(),
 });
+
+function bootstrapErrorResponse(err: unknown): NextResponse {
+  const message = err instanceof Error ? err.message : 'bootstrap_failed';
+  if (message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+    return NextResponse.json({ error: 'missing_service_role' }, { status: 503 });
+  }
+  console.error('link bootstrap failed', { message });
+  return NextResponse.json({ error: 'bootstrap_failed' }, { status: 500 });
+}
 
 export const GET = requirePermission('link.read', async ({ ctx }) => {
   const supabase = await createClient();
@@ -78,7 +92,11 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
 
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
+    const invalidUrl = parsed.error.issues.some((i) => i.message === 'invalid_url');
+    return NextResponse.json(
+      { error: invalidUrl ? 'invalid_url' : 'invalid_payload' },
+      { status: 400 },
+    );
   }
 
   const supabase = await createClient();
@@ -86,9 +104,13 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
   let ambassadorId = parsed.data.ambassador_id;
 
   if (parsed.data.bootstrap || !campaignId || !ambassadorId) {
-    const boot = await bootstrapCampaignForOrg(ctx.org.id, ctx.user.id);
-    campaignId = campaignId ?? boot.campaignId;
-    ambassadorId = ambassadorId ?? boot.ambassadorId;
+    try {
+      const boot = await bootstrapCampaignForOrg(ctx.org.id, ctx.user.id);
+      campaignId = campaignId ?? boot.campaignId;
+      ambassadorId = ambassadorId ?? boot.ambassadorId;
+    } catch (err) {
+      return bootstrapErrorResponse(err);
+    }
   }
 
   let code = generateLinkCode();
@@ -119,6 +141,14 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
       );
     }
     if (error?.code !== '23505') {
+      console.error('link insert failed', {
+        orgId: ctx.org.id,
+        code: error?.code,
+        message: error?.message,
+      });
+      if (error?.code === '42P01') {
+        return NextResponse.json({ error: 'schema_missing' }, { status: 503 });
+      }
       return NextResponse.json({ error: 'create_failed' }, { status: 500 });
     }
     code = generateLinkCode();

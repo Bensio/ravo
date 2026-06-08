@@ -71,7 +71,18 @@ export function TracklinksDashboard({
     });
     setCreating(false);
     if (!res.ok) {
-      setError(t('createError'));
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const errorKey =
+        data.error === 'invalid_url'
+          ? 'createErrorInvalidUrl'
+          : data.error === 'bootstrap_failed'
+            ? 'createErrorBootstrap'
+            : data.error === 'missing_service_role'
+              ? 'createErrorServiceRole'
+              : data.error === 'schema_missing'
+                ? 'createErrorSchema'
+                : 'createError';
+      setError(t(errorKey));
       return;
     }
     setDestinationUrl('');
