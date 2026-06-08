@@ -1,10 +1,12 @@
+'use client';
+
 import { Bell } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 import { OrgSwitcher } from './org-switcher';
 
 type OrgOption = { id: string; slug: string; name: string };
 
-export async function AdminHeader({
+export function AdminHeader({
   orgName,
   orgId,
   email,
@@ -17,7 +19,7 @@ export async function AdminHeader({
   locale: string;
   orgs: OrgOption[];
 }) {
-  const tHeader = await getTranslations('admin.header');
+  const tHeader = useTranslations('admin.header');
   const displayName = (email.split('@')[0] ?? 'there').replace(/[._]/g, ' ');
 
   return (

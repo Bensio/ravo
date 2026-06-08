@@ -2,7 +2,6 @@ import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { resolveActiveOrg } from './org-context';
 import { roleHasPermission, type Permission } from './permissions';
-import { setRequestOrgContext } from './set-org-context';
 import { getSessionUser } from './session';
 
 /** Server Component helper — reuses request-scoped auth cache from layout. */
@@ -15,7 +14,6 @@ export const requireOrgPageContext = cache(async (orgSlug: string, permission: P
     return null;
   }
 
-  await setRequestOrgContext(resolved.org.id);
   const supabase = await createClient();
 
   return {

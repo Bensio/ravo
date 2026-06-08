@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { getSessionUser } from '@/lib/auth/session';
 import { getUserMemberships } from '@/lib/auth/org-context';
+import { setRequestOrgContext } from '@/lib/auth/set-org-context';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { isStaffRole } from '@/lib/auth/permissions';
@@ -29,6 +30,8 @@ export default async function AdminOrgLayout({ children, params }: Props) {
   if (!isStaffRole(membership.role)) {
     redirect(`/${locale}/app/home`);
   }
+
+  await setRequestOrgContext(membership.org.id);
 
   return (
     <div className="ravo-shell-bg flex min-h-screen">

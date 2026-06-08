@@ -1,11 +1,13 @@
-import { getTranslations } from 'next-intl/server';
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { RavoLogo } from '@/components/shared/ravo-logo';
 import { AdminNavLink } from './admin-nav-link';
 import { ADMIN_NAV_ITEMS } from './admin-nav-config';
 import { AdminEventCard } from './admin-event-card';
 import { AdminSidebarUser } from './admin-sidebar-user';
 
-export async function AdminSidebar({
+export function AdminSidebar({
   locale,
   orgSlug,
   userEmail,
@@ -16,7 +18,7 @@ export async function AdminSidebar({
   userEmail: string;
   userRole: string;
 }) {
-  const t = await getTranslations('admin.nav');
+  const t = useTranslations('admin.nav');
 
   return (
     <aside className="ravo-sidebar flex w-[15.5rem] shrink-0 flex-col border-r border-white/[0.06]">
