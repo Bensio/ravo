@@ -26,6 +26,24 @@ function parseAmountCents(value: number | string): bigint {
   return typeof value === 'string' ? BigInt(value) : BigInt(value);
 }
 
+/** True when the request is a browser visit or empty ping — not a conversion payload. */
+export function isPixelProbePayload(rawBody: string): boolean {
+  if (!rawBody.trim()) {
+    return true;
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(rawBody);
+  } catch {
+    return true;
+  }
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return true;
+  }
+  const orderId = (json as Record<string, unknown>).order_id;
+  return typeof orderId !== 'string' || orderId.trim().length === 0;
+}
+
 export function parseManualUtmPixel(rawBody: string): NormalizedOrderEvent | null {
   let json: unknown;
   try {

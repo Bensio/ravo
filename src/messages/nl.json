@@ -174,7 +174,7 @@
         "estimatedBadge": "Geschat",
         "pixelUrl": "Conversiepixel-URL",
         "copyPixel": "Kopieer pixel-URL",
-        "pixelHint": "POST JSON bij orderbevestiging, of gebruik GET met queryparams. Neem ref en UTM-velden uit de buyer-URL mee waar mogelijk.",
+        "pixelHint": "Plak het snippet op de bedankpagina van je ticketshop. De pixel-URL openen in een browser toont “Conversion pixel active” — dat bevestigt dat het werkt. Verkopen worden geregistreerd via POST na checkout.",
         "pixelSnippet": "Bedankpagina-snippet (pas order_id en amount_cents aan)",
         "copySnippet": "Kopieer snippet",
         "weeztixTitle": "Weeztix",

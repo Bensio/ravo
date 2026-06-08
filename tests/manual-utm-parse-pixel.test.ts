@@ -31,3 +31,13 @@ describe('parseManualUtmPixel', () => {
     expect(parseManualUtmPixel(JSON.stringify({ order_id: 'x' }))).toBeNull();
   });
 });
+
+describe('isPixelProbePayload', () => {
+  it('treats empty and browser visits as probes', async () => {
+    const { isPixelProbePayload } = await import('@/lib/providers/manual_utm/parse-pixel');
+    expect(isPixelProbePayload('')).toBe(true);
+    expect(isPixelProbePayload('{}')).toBe(true);
+    expect(isPixelProbePayload(JSON.stringify({ ref: 'abc' }))).toBe(true);
+    expect(isPixelProbePayload(JSON.stringify({ order_id: 'x', amount_cents: 100, currency: 'EUR' }))).toBe(false);
+  });
+});

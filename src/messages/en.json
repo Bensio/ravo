@@ -174,7 +174,7 @@
         "estimatedBadge": "Estimated",
         "pixelUrl": "Conversion pixel URL",
         "copyPixel": "Copy pixel URL",
-        "pixelHint": "POST JSON on order confirmation, or use GET with query params. Include ref and UTM fields from the buyer URL when possible.",
+        "pixelHint": "Paste the snippet on your ticket shop thank-you page. Opening the pixel URL in a browser should show “Conversion pixel active” — that confirms it works. Sales are recorded via POST when a buyer completes checkout.",
         "pixelSnippet": "Thank-you page snippet (edit order_id and amount_cents)",
         "copySnippet": "Copy snippet",
         "weeztixTitle": "Weeztix",

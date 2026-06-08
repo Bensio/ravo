@@ -1,22 +1,15 @@
 'use client';
 
-import { CheckCircle2, Clock, Link2, Plug, Unplug } from 'lucide-react';
+import { CheckCircle2, Link2, Plug } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-type IntegrationRow = {
+type ManualUtmConnection = {
   id: string;
-  provider: string;
-  display_name: string;
   status: string;
-  webhook_url: string | null;
-  pixel_url: string | null;
-  last_healthcheck_ok: boolean | null;
-  last_error: string | null;
-  subscriptions: Array<{ resource: string; trigger: string; state: string }>;
-  connectable: boolean;
+  pixel_url: string;
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -54,7 +47,7 @@ function pixelSnippet(pixelUrl: string): string {
 
 export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
   const t = useTranslations('admin.settings.integrations');
-  const [connections, setConnections] = useState<IntegrationRow[]>([]);
+  const [manualUtm, setManualUtm] = useState<ManualUtmConnection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -64,8 +57,18 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
     setError(null);
     const res = await fetch(`/api/${orgSlug}/integrations`, { cache: 'no-store' });
     if (res.ok) {
-      const data = await res.json();
-      setConnections(data.connections ?? []);
+      const data = (await res.json()) as {
+        connections?: Array<{
+          id: string;
+          provider: string;
+          status: string;
+          pixel_url: string | null;
+        }>;
+      };
+      const row = data.connections?.find((c) => c.provider === 'manual_utm' && c.pixel_url);
+      setManualUtm(
+        row?.pixel_url ? { id: row.id, status: row.status, pixel_url: row.pixel_url } : null,
+      );
     } else {
       setError(t('loadError'));
     }
@@ -82,8 +85,6 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
     setTimeout(() => setCopied(null), 1500);
   };
 
-  const manualUtm = connections.find((c) => c.provider === 'manual_utm');
-
   return (
     <div className="space-y-6">
       <div>
@@ -91,11 +92,25 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <div className="ravo-glass-panel space-y-4 p-6">
-        <div className="flex items-start gap-3">
+      {error && <p className="text-sm text-red-400">{error}</p>}
+
+      <article className="ravo-glass-panel space-y-4 p-6">
+        <div className="flex flex-wrap items-start gap-3">
           <Plug className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <div className="flex-1">
-            <p className="font-medium">{t('manualUtmTitle')}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium">{t('manualUtmTitle')}</p>
+              {manualUtm && (
+                <span
+                  className={cn(
+                    'text-[10px] font-semibold uppercase tracking-wider',
+                    STATUS_STYLE[manualUtm.status] ?? 'text-muted-foreground',
+                  )}
+                >
+                  {manualUtm.status}
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">{t('manualUtmDescription')}</p>
           </div>
           <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
@@ -103,19 +118,21 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
           </span>
         </div>
 
-        {manualUtm?.pixel_url ? (
-          <div className="space-y-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+        {loading ? (
+          <p className="text-sm text-muted-foreground">{t('loading')}</p>
+        ) : manualUtm ? (
+          <div className="space-y-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">{t('pixelUrl')}</p>
-                <p className="truncate font-mono text-xs text-primary">{manualUtm.pixel_url}</p>
+                <p className="break-all font-mono text-xs text-primary">{manualUtm.pixel_url}</p>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="shrink-0 gap-1.5"
-                onClick={() => void copy(manualUtm.pixel_url!, `pixel-${manualUtm.id}`)}
+                onClick={() => void copy(manualUtm.pixel_url, `pixel-${manualUtm.id}`)}
               >
                 {copied === `pixel-${manualUtm.id}` ? (
                   <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -136,7 +153,9 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
                 variant="ghost"
                 size="sm"
                 className="mt-2 h-8 text-xs"
-                onClick={() => void copy(pixelSnippet(manualUtm.pixel_url!), `snippet-${manualUtm.id}`)}
+                onClick={() =>
+                  void copy(pixelSnippet(manualUtm.pixel_url), `snippet-${manualUtm.id}`)
+                }
               >
                 {copied === `snippet-${manualUtm.id}` ? t('copied') : t('copySnippet')}
               </Button>
@@ -145,10 +164,10 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
         ) : (
           <p className="text-sm text-muted-foreground">{t('manualUtmPending')}</p>
         )}
-      </div>
+      </article>
 
-      <div className="ravo-glass-panel space-y-4 p-6">
-        <div className="flex items-start gap-3">
+      <article className="ravo-glass-panel space-y-4 p-6">
+        <div className="flex flex-wrap items-start gap-3">
           <Plug className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <div className="flex-1">
             <p className="font-medium">{t('weeztixTitle')}</p>
@@ -159,88 +178,7 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">{t('weeztixPending')}</p>
-      </div>
-
-      {loading ? (
-        <p className="text-sm text-muted-foreground">{t('loading')}</p>
-      ) : error ? (
-        <p className="text-sm text-red-400">{error}</p>
-      ) : connections.length === 0 ? (
-        <div className="ravo-glass-panel px-6 py-10 text-center">
-          <Unplug className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">{t('empty')}</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {connections.map((connection) => (
-            <article key={connection.id} className="ravo-glass-panel space-y-3 p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium">{connection.display_name}</p>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                    {connection.provider}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    'text-xs font-semibold uppercase tracking-wider',
-                    STATUS_STYLE[connection.status] ?? 'text-muted-foreground',
-                  )}
-                >
-                  {connection.status}
-                </span>
-              </div>
-
-              {connection.provider !== 'manual_utm' && connection.webhook_url && (
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">{t('webhookUrl')}</p>
-                    <p className="truncate font-mono text-xs text-primary">
-                      {connection.webhook_url}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 gap-1.5"
-                    onClick={() => void copy(connection.webhook_url!, connection.id)}
-                  >
-                    {copied === connection.id ? (
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Link2 className="h-4 w-4" />
-                    )}
-                    {copied === connection.id ? t('copied') : t('copyWebhook')}
-                  </Button>
-                </div>
-              )}
-
-              {connection.subscriptions.length > 0 ? (
-                <ul className="flex flex-wrap gap-2">
-                  {connection.subscriptions.map((sub) => (
-                    <li
-                      key={`${sub.resource}.${sub.trigger}`}
-                      className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
-                    >
-                      {sub.resource}.{sub.trigger} · {sub.state}
-                    </li>
-                  ))}
-                </ul>
-              ) : connection.provider !== 'manual_utm' ? (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  {t('noSubscriptions')}
-                </p>
-              ) : null}
-
-              {connection.last_error && (
-                <p className="text-xs text-red-400">{connection.last_error}</p>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
+      </article>
     </div>
   );
 }
