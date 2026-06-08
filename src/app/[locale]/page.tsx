@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getSessionUser } from '@/lib/auth/session';
 import { getUserMemberships } from '@/lib/auth/org-context';
+import { getPostLoginPath } from '@/lib/auth/post-login-redirect';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -20,7 +21,7 @@ export default async function HomePage({ params }: Props) {
     if (memberships.length === 0) {
       redirect(`/${locale}/onboarding`);
     }
-    redirect(`/${locale}/${memberships[0].org.slug}/overview`);
+    redirect(getPostLoginPath(locale, memberships));
   }
 
   const t = await getTranslations('marketing');

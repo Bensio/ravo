@@ -28,6 +28,13 @@ export const PERMISSIONS = {
 export type Permission = keyof typeof PERMISSIONS;
 export type Role = (typeof PERMISSIONS)[Permission][number];
 
+export const STAFF_ROLES = ['owner', 'admin', 'manager', 'analyst'] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
+
+export function isStaffRole(role: Role): role is StaffRole {
+  return (STAFF_ROLES as readonly Role[]).includes(role);
+}
+
 export function roleHasPermission(role: Role, permission: Permission): boolean {
   return (PERMISSIONS[permission] as readonly Role[]).includes(role);
 }

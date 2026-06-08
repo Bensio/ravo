@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth/session';
 import { getUserMemberships } from '@/lib/auth/org-context';
+import { getPostLoginPath } from '@/lib/auth/post-login-redirect';
 import { CreateOrgForm } from './create-org-form';
 
 type Props = {
@@ -19,7 +20,7 @@ export default async function OnboardingPage({ params }: Props) {
 
   const memberships = await getUserMemberships(user.id);
   if (memberships.length > 0) {
-    redirect(`/${locale}/${memberships[0].org.slug}/overview`);
+    redirect(getPostLoginPath(locale, memberships));
   }
 
   return (

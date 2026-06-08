@@ -4,13 +4,12 @@ import { getSessionUser } from '@/lib/auth/session';
 import { getUserMemberships } from '@/lib/auth/org-context';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
+import { isStaffRole } from '@/lib/auth/permissions';
 
 type Props = {
   children: React.ReactNode;
   params: Promise<{ locale: string; org_slug: string }>;
 };
-
-const STAFF_ROLES = new Set(['owner', 'admin', 'manager', 'analyst']);
 
 export default async function AdminOrgLayout({ children, params }: Props) {
   const { locale, org_slug } = await params;
@@ -27,7 +26,7 @@ export default async function AdminOrgLayout({ children, params }: Props) {
     notFound();
   }
 
-  if (!STAFF_ROLES.has(membership.role)) {
+  if (!isStaffRole(membership.role)) {
     redirect(`/${locale}/app/home`);
   }
 
