@@ -39,13 +39,15 @@ const STATUS_STYLE: Record<string, string> = {
 export function SalesFeedDashboard({
   orgSlug,
   locale,
+  initialOrders,
 }: {
   orgSlug: string;
   locale: string;
+  initialOrders?: SalesFeedRow[];
 }) {
   const t = useTranslations('admin.salesFeed');
-  const [orders, setOrders] = useState<SalesFeedRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<SalesFeedRow[]>(initialOrders ?? []);
+  const [loading, setLoading] = useState(initialOrders === undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -63,8 +65,9 @@ export function SalesFeedDashboard({
   }, [orgSlug, t]);
 
   useEffect(() => {
+    if (initialOrders !== undefined) return;
     void load();
-  }, [load]);
+  }, [initialOrders, load]);
 
   const totalCents = orders.reduce((sum, o) => sum + BigInt(o.gross_amount_cents), 0n);
   const displayCurrency = orders[0]?.currency ?? 'EUR';

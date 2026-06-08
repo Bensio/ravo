@@ -1,5 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { reconcileMissingAttributions } from '@/lib/attribution/attribute-order';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export type OrderListItem = {
@@ -27,7 +26,6 @@ export type OrderListItem = {
 
 type OrderRow = {
   id: string;
-  provider_connection_id: string;
   provider_order_id: string;
   status: string;
   currency: string;
@@ -48,7 +46,7 @@ type AttributionRow = {
   tier: number;
   signal: string;
   state: string;
-  ambassador_id: string | null;
+  ambassadors: { display_handle: string | null } | { display_handle: string | null }[] | null;
 };
 
 function ticketSummary(items: OrderRow['order_items']): string {
@@ -79,7 +77,7 @@ async function fetchAttributionMap(
 
   const { data, error } = await supabase
     .from('attributions')
-    .select('order_id, tier, signal, state, ambassador_id')
+    .select('order_id, tier, signal, state, ambassadors ( display_handle )')
     .in('order_id', orderIds);
 
   if (error) {
@@ -89,26 +87,14 @@ async function fetchAttributionMap(
     return result;
   }
 
-  const rows = (data ?? []) as AttributionRow[];
-  const ambassadorIds = [
-    ...new Set(rows.map((r) => r.ambassador_id).filter((id): id is string => Boolean(id))),
-  ];
-
-  let handles: Record<string, string | null> = {};
-  if (ambassadorIds.length > 0) {
-    const { data: ambassadors } = await supabase
-      .from('ambassadors')
-      .select('id, display_handle')
-      .in('id', ambassadorIds);
-    handles = Object.fromEntries((ambassadors ?? []).map((a) => [a.id, a.display_handle]));
-  }
-
-  for (const row of rows) {
+  for (const row of (data ?? []) as AttributionRow[]) {
+    const rawAmb = row.ambassadors;
+    const amb = Array.isArray(rawAmb) ? rawAmb[0] : rawAmb;
     result.set(row.order_id, {
       tier: row.tier,
       signal: row.signal,
       state: row.state,
-      ambassador_handle: row.ambassador_id ? (handles[row.ambassador_id] ?? null) : null,
+      ambassador_handle: amb?.display_handle ?? null,
     });
   }
 
@@ -125,7 +111,6 @@ export async function listOrdersForOrg(
     .select(
       `
       id,
-      provider_connection_id,
       provider_order_id,
       status,
       currency,
@@ -149,16 +134,6 @@ export async function listOrdersForOrg(
 
   const rows = (data ?? []) as unknown as OrderRow[];
   const orderIds = rows.map((r) => r.id);
-
-  await reconcileMissingAttributions(
-    organizationId,
-    rows.map((row) => ({
-      id: row.id,
-      provider_connection_id: row.provider_connection_id,
-      metadata: row.metadata,
-      status: row.status,
-    })),
-  );
 
   const admin = createAdminClient();
   const attributionByOrder = await fetchAttributionMap(admin, orderIds);

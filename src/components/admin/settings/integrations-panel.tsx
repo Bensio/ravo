@@ -20,16 +20,27 @@ const STATUS_STYLE: Record<string, string> = {
   rotating: 'text-amber-400',
 };
 
+type IntegrationConnectionSummary = {
+  id: string;
+  provider: string;
+  status: string;
+};
+
 export function IntegrationsPanel({
   orgSlug,
   locale,
+  initialConnections,
 }: {
   orgSlug: string;
   locale: string;
+  initialConnections?: IntegrationConnectionSummary[];
 }) {
   const t = useTranslations('admin.settings.integrations');
-  const [manualUtm, setManualUtm] = useState<ManualUtmConnection | null>(null);
-  const [loading, setLoading] = useState(true);
+  const manualFromInitial = initialConnections?.find((c) => c.provider === 'manual_utm');
+  const [manualUtm, setManualUtm] = useState<ManualUtmConnection | null>(
+    manualFromInitial ? { id: manualFromInitial.id, status: manualFromInitial.status } : null,
+  );
+  const [loading, setLoading] = useState(initialConnections === undefined);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -53,8 +64,9 @@ export function IntegrationsPanel({
   }, [orgSlug, t]);
 
   useEffect(() => {
+    if (initialConnections !== undefined) return;
     void load();
-  }, [load]);
+  }, [initialConnections, load]);
 
   return (
     <div className="space-y-6">

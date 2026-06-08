@@ -19,10 +19,11 @@ function buildConnectionUrl(provider: string, token: string | null): string | nu
 export const GET = requirePermission('org.integrations', async ({ ctx }) => {
   try {
     const admin = createAdminClient();
-    const { data: connections, error } = await admin
-      .from('provider_connections')
-      .select(
-        `
+    const [{ data: connections, error }, { data: subscriptions }] = await Promise.all([
+      admin
+        .from('provider_connections')
+        .select(
+          `
         id,
         provider,
         display_name,
@@ -34,18 +35,18 @@ export const GET = requirePermission('org.integrations', async ({ ctx }) => {
         created_at,
         disconnected_at
       `,
-      )
-      .eq('organization_id', ctx.org.id)
-      .order('created_at', { ascending: false });
+        )
+        .eq('organization_id', ctx.org.id)
+        .order('created_at', { ascending: false }),
+      admin
+        .from('provider_webhook_subscriptions')
+        .select('id, provider_connection_id, resource, trigger, state, last_delivery_at')
+        .eq('organization_id', ctx.org.id),
+    ]);
 
     if (error) {
       return NextResponse.json({ error: 'query_failed' }, { status: 500 });
     }
-
-    const { data: subscriptions } = await admin
-      .from('provider_webhook_subscriptions')
-      .select('id, provider_connection_id, resource, trigger, state, last_delivery_at')
-      .eq('organization_id', ctx.org.id);
 
     const subsByConnection = (subscriptions ?? []).reduce<
       Record<

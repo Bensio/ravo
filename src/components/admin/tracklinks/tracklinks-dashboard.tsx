@@ -20,13 +20,15 @@ export type TracklinkRow = {
 export function TracklinksDashboard({
   orgSlug,
   locale,
+  initialLinks,
 }: {
   orgSlug: string;
   locale: string;
+  initialLinks?: TracklinkRow[];
 }) {
   const t = useTranslations('admin.tracklinks');
-  const [links, setLinks] = useState<TracklinkRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [links, setLinks] = useState<TracklinkRow[]>(initialLinks ?? []);
+  const [loading, setLoading] = useState(initialLinks === undefined);
   const [copied, setCopied] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active'>('all');
   const [destinationUrl, setDestinationUrl] = useState('');
@@ -54,8 +56,9 @@ export function TracklinksDashboard({
   }, [orgSlug, t]);
 
   useEffect(() => {
+    if (initialLinks !== undefined) return;
     void load();
-  }, [load]);
+  }, [initialLinks, load]);
 
   const filtered = links.filter((l) => (filter === 'active' ? !l.disabled : true));
   const totalClicks = filtered.reduce((sum, l) => sum + l.click_count, 0);
@@ -105,7 +108,6 @@ export function TracklinksDashboard({
         return [created.link!, ...prev];
       });
     }
-    await load({ silent: true });
   };
 
   const toggleDisabled = async (link: TracklinkRow) => {
@@ -130,7 +132,6 @@ export function TracklinksDashboard({
       return;
     }
     setError(null);
-    await load({ silent: true });
   };
 
   const simulateSale = async (link: TracklinkRow) => {
@@ -155,7 +156,9 @@ export function TracklinksDashboard({
       attributed?: boolean;
       ambassadorHandle?: string | null;
     };
-    await load({ silent: true });
+    setLinks((prev) =>
+      prev.map((l) => (l.id === link.id ? { ...l, click_count: l.click_count + 1 } : l)),
+    );
     if (data.attributed && data.ambassadorHandle) {
       setSimulateMessage(t('simulateSuccess', { ambassador: data.ambassadorHandle }));
     } else {
@@ -186,7 +189,6 @@ export function TracklinksDashboard({
       setError(t('deleteError'));
       return;
     }
-    await load({ silent: true });
   };
 
   return (

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { Role } from './permissions';
@@ -15,7 +16,7 @@ export type MembershipContext = {
   organizationId: string;
 };
 
-export async function getUserMemberships(userId: string) {
+async function getUserMembershipsImpl(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('memberships')
@@ -57,6 +58,8 @@ export async function getUserMemberships(userId: string) {
     ];
   });
 }
+
+export const getUserMemberships = cache(getUserMembershipsImpl);
 
 export type ResolveActiveOrgOptions = {
   /** Prefer org from URL path segment (admin routes). */
