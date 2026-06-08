@@ -1,6 +1,7 @@
 'use client';
 
-import { CheckCircle2, Link2, Plug } from 'lucide-react';
+import Link from 'next/link';
+import { CheckCircle2, Link2, Plug, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -45,12 +46,20 @@ function pixelSnippet(pixelUrl: string): string {
 </script>`;
 }
 
-export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
+export function IntegrationsPanel({
+  orgSlug,
+  locale,
+}: {
+  orgSlug: string;
+  locale: string;
+}) {
   const t = useTranslations('admin.settings.integrations');
   const [manualUtm, setManualUtm] = useState<ManualUtmConnection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [testSaleLoading, setTestSaleLoading] = useState(false);
+  const [testSaleOk, setTestSaleOk] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,6 +92,19 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
     await navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 1500);
+  };
+
+  const sendTestSale = async () => {
+    setTestSaleLoading(true);
+    setTestSaleOk(false);
+    setError(null);
+    const res = await fetch(`/api/${orgSlug}/integrations/test-sale`, { method: 'POST' });
+    setTestSaleLoading(false);
+    if (!res.ok) {
+      setError(t('testSaleError'));
+      return;
+    }
+    setTestSaleOk(true);
   };
 
   return (
@@ -122,6 +144,33 @@ export function IntegrationsPanel({ orgSlug }: { orgSlug: string }) {
           <p className="text-sm text-muted-foreground">{t('loading')}</p>
         ) : manualUtm ? (
           <div className="space-y-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">{t('testSaleTitle')}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t('testSaleDescription')}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={testSaleLoading}
+                  onClick={() => void sendTestSale()}
+                >
+                  <Zap className="h-4 w-4" />
+                  {testSaleLoading ? t('testSaleSending') : t('testSaleButton')}
+                </Button>
+                {testSaleOk && (
+                  <Link
+                    href={`/${locale}/${orgSlug}/sales-feed`}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    {t('testSaleViewFeed')}
+                  </Link>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">{t('pixelUrl')}</p>

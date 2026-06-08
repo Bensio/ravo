@@ -13,7 +13,7 @@ export default async function SettingsPage({ params }: Props) {
         <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
-      <IntegrationsPanel orgSlug={org_slug} />
+      <IntegrationsPanel orgSlug={org_slug} locale={locale} />
     </main>
   );
 }

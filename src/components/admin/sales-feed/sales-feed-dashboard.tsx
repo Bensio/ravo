@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
@@ -102,6 +103,12 @@ export function SalesFeedDashboard({
           <div className="py-10 text-center">
             <p className="text-sm text-muted-foreground">{t('empty')}</p>
             <p className="mt-2 text-xs text-muted-foreground">{t('emptyHint')}</p>
+            <Link
+              href={`/${locale}/${orgSlug}/settings`}
+              className="mt-4 inline-block text-sm text-primary hover:underline"
+            >
+              {t('emptyCta')}
+            </Link>
           </div>
         ) : (
           <div className="space-y-2">
