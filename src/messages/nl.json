@@ -111,6 +111,7 @@
       "live": "Live click-stream",
       "loading": "Links laden…",
       "loadError": "Tracklinks laden mislukt. Vernieuw de pagina.",
+      "updateError": "Link bijwerken mislukt. Probeer opnieuw.",
       "clicks": "Clicks",
       "copy": "Link kopiëren",
       "disable": "Uitschakelen",

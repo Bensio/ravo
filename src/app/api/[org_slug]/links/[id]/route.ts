@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth/require-permission';
-import { createClient } from '@/lib/supabase/server';
+import { updateLinkDisabled } from '@/lib/links/update-link';
 
 const patchSchema = z.object({
   disabled: z.boolean(),
@@ -21,18 +21,10 @@ export const PATCH = requirePermission('link.update', async ({ ctx, request, par
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('links')
-    .update({ disabled: parsed.data.disabled })
-    .eq('id', id)
-    .eq('organization_id', ctx.org.id)
-    .select('id, disabled')
-    .single();
-
-  if (error || !data) {
+  const updated = await updateLinkDisabled(ctx.org.id, id, parsed.data.disabled);
+  if (!updated) {
     return NextResponse.json({ error: 'update_failed' }, { status: 500 });
   }
 
-  return NextResponse.json({ link: data });
+  return NextResponse.json({ link: updated });
 });

@@ -106,12 +106,24 @@ export function TracklinksDashboard({
   };
 
   const toggleDisabled = async (link: TracklinkRow) => {
-    await fetch(`/api/${orgSlug}/links/${link.id}`, {
+    const nextDisabled = !link.disabled;
+    setLinks((prev) =>
+      prev.map((l) => (l.id === link.id ? { ...l, disabled: nextDisabled } : l)),
+    );
+    const res = await fetch(`/api/${orgSlug}/links/${link.id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ disabled: !link.disabled }),
+      body: JSON.stringify({ disabled: nextDisabled }),
     });
-    await load();
+    if (!res.ok) {
+      setLinks((prev) =>
+        prev.map((l) => (l.id === link.id ? { ...l, disabled: link.disabled } : l)),
+      );
+      setError(t('updateError'));
+      return;
+    }
+    setError(null);
+    await load({ silent: true });
   };
 
   return (
