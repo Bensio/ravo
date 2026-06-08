@@ -8,6 +8,7 @@ export type RedirectLinkPayload = {
   label: string | null;
   campaign_slug: string;
   ambassador_slug: string;
+  provider_tracker_id?: string | null;
 };
 
 export function buildDestinationUrl(
@@ -22,6 +23,9 @@ export function buildDestinationUrl(
   url.searchParams.set('utm_content', link.ambassador_slug);
   if (link.label) {
     url.searchParams.set('utm_term', link.label);
+  }
+  if (link.provider_tracker_id) {
+    url.searchParams.set('tracker', link.provider_tracker_id);
   }
   return url;
 }

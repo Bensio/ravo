@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth/require-permission';
+import { createClient } from '@/lib/supabase/server';
 import { deleteLink } from '@/lib/links/delete-link';
+import { invalidateLinkCache } from '@/lib/links/link-cache';
 import { updateLinkDisabled } from '@/lib/links/update-link';
 
 const patchSchema = z.object({
@@ -22,19 +24,31 @@ export const PATCH = requirePermission('link.update', async ({ ctx, request, par
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
-  const updated = await updateLinkDisabled(ctx.org.id, id, parsed.data.disabled);
+  const supabase = await createClient();
+  const updated = await updateLinkDisabled(
+    supabase,
+    ctx.org.id,
+    id,
+    parsed.data.disabled,
+  );
   if (!updated) {
     return NextResponse.json({ error: 'update_failed' }, { status: 500 });
   }
 
-  return NextResponse.json({ link: updated });
+  await invalidateLinkCache(updated.code);
+
+  return NextResponse.json({ link: { id: updated.id, disabled: updated.disabled } });
 });
 
 export const DELETE = requirePermission('link.delete', async ({ ctx, params }) => {
   const { id } = await params;
-  const removed = await deleteLink(ctx.org.id, id);
-  if (!removed) {
+  const supabase = await createClient();
+  const deletedCode = await deleteLink(supabase, ctx.org.id, id);
+  if (!deletedCode) {
     return NextResponse.json({ error: 'delete_failed' }, { status: 500 });
   }
+
+  await invalidateLinkCache(deletedCode);
+
   return NextResponse.json({ ok: true });
 });

@@ -27,6 +27,18 @@
     "create": "Create organization",
     "creating": "Creating…"
   },
+  "links": {
+    "notFound": {
+      "title": "Link not found",
+      "body": "This tracklink does not exist or may have been removed.",
+      "cta": "Go to Ravo"
+    },
+    "inactive": {
+      "title": "Link inactive",
+      "body": "This tracklink has been disabled by the festival.",
+      "cta": "Go to Ravo"
+    }
+  },
   "admin": {
     "nav": {
       "overview": "Overview",
@@ -48,7 +60,8 @@
       "analyst": "Analyst"
     },
     "sidebarUser": {
-      "nameRole": "{name} ({role})"
+      "nameRole": "{name} ({role})",
+      "openAmbassadorApp": "Open ambassador app"
     },
     "header": {
       "greeting": "Welcome back, {name}",

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
 import { buildPublicLinkUrl } from '@/lib/links/code';
 import { createTracklink } from '@/lib/links/create-link';
+import { invalidateLinkCache } from '@/lib/links/link-cache';
 import { isValidHttpUrl, normalizeDestinationUrl } from '@/lib/links/destination-url';
 import { listLinksForOrg } from '@/lib/links/list-links';
 
@@ -31,7 +32,8 @@ function bootstrapErrorResponse(err: unknown): NextResponse {
 
 export const GET = requirePermission('link.read', async ({ ctx }) => {
   try {
-    const links = await listLinksForOrg(ctx.org.id);
+    const supabase = await createClient();
+    const links = await listLinksForOrg(supabase, ctx.org.id);
     return NextResponse.json({ links });
   } catch (err) {
     console.error('link list failed', {
@@ -99,6 +101,8 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
     }
     return NextResponse.json({ error: result.error }, { status });
   }
+
+  await invalidateLinkCache(result.link.code);
 
   return NextResponse.json(
     {

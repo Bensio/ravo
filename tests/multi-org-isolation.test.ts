@@ -12,13 +12,10 @@ const ORG_SCOPED_TABLES = [
   'campaigns',
   'collaboration_labels',
   'events',
+  'links',
 ] as const;
 
 describe('multi-org isolation', () => {
-  it('scaffold is present', () => {
-    expect(true).toBe(true);
-  });
-
   describe('with live Supabase', () => {
     let fixture: IsolationFixture | undefined;
     let setupError: string | undefined;
@@ -101,6 +98,43 @@ describe('multi-org isolation', () => {
       expect(error).toBeNull();
       expect(data).toEqual([]);
       await client.auth.signOut();
+    });
+
+    it('blocks cross-org link reads by id', async (ctx) => {
+      skipUnlessReady(ctx);
+      const [viewer, target] = fixture!.orgs;
+      const client = await signInAs(viewer.email, viewer.password);
+      const { data, error } = await client
+        .from('links')
+        .select('id')
+        .eq('id', target.linkId);
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+      await client.auth.signOut();
+    });
+
+    it('list_org_tracklinks RPC rejects another org id', async (ctx) => {
+      skipUnlessReady(ctx);
+      const [viewer, target] = fixture!.orgs;
+      const client = await signInAs(viewer.email, viewer.password);
+      const { error } = await client.rpc('list_org_tracklinks', { p_org_id: target.id });
+      expect(error).not.toBeNull();
+      expect(error!.message).toMatch(/forbidden/i);
+      await client.auth.signOut();
+    });
+
+    it('list_org_tracklinks returns only own org links', async (ctx) => {
+      skipUnlessReady(ctx);
+      for (const org of fixture!.orgs) {
+        const client = await signInAs(org.email, org.password);
+        const { data, error } = await client.rpc('list_org_tracklinks', {
+          p_org_id: org.id,
+        });
+        expect(error).toBeNull();
+        expect(data).toHaveLength(1);
+        expect(data![0]!.id).toBe(org.linkId);
+        await client.auth.signOut();
+      }
     });
 
     it('scopes unfiltered selects on org-scoped tables', async (ctx) => {

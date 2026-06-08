@@ -27,6 +27,18 @@
     "create": "Organisatie aanmaken",
     "creating": "Aanmaken…"
   },
+  "links": {
+    "notFound": {
+      "title": "Link niet gevonden",
+      "body": "Deze tracklink bestaat niet of is verwijderd.",
+      "cta": "Naar Ravo"
+    },
+    "inactive": {
+      "title": "Link inactief",
+      "body": "Deze tracklink is uitgeschakeld door het festival.",
+      "cta": "Naar Ravo"
+    }
+  },
   "admin": {
     "nav": {
       "overview": "Overzicht",
@@ -48,7 +60,8 @@
       "analyst": "Analist"
     },
     "sidebarUser": {
-      "nameRole": "{name} ({role})"
+      "nameRole": "{name} ({role})",
+      "openAmbassadorApp": "Open ambassadeur-app"
     },
     "header": {
       "greeting": "Welkom terug, {name}",

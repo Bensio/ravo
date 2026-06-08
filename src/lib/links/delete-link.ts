@@ -1,12 +1,15 @@
-import { createAdminClient } from '@/lib/supabase/admin';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export async function deleteLink(organizationId: string, linkId: string): Promise<boolean> {
-  const admin = createAdminClient();
-  const { error, count } = await admin
-    .from('links')
-    .delete({ count: 'exact' })
-    .eq('id', linkId)
-    .eq('organization_id', organizationId);
+/** Returns deleted link code when successful (for cache invalidation). */
+export async function deleteLink(
+  supabase: SupabaseClient,
+  organizationId: string,
+  linkId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc('delete_tracklink', {
+    p_org_id: organizationId,
+    p_link_id: linkId,
+  });
 
   if (error) {
     console.error('link delete failed', {
@@ -15,8 +18,8 @@ export async function deleteLink(organizationId: string, linkId: string): Promis
       code: error.code,
       message: error.message,
     });
-    return false;
+    return null;
   }
 
-  return (count ?? 0) > 0;
+  return typeof data === 'string' ? data : null;
 }

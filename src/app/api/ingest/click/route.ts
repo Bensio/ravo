@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyIngestRequest } from '@/lib/ingest/sign';
 import { serverNow } from '@/lib/time';
 
 const ingestSchema = z.object({
@@ -19,22 +20,28 @@ const ingestSchema = z.object({
   occurred_at: z.string().datetime().optional(),
 });
 
-function isAuthorizedIngest(request: Request): boolean {
-  const secret = process.env.INTERNAL_INGEST_HMAC_SECRET;
-  if (!secret) {
-    return process.env.NODE_ENV !== 'production';
-  }
-  return request.headers.get('x-ingest-key') === secret;
-}
-
 export async function POST(request: Request) {
-  if (!isAuthorizedIngest(request)) {
+  const secret = process.env.INTERNAL_INGEST_HMAC_SECRET;
+  const rawBody = await request.text();
+
+  if (secret) {
+    const authorized = verifyIngestRequest(
+      rawBody,
+      request.headers.get('x-ingest-timestamp'),
+      request.headers.get('x-ingest-signature'),
+      request.headers.get('x-ingest-key'),
+      secret,
+    );
+    if (!authorized) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
+  } else if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }

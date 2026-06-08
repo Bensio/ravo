@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { roleHasPermission, type Permission } from './permissions';
 import { getSessionUser } from './session';
 import { getUserMemberships, resolveActiveOrg } from './org-context';
+import { setRequestOrgContext } from './set-org-context';
 import { createClient } from '@/lib/supabase/server';
 import type { Role } from './permissions';
 
@@ -89,6 +90,7 @@ export function requirePermission(permission: Permission, handler: RouteHandler)
         org: resolved.org,
         membership: resolved.membership,
       };
+      await setRequestOrgContext(resolved.org.id);
     }
 
     return handler({

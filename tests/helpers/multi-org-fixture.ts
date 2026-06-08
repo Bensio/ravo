@@ -12,6 +12,8 @@ export type IsolationFixture = {
     password: string;
     campaignId: string;
     labelId: string;
+    linkId: string;
+    linkCode: string;
   }>;
 };
 
@@ -170,6 +172,41 @@ export async function seedIsolationFixture(runId: string): Promise<IsolationFixt
       throw labelError ?? new Error('Failed to create collaboration label');
     }
 
+    const { data: ambassador, error: ambassadorError } = await admin
+      .from('ambassadors')
+      .insert({ user_id: userId, display_handle: `iso-${i}` })
+      .select('id')
+      .single();
+    if (ambassadorError || !ambassador) {
+      throw ambassadorError ?? new Error('Failed to create ambassador');
+    }
+
+    const { error: acError } = await admin.from('ambassador_campaigns').insert({
+      organization_id: org.id,
+      ambassador_id: ambassador.id,
+      campaign_id: campaign.id,
+      state: 'active',
+    });
+    if (acError) {
+      throw acError;
+    }
+
+    const linkCode = `iso${runId.slice(-4)}${i}`.replace(/[^a-zA-Z0-9_-]/g, 'x');
+    const { data: link, error: linkError } = await admin
+      .from('links')
+      .insert({
+        organization_id: org.id,
+        campaign_id: campaign.id,
+        ambassador_id: ambassador.id,
+        code: linkCode,
+        destination_url: 'https://example.com/tickets',
+      })
+      .select('id, code')
+      .single();
+    if (linkError || !link) {
+      throw linkError ?? new Error('Failed to create link');
+    }
+
     orgs.push({
       id: org.id,
       slug,
@@ -178,6 +215,8 @@ export async function seedIsolationFixture(runId: string): Promise<IsolationFixt
       password: TEST_PASSWORD,
       campaignId: campaign.id,
       labelId: label.id,
+      linkId: link.id,
+      linkCode: link.code,
     });
   }
 
