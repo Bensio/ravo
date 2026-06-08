@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy, Link2, Plus } from 'lucide-react';
+import { Check, Copy, Link2, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ export function TracklinksDashboard({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -123,6 +124,29 @@ export function TracklinksDashboard({
       return;
     }
     setError(null);
+    await load({ silent: true });
+  };
+
+  const removeLink = async (link: TracklinkRow) => {
+    const message =
+      link.click_count > 0 ? t('removeConfirmWithClicks', { count: link.click_count }) : t('removeConfirm');
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    setError(null);
+    setRemovingId(link.id);
+    const previous = links;
+    setLinks((prev) => prev.filter((l) => l.id !== link.id));
+
+    const res = await fetch(`/api/${orgSlug}/links/${link.id}`, { method: 'DELETE' });
+    setRemovingId(null);
+
+    if (!res.ok) {
+      setLinks(previous);
+      setError(t('deleteError'));
+      return;
+    }
     await load({ silent: true });
   };
 
@@ -218,7 +242,7 @@ export function TracklinksDashboard({
               <div
                 key={link.id}
                 className={cn(
-                  'grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-colors hover:border-primary/30 hover:bg-primary/5 md:grid-cols-[1fr_auto_auto_auto]',
+                  'grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-colors hover:border-primary/30 hover:bg-primary/5 md:grid-cols-[1fr_auto_auto_auto_auto]',
                   link.disabled && 'opacity-50',
                 )}
               >
@@ -260,6 +284,17 @@ export function TracklinksDashboard({
                   onClick={() => void toggleDisabled(link)}
                 >
                   {link.disabled ? t('enable') : t('disable')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={removingId === link.id}
+                  onClick={() => void removeLink(link)}
+                  aria-label={t('remove')}
+                  className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}

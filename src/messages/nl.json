@@ -115,7 +115,11 @@
       "clicks": "Clicks",
       "copy": "Link kopiëren",
       "disable": "Uitschakelen",
-      "enable": "Inschakelen"
+      "enable": "Inschakelen",
+      "remove": "Link verwijderen",
+      "removeConfirm": "Deze tracklink permanent verwijderen? De korte URL werkt daarna niet meer.",
+      "removeConfirmWithClicks": "Deze tracklink verwijderen? Er zijn {count} clicks — de clickgeschiedenis wordt ook verwijderd.",
+      "deleteError": "Link verwijderen mislukt. Probeer opnieuw."
     },
     "salesFeed": {
       "title": "Verkoopfeed",

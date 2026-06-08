@@ -115,7 +115,11 @@
       "clicks": "Clicks",
       "copy": "Copy link",
       "disable": "Disable",
-      "enable": "Enable"
+      "enable": "Enable",
+      "remove": "Remove link",
+      "removeConfirm": "Remove this tracklink permanently? The short URL will stop working.",
+      "removeConfirmWithClicks": "Remove this tracklink? It has {count} clicks — click history will be deleted too.",
+      "deleteError": "Could not remove this link. Try again."
     },
     "salesFeed": {
       "title": "Sales feed",

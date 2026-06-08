@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth/require-permission';
+import { deleteLink } from '@/lib/links/delete-link';
 import { updateLinkDisabled } from '@/lib/links/update-link';
 
 const patchSchema = z.object({
@@ -27,4 +28,13 @@ export const PATCH = requirePermission('link.update', async ({ ctx, request, par
   }
 
   return NextResponse.json({ link: updated });
+});
+
+export const DELETE = requirePermission('link.delete', async ({ ctx, params }) => {
+  const { id } = await params;
+  const removed = await deleteLink(ctx.org.id, id);
+  if (!removed) {
+    return NextResponse.json({ error: 'delete_failed' }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
 });
