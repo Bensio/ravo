@@ -55,6 +55,14 @@
       "subtitle": "Zo presteren je festival creators op dit moment.",
       "notifications": "Meldingen"
     },
+    "gettingStarted": {
+      "title": "Start hier — tracklinks zijn live",
+      "body": "De meeste pagina's zijn leeg tot ticketverkopen en attributie gekoppeld zijn. De volledige click-loop kun je vandaag testen via Tracklinks.",
+      "step1": "Open Tracklinks en plak je ticketshop-URL.",
+      "step2": "Kopieer de korte link en open hem op je telefoon.",
+      "step3": "Ga terug naar Tracklinks — het click-aantal zou binnen enkele seconden moeten stijgen.",
+      "cta": "Naar Tracklinks"
+    },
     "eventCard": {
       "label": "Actief event",
       "noEventTitle": "Nog geen event",
@@ -62,7 +70,7 @@
     },
     "overview": {
       "title": "Overzicht",
-      "empty": "KPI-kaarten, grafieken, top-ambassadeurs, live activity en fastest-growing uit het design komen in fase 5 zodra attributiedata er is."
+      "empty": "Grafieken en live metrics uit het design komen in fase 5 zodra clicks en verkoopdata lopen. Gebruik Tracklinks vandaag om de redirect-loop te testen."
     },
     "leaderboard": {
       "title": "Leaderboard",

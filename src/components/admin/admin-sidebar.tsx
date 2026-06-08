@@ -20,10 +20,10 @@ export async function AdminSidebar({
 
   return (
     <aside className="ravo-sidebar flex w-[15.5rem] shrink-0 flex-col border-r border-white/[0.06]">
-      <div className="flex h-16 items-center border-b border-white/[0.06] px-4">
+      <div className="flex h-16 shrink-0 items-center border-b border-white/[0.06] px-4">
         <RavoLogo />
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3">
         {ADMIN_NAV_ITEMS.map((item) => (
           <AdminNavLink
             key={item.key}
@@ -35,7 +35,7 @@ export async function AdminSidebar({
       </nav>
       <div className="shrink-0 space-y-3 border-t border-white/[0.06] p-4">
         <AdminEventCard />
-        <AdminSidebarUser email={userEmail} role={userRole} />
+        <AdminSidebarUser email={userEmail} role={userRole} locale={locale} />
       </div>
     </aside>
   );

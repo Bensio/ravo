@@ -55,6 +55,14 @@
       "subtitle": "Here's how your festival creators are performing right now.",
       "notifications": "Notifications"
     },
+    "gettingStarted": {
+      "title": "Start here — tracklinks are live",
+      "body": "Most pages are empty until ticket sales and attribution are connected. You can test the full click loop today on Tracklinks.",
+      "step1": "Open Tracklinks and paste your ticket shop URL.",
+      "step2": "Copy the short link and open it on your phone.",
+      "step3": "Return to Tracklinks — the click count should increase within seconds.",
+      "cta": "Go to Tracklinks"
+    },
     "eventCard": {
       "label": "Active event",
       "noEventTitle": "No event yet",
@@ -62,7 +70,7 @@
     },
     "overview": {
       "title": "Overview",
-      "empty": "KPI cards, charts, top ambassadors, live activity, and fastest-growing widgets from the design mockup wire up in Phase 5 once attribution data exists."
+      "empty": "Charts and live metrics from the design mockup ship in Phase 5 once clicks and sales data flow. Use Tracklinks today to verify the redirect loop."
     },
     "leaderboard": {
       "title": "Leaderboard",

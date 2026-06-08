@@ -1,15 +1,20 @@
-import { ChevronDown } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { signOutAction } from '@/lib/auth/admin-actions';
+import { Button } from '@/components/ui/button';
 
 export async function AdminSidebarUser({
   email,
   role,
+  locale,
 }: {
   email: string;
   role: string;
+  locale: string;
 }) {
   const t = await getTranslations('admin.sidebarUser');
   const tRoles = await getTranslations('admin.roles');
+  const tCommon = await getTranslations('common');
   const staffRoles = ['owner', 'admin', 'manager', 'analyst'] as const;
   const roleLabel = staffRoles.includes(role as (typeof staffRoles)[number])
     ? tRoles(role as (typeof staffRoles)[number])
@@ -18,7 +23,7 @@ export async function AdminSidebarUser({
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex items-center gap-2.5 rounded-lg px-1 py-1">
+    <div className="flex items-center gap-2">
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary text-xs font-bold text-primary-foreground"
         aria-hidden
@@ -31,7 +36,17 @@ export async function AdminSidebarUser({
         </p>
         <p className="truncate text-xs text-muted-foreground">{email}</p>
       </div>
-      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      <form action={signOutAction.bind(null, locale)}>
+        <Button
+          type="submit"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+          aria-label={tCommon('signOut')}
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </form>
     </div>
   );
 }
