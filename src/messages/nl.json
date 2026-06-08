@@ -82,7 +82,25 @@
     },
     "tracklinks": {
       "title": "Tracklinks",
-      "empty": "Maak korte links voor ambassadeurs in fase 2. Elke link logt clicks door naar je ticketshop."
+      "subtitle": "Realtime click-tracking — één korte link per share.",
+      "empty": "Nog geen tracklinks. Maak hieronder je eerste link aan.",
+      "kpiClicks": "Totaal clicks",
+      "kpiLinks": "Links",
+      "kpiActive": "Actief",
+      "filterAll": "Alle",
+      "filterActive": "Actief",
+      "destinationPlaceholder": "https://tickets.jouwfestival.nl/...",
+      "labelPlaceholder": "Label (optioneel, bv. instagram-story)",
+      "create": "Nieuwe link",
+      "creating": "Aanmaken…",
+      "createError": "Link aanmaken mislukt. Controleer de bestemmings-URL.",
+      "tableTitle": "Alle tracklinks",
+      "live": "Live click-stream",
+      "loading": "Links laden…",
+      "clicks": "Clicks",
+      "copy": "Link kopiëren",
+      "disable": "Uitschakelen",
+      "enable": "Inschakelen"
     },
     "salesFeed": {
       "title": "Verkoopfeed",
@@ -120,7 +138,9 @@
     },
     "share": {
       "title": "Delen",
-      "empty": "Je persoonlijke tracklinks en QR-codes komen hier in fase 2."
+      "subtitle": "Je persoonlijke tracklinks — kopieer en deel overal.",
+      "empty": "Nog geen links. Je festival wijst tracklinks toe zodra je op een campagne zit.",
+      "loading": "Je links laden…"
     },
     "stats": {
       "title": "Stats",

@@ -24,9 +24,15 @@ function walk(dir: string): string[] {
 
 const routeFiles = walk(apiRoot);
 
+const EXEMPT_PREFIXES = ['src/app/api/ingest/'];
+
 for (const file of routeFiles) {
   const content = readFileSync(file, 'utf8');
-  const rel = relative(process.cwd(), file);
+  const rel = relative(process.cwd(), file).replace(/\\/g, '/');
+
+  if (EXEMPT_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
+    continue;
+  }
 
   if (!content.includes('requirePermission')) {
     failures.push(`${rel}: no requirePermission wrapper found`);

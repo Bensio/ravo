@@ -1,15 +1,14 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { PageShell } from '@/components/shared/page-shell';
+import { setRequestLocale } from 'next-intl/server';
+import { ShareLinks } from '@/components/ambassador/share/share-links';
 
 type Props = { params: Promise<{ locale: string }> };
 
 export default async function SharePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('ambassador.share');
   return (
     <main className="p-6 md:p-8">
-      <PageShell title={t('title')} description={t('empty')} />
+      <ShareLinks />
     </main>
   );
 }

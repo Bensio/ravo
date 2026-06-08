@@ -1,11 +1,10 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { PageShell } from '@/components/shared/page-shell';
+import { setRequestLocale } from 'next-intl/server';
+import { TracklinksDashboard } from '@/components/admin/tracklinks/tracklinks-dashboard';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
 export default async function TracklinksPage({ params }: Props) {
-  const { locale } = await params;
+  const { locale, org_slug } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('admin.tracklinks');
-  return <PageShell title={t('title')} description={t('empty')} />;
+  return <TracklinksDashboard orgSlug={org_slug} locale={locale} />;
 }

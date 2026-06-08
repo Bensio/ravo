@@ -15,6 +15,14 @@ export async function middleware(request: NextRequest) {
     return updateSession(request, NextResponse.next({ request }));
   }
 
+  if (pathname.startsWith('/r/')) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return updateSession(request, NextResponse.next({ request }));
+  }
+
   const intlResponse = intlMiddleware(request);
   const response = intlResponse ?? NextResponse.next({ request });
 

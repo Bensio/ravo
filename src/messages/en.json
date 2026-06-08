@@ -82,7 +82,25 @@
     },
     "tracklinks": {
       "title": "Tracklinks",
-      "empty": "Create short links for ambassadors in Phase 2. Each link logs clicks and forwards to your ticket shop."
+      "subtitle": "Realtime click tracking — one short link per share.",
+      "empty": "No tracklinks yet. Create your first link below.",
+      "kpiClicks": "Total clicks",
+      "kpiLinks": "Links",
+      "kpiActive": "Active",
+      "filterAll": "All",
+      "filterActive": "Active",
+      "destinationPlaceholder": "https://tickets.yourfestival.com/...",
+      "labelPlaceholder": "Label (optional, e.g. instagram-story)",
+      "create": "New link",
+      "creating": "Creating…",
+      "createError": "Could not create link. Check the destination URL.",
+      "tableTitle": "All tracklinks",
+      "live": "Live click stream",
+      "loading": "Loading links…",
+      "clicks": "Clicks",
+      "copy": "Copy link",
+      "disable": "Disable",
+      "enable": "Enable"
     },
     "salesFeed": {
       "title": "Sales feed",
@@ -120,7 +138,9 @@
     },
     "share": {
       "title": "Share",
-      "empty": "Your personal tracklinks and QR codes will live here in Phase 2."
+      "subtitle": "Your personal tracklinks — copy and share anywhere.",
+      "empty": "No links yet. Your festival will assign tracklinks when you join a campaign.",
+      "loading": "Loading your links…"
     },
     "stats": {
       "title": "Stats",
