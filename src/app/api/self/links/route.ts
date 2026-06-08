@@ -8,10 +8,11 @@ export const GET = requirePermission('self.links.read', async ({ ctx, request })
     const links = await listAmbassadorLinks(ctx.user.id, host);
     return NextResponse.json({ links });
   } catch (err) {
-    console.error('self links list failed', {
-      userId: ctx.user.id,
-      message: err instanceof Error ? err.message : 'unknown',
-    });
+    const message = err instanceof Error ? err.message : 'unknown';
+    console.error('self links list failed', { userId: ctx.user.id, message });
+    if (message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+      return NextResponse.json({ error: 'missing_service_role' }, { status: 503 });
+    }
     return NextResponse.json({ error: 'query_failed' }, { status: 500 });
   }
 });

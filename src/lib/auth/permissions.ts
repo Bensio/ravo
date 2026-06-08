@@ -25,7 +25,7 @@ export const PERMISSIONS = {
   'link.update': ['owner', 'admin', 'manager'],
   'link.delete': ['owner', 'admin', 'manager'],
   'self.rewards.read': ['ambassador'],
-  'self.links.read': ['ambassador'],
+  'self.links.read': ['owner', 'admin', 'manager', 'ambassador'],
   'self.opportunities.accept': ['ambassador'],
 } as const;
 

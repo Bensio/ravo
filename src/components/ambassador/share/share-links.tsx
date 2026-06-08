@@ -9,18 +9,27 @@ export function ShareLinks({ locale }: { locale: string }) {
   const t = useTranslations('ambassador.share');
   const [links, setLinks] = useState<ShareLinkItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<'generic' | 'forbidden' | 'missing_service_role' | null>(
+    null,
+  );
   const [copied, setCopied] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     const res = await fetch('/api/self/links');
     if (res.ok) {
       const data = await res.json();
       setLinks(data.links ?? []);
     } else {
-      setLoadError(true);
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setLoadError(
+        res.status === 403
+          ? 'forbidden'
+          : data.error === 'missing_service_role'
+            ? 'missing_service_role'
+            : 'generic',
+      );
     }
     setLoading(false);
   }, []);
@@ -45,8 +54,21 @@ export function ShareLinks({ locale }: { locale: string }) {
       {loading ? (
         <p className="text-sm text-muted-foreground">{t('loading')}</p>
       ) : loadError ? (
-        <div className="ravo-glass-panel px-6 py-8 text-center">
-          <p className="text-sm text-red-400">{t('loadError')}</p>
+        <div className="ravo-glass-panel space-y-3 px-6 py-8 text-center">
+          <p className="text-sm text-red-400">
+            {loadError === 'forbidden'
+              ? t('loadErrorForbidden')
+              : loadError === 'missing_service_role'
+                ? t('loadErrorServiceRole')
+                : t('loadError')}
+          </p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            {t('retry')}
+          </button>
         </div>
       ) : links.length === 0 ? (
         <div className="ravo-glass-panel px-6 py-12 text-center">
