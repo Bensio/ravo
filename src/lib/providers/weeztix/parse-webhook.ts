@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { hashBuyerEmail } from '@/lib/pii/hash-email';
+import { serverNow } from '@/lib/time';
 import type { NormalizedOrderEvent, OrderStatus } from '../types';
 
 type WeeztixOrderPayload = {
@@ -69,7 +70,7 @@ export function parseWeeztixWebhook(
   const trigger = headers.get('openticket-trigger');
   const status = mapStatus(payload, trigger);
   const gross = BigInt(payload.price ?? 0);
-  const placedAt = payload.created_at ?? payload.updated_at ?? new Date().toISOString();
+  const placedAt = payload.created_at ?? payload.updated_at ?? serverNow().toISOString();
   const paidAt =
     status === 'paid' && payload.payment?.status === 'completed'
       ? (payload.updated_at ?? placedAt)

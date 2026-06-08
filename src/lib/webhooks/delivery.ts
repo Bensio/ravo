@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { serverNow } from '@/lib/time';
 
 export function hashPayload(rawBody: string): string {
   return createHash('sha256').update(rawBody, 'utf8').digest('hex');
@@ -53,7 +54,7 @@ export async function recordWebhookDelivery(args: {
         provider_webhook_subscription_id: args.providerWebhookSubscriptionId ?? null,
         payload_hash: args.payloadHash,
         trigger_type: args.triggerType ?? null,
-        received_at: new Date().toISOString(),
+        received_at: serverNow().toISOString(),
       },
       { onConflict: 'idempotency_key' },
     )
@@ -74,7 +75,7 @@ export async function markWebhookProcessed(
   const { error } = await admin
     .from('webhook_deliveries')
     .update({
-      processed_at: processingError ? null : new Date().toISOString(),
+      processed_at: processingError ? null : serverNow().toISOString(),
       processing_error: processingError ?? null,
     })
     .eq('id', deliveryId);
