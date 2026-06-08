@@ -2,10 +2,17 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-function buildWebhookUrl(provider: string, token: string | null): string | null {
+function buildConnectionUrl(provider: string, token: string | null): string | null {
   if (!token) return null;
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? '';
-  if (!base) return `/api/webhooks/${provider}/${token}`;
+  if (!base) {
+    return provider === 'manual_utm'
+      ? `/api/webhooks/pixel/${token}`
+      : `/api/webhooks/${provider}/${token}`;
+  }
+  if (provider === 'manual_utm') {
+    return `${base}/api/webhooks/pixel/${token}`;
+  }
   return `${base}/api/webhooks/${provider}/${token}`;
 }
 
@@ -64,7 +71,11 @@ export const GET = requirePermission('org.integrations', async ({ ctx }) => {
       provider: c.provider,
       display_name: c.display_name,
       status: c.status,
-      webhook_url: buildWebhookUrl(c.provider, c.webhook_url_token),
+      webhook_url: buildConnectionUrl(c.provider, c.webhook_url_token),
+      pixel_url:
+        c.provider === 'manual_utm'
+          ? buildConnectionUrl('manual_utm', c.webhook_url_token)
+          : null,
       last_healthcheck_at: c.last_healthcheck_at,
       last_healthcheck_ok: c.last_healthcheck_ok,
       last_error: c.last_error,

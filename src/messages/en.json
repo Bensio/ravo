@@ -137,7 +137,22 @@
     },
     "salesFeed": {
       "title": "Sales feed",
-      "empty": "Attributed ticket sales will stream here after Weeztix (or another provider) is connected."
+      "subtitle": "Ticket orders ingested from your connected providers. Manual UTM sales are marked estimated until attribution runs.",
+      "empty": "No sales yet.",
+      "emptyHint": "Create a tracklink, then add the conversion pixel from Settings → Integrations to your ticket shop thank-you page.",
+      "loading": "Loading sales…",
+      "loadError": "Could not load sales.",
+      "refresh": "Refresh",
+      "kpiOrders": "Orders",
+      "kpiRevenue": "Gross revenue",
+      "estimated": "Estimated",
+      "status": {
+        "paid": "Paid",
+        "pending": "Pending",
+        "refunded": "Refunded",
+        "partially_refunded": "Partial refund",
+        "cancelled": "Cancelled"
+      }
     },
     "rewards": {
       "title": "Rewards",
@@ -153,6 +168,15 @@
       "integrations": {
         "title": "Integrations",
         "subtitle": "Connect your ticket shop so sales appear in Ravo automatically.",
+        "manualUtmTitle": "Manual UTM",
+        "manualUtmDescription": "Works with any ticket shop (Eventbrite, Ticketmaster, etc.). Ravo appends tracking params to your tracklinks; paste the pixel on your confirmation page to report sales.",
+        "manualUtmPending": "Create your first tracklink to activate Manual UTM.",
+        "estimatedBadge": "Estimated",
+        "pixelUrl": "Conversion pixel URL",
+        "copyPixel": "Copy pixel URL",
+        "pixelHint": "POST JSON on order confirmation, or use GET with query params. Include ref and UTM fields from the buyer URL when possible.",
+        "pixelSnippet": "Thank-you page snippet (edit order_id and amount_cents)",
+        "copySnippet": "Copy snippet",
         "weeztixTitle": "Weeztix",
         "weeztixDescription": "Native trackers, paid-order webhooks, and nightly reconciliation.",
         "connectWeeztix": "Connect Weeztix",

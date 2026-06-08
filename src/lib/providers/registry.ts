@@ -1,21 +1,10 @@
 import type { ProviderId, TicketingProvider } from './types';
+import { manualUtmProvider } from './manual_utm';
 import { weeztixProvider } from './weeztix';
 
 const providers: Record<ProviderId, TicketingProvider> = {
   weeztix: weeztixProvider,
-  manual_utm: {
-    id: 'manual_utm',
-    capabilities: {
-      nativeTrackers: false,
-      webhooks: false,
-      refundEvents: false,
-      orderLookup: false,
-      promoCodes: false,
-      reconciliation: false,
-      authenticity: { kind: 'none' },
-      retryStatusCode: 503,
-    },
-  },
+  manual_utm: manualUtmProvider,
   eventbrite: {
     id: 'eventbrite',
     capabilities: {

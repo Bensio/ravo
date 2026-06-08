@@ -32,6 +32,28 @@ export async function resolveConnectionByWebhookToken(
   };
 }
 
+/** Resolve any provider connection by unique URL token (pixel endpoint). */
+export async function resolveConnectionByUrlToken(
+  token: string,
+): Promise<ResolvedProviderConnection | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('provider_connections')
+    .select('id, organization_id, provider, status, display_name')
+    .eq('webhook_url_token', token)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    organizationId: data.organization_id,
+    provider: data.provider,
+    status: data.status,
+    displayName: data.display_name,
+  };
+}
+
 export type ResolvedWebhookSubscription = {
   id: string;
   nonce: string | null;

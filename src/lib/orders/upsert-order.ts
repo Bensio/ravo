@@ -93,7 +93,7 @@ async function recordRefundIfNeeded(
   const amount = refundAmount > 0n ? refundAmount : event.grossAmountCents;
   if (amount <= 0n) return;
 
-  const providerRefundId = `weeztix:${event.externalOrderId}:${event.occurredAt}`;
+  const providerRefundId = `${event.provider}:${event.externalOrderId}:${event.occurredAt}`;
 
   const { data: existing } = await admin
     .from('refunds')
