@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseISO, subDays } from 'date-fns';
-import { getAmbassadorMemberUserIds } from '@/lib/ambassadors/ambassador-member-filter';
+import { getAmbassadorMemberProfiles } from '@/lib/ambassadors/ambassador-member-filter';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { comparePeriods } from '@/lib/stats/compare-periods';
 import { serverNow } from '@/lib/time';
@@ -28,6 +28,19 @@ type AmbassadorSeed = {
   handle: string | null;
   avatarUrl: string | null;
 };
+
+function ambassadorDisplayName(profile: {
+  handle: string | null;
+  displayName: string | null;
+}): string {
+  if (profile.displayName?.trim()) {
+    return profile.displayName.trim();
+  }
+  if (profile.handle?.trim()) {
+    return `@${profile.handle.trim()}`;
+  }
+  return 'Ambassador';
+}
 
 function emptyAmbassadorRow(seed: AmbassadorSeed, sparkDays: string[]): DashboardAmbassadorRow {
   return {
@@ -64,7 +77,7 @@ function periodTotals(
 export const fetchOrgDashboard = cache(async (organizationId: string): Promise<OrgDashboardData> => {
   const admin = createAdminClient();
 
-  const [{ data: org }, { data: event }] = await Promise.all([
+  const [{ data: org }, { data: event }, memberProfiles] = await Promise.all([
     admin.from('organizations').select('default_currency').eq('id', organizationId).single(),
     admin
       .from('events')
@@ -73,6 +86,7 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
       .order('start_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    getAmbassadorMemberProfiles(organizationId),
   ]);
 
   const currency = org?.default_currency ?? 'EUR';
@@ -83,70 +97,39 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
   const currentWeek = allDays.slice(-7);
   const priorWeek = allDays.slice(-14, -7);
 
-  const ambassadorUserIds = await getAmbassadorMemberUserIds(organizationId);
+  const validAmbassadorIds = new Set(memberProfiles.map((profile) => profile.id));
+  const ambassadorSeeds = new Map<string, AmbassadorSeed>();
+  for (const profile of memberProfiles) {
+    ambassadorSeeds.set(profile.id, {
+      id: profile.id,
+      name: ambassadorDisplayName(profile),
+      handle: profile.handle,
+      avatarUrl: profile.avatarUrl,
+    });
+  }
 
-  const [{ data: campaignRows }, { data: links }, { data: clicks }, { data: attributions }] =
-    await Promise.all([
-      admin
-        .from('ambassador_campaigns')
-        .select(
-          `
-          ambassador_id,
-          ambassadors (
-            id,
-            display_handle,
-            user_id,
-            users ( display_name, avatar_url )
-          )
-        `,
-        )
-        .eq('organization_id', organizationId)
-        .eq('state', 'active'),
-      admin.from('links').select('id, ambassador_id').eq('organization_id', organizationId),
-      admin
-        .from('clicks')
-        .select('link_id, created_at')
-        .eq('organization_id', organizationId)
-        .gte('created_at', since),
-      admin
-        .from('attributions')
-        .select(
-          `
+  const [{ data: links }, { data: clicks }, { data: attributions }] = await Promise.all([
+    admin.from('links').select('id, ambassador_id').eq('organization_id', organizationId),
+    admin
+      .from('clicks')
+      .select('link_id, created_at')
+      .eq('organization_id', organizationId)
+      .gte('created_at', since),
+    admin
+      .from('attributions')
+      .select(
+        `
           ambassador_id,
           created_at,
           orders ( status, net_amount_cents, placed_at )
         `,
-        )
-        .eq('organization_id', organizationId)
-        .eq('state', 'active')
-        .gte('created_at', since),
-    ]);
+      )
+      .eq('organization_id', organizationId)
+      .eq('state', 'active')
+      .gte('created_at', since),
+  ]);
 
   const linkToAmbassador = new Map((links ?? []).map((l) => [l.id, l.ambassador_id]));
-
-  const ambassadorSeeds = new Map<string, AmbassadorSeed>();
-  for (const row of campaignRows ?? []) {
-    const rawAmb = (row as { ambassadors?: unknown }).ambassadors;
-    const amb = (Array.isArray(rawAmb) ? rawAmb[0] : rawAmb) as
-      | {
-          id: string;
-          display_handle: string | null;
-          user_id: string;
-          users?: { display_name: string | null; avatar_url: string | null } | null;
-        }
-      | undefined;
-    if (!amb?.id) continue;
-    if (!ambassadorUserIds.has(amb.user_id)) continue;
-
-    const rawUser = amb.users;
-    const user = Array.isArray(rawUser) ? rawUser[0] : rawUser;
-    ambassadorSeeds.set(amb.id, {
-      id: amb.id,
-      name: user?.display_name ?? amb.display_handle ?? 'Ambassador',
-      handle: amb.display_handle,
-      avatarUrl: user?.avatar_url ?? null,
-    });
-  }
 
   const byAmbassador = new Map<string, DashboardAmbassadorRow>();
   for (const seed of ambassadorSeeds.values()) {
@@ -165,24 +148,14 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
 
   for (const click of clicks ?? []) {
     const ambassadorId = linkToAmbassador.get(click.link_id);
-    if (!ambassadorId) continue;
+    if (!ambassadorId || !validAmbassadorIds.has(ambassadorId)) continue;
 
     const day = isoDayInTz(parseISO(click.created_at), tz);
     clicksByDay.set(day, (clicksByDay.get(day) ?? 0) + 1);
 
-    let row = byAmbassador.get(ambassadorId);
-    if (!row) {
-      row = emptyAmbassadorRow(
-        {
-          id: ambassadorId,
-          name: 'Ambassador',
-          handle: null,
-          avatarUrl: null,
-        },
-        sparkDays,
-      );
-      byAmbassador.set(ambassadorId, row);
-    }
+    const row = byAmbassador.get(ambassadorId);
+    if (!row) continue;
+
     row.clicks += 1;
 
     const sparkIdx = sparkDays.indexOf(day);
@@ -193,7 +166,7 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
 
   for (const attr of attributions ?? []) {
     const ambassadorId = attr.ambassador_id as string | null;
-    if (!ambassadorId) continue;
+    if (!ambassadorId || !validAmbassadorIds.has(ambassadorId)) continue;
 
     const rawOrder = (attr as { orders?: unknown }).orders;
     const order = (Array.isArray(rawOrder) ? rawOrder[0] : rawOrder) as
@@ -207,27 +180,19 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
     salesByDay.set(day, (salesByDay.get(day) ?? 0) + 1);
     revenueByDay.set(day, (revenueByDay.get(day) ?? 0n) + cents);
 
-    let row = byAmbassador.get(ambassadorId);
-    if (!row) {
-      row = emptyAmbassadorRow(
-        {
-          id: ambassadorId,
-          name: 'Ambassador',
-          handle: null,
-          avatarUrl: null,
-        },
-        sparkDays,
-      );
-      byAmbassador.set(ambassadorId, row);
-    }
+    const row = byAmbassador.get(ambassadorId);
+    if (!row) continue;
+
     row.sales += 1;
     row.revenueCents += cents;
   }
 
-  const rows = [...byAmbassador.values()].map((row) => ({
-    ...row,
-    conversion: row.clicks > 0 ? row.sales / row.clicks : 0,
-  }));
+  const rows = [...byAmbassador.values()]
+    .filter((row) => row.clicks > 0 || row.sales > 0)
+    .map((row) => ({
+      ...row,
+      conversion: row.clicks > 0 ? row.sales / row.clicks : 0,
+    }));
 
   rows.sort((a, b) => b.sales - a.sales || b.clicks - a.clicks);
 
