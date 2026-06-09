@@ -122,7 +122,33 @@
     },
     "ambassadors": {
       "title": "Ambassadeurs",
-      "empty": "Nodig ambassadeurs uit en koppel ze aan campagnes. Volgt in de volgende sprint."
+      "subtitle": "Nodig mensen uit om je festival te promoten en beloningen te verdienen op toegeschreven verkopen.",
+      "empty": "Nog geen ambassadeurs. Stuur hieronder een uitnodiging.",
+      "loading": "Ambassadeurs laden…",
+      "inviteTitle": "Ambassadeur uitnodigen",
+      "inviteHint": "Ze loggen in met het uitgenodigde e-mailadres en accepteren de link. Kopieer de link na het uitnodigen — automatische e-mail volgt later.",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "ambassadeur@voorbeeld.nl",
+      "handleLabel": "Handle (optioneel)",
+      "handlePlaceholder": "jane_dj",
+      "inviteAction": "Uitnodiging versturen",
+      "inviting": "Versturen…",
+      "inviteLinkReady": "Uitnodigingslink klaar — kopieer en stuur",
+      "copyLink": "Link kopiëren",
+      "copied": "Gekopieerd",
+      "inviteEmailLater": "Automatische uitnodigingsmails zijn nog niet actief. Deel deze link handmatig (Signal, WhatsApp, etc.).",
+      "activeTitle": "Actief",
+      "pendingTitle": "Openstaande uitnodigingen",
+      "pendingBadge": "In afwachting",
+      "noHandle": "ambassadeur",
+      "inviteError": {
+        "invalid_email": "Voer een geldig e-mailadres in.",
+        "invalid_handle": "Handle moet 3–30 tekens zijn: letters, cijfers, underscores.",
+        "already_member": "Deze persoon zit al in je organisatie.",
+        "pending_invite": "Er is al een openstaande uitnodiging voor dit e-mailadres.",
+        "db_error": "Uitnodiging aanmaken mislukt. Probeer opnieuw.",
+        "error": "Uitnodiging aanmaken mislukt. Probeer opnieuw."
+      }
     },
     "content": {
       "title": "Content",
@@ -301,6 +327,27 @@
     "profile": {
       "title": "Profiel",
       "empty": "Werk je handle, socials en uitbetalingsgegevens bij wanneer die flows live zijn."
+    }
+  },
+  "invite": {
+    "title": "Ambassadeuruitnodiging",
+    "subtitle": "Je bent uitgenodigd voor {org} op Ravo.",
+    "emailLabel": "Uitgenodigd e-mailadres",
+    "roleLabel": "Rol",
+    "roleAmbassador": "Ambassadeur",
+    "loginPrompt": "Log in met het uitgenodigde e-mailadres om te accepteren.",
+    "acceptAction": "Uitnodiging accepteren",
+    "accepting": "Accepteren…",
+    "wrongAccount": "Je bent ingelogd als {actual}. Deze uitnodiging is voor {expected}.",
+    "switchAccount": "Inloggen met een ander account",
+    "invalidTitle": "Uitnodiging niet gevonden",
+    "invalidDescription": "Deze link is verlopen of al gebruikt. Vraag je festivalbeheerder om een nieuwe uitnodiging.",
+    "error": {
+      "email_mismatch": "Log in met het e-mailadres dat deze uitnodiging ontving.",
+      "invalid_or_expired": "Deze uitnodiging is ongeldig of verlopen.",
+      "unauthorized": "Log in om deze uitnodiging te accepteren.",
+      "db_error": "Accepteren mislukt. Probeer opnieuw.",
+      "error": "Accepteren mislukt. Probeer opnieuw."
     }
   }
 }

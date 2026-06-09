@@ -8,6 +8,12 @@ const intlMiddleware = createIntlMiddleware(routing);
 const PUBLIC_PATHS =
   /^\/(en|nl)?\/?(login|auth\/callback)?$|^\/auth\/callback$|^\/$/;
 
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.test(pathname)) return true;
+  if (pathname.includes('/login')) return true;
+  return /^\/(en|nl)\/invite\/[^/]+$/.test(pathname);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -28,7 +34,7 @@ export async function middleware(request: NextRequest) {
 
   await updateSession(request, response);
 
-  const isPublic = PUBLIC_PATHS.test(pathname) || pathname.includes('/login');
+  const isPublic = isPublicPath(pathname);
   if (isPublic) {
     return response;
   }

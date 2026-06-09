@@ -5,16 +5,27 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
 
-export function LoginForm({ locale }: { locale: string }) {
+export function LoginForm({
+  locale,
+  defaultEmail = '',
+  lockEmail = false,
+  redirectNext,
+}: {
+  locale: string;
+  defaultEmail?: string;
+  lockEmail?: boolean;
+  redirectNext?: string;
+}) {
   const t = useTranslations('auth');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(defaultEmail);
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus('loading');
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/${locale}/onboarding`;
+    const next = redirectNext ?? `/${locale}/onboarding`;
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo },
@@ -33,9 +44,10 @@ export function LoginForm({ locale }: { locale: string }) {
           type="email"
           autoComplete="email"
           required
+          readOnly={lockEmail}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring read-only:opacity-80"
         />
       </div>
       <Button type="submit" className="w-full" disabled={status === 'loading'}>

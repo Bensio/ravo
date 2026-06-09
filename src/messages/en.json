@@ -122,7 +122,33 @@
     },
     "ambassadors": {
       "title": "Ambassadors",
-      "empty": "Invite ambassadors and assign them to campaigns. Coming in the next sprint."
+      "subtitle": "Invite people to promote your festival and earn rewards on attributed sales.",
+      "empty": "No ambassadors yet. Send an invite below.",
+      "loading": "Loading ambassadors…",
+      "inviteTitle": "Invite ambassador",
+      "inviteHint": "They sign in with the invited email and accept the link. Copy the link after inviting — automated email comes later.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "ambassador@example.com",
+      "handleLabel": "Handle (optional)",
+      "handlePlaceholder": "jane_dj",
+      "inviteAction": "Send invite",
+      "inviting": "Sending…",
+      "inviteLinkReady": "Invite link ready — copy and send it",
+      "copyLink": "Copy link",
+      "copied": "Copied",
+      "inviteEmailLater": "Automated invite emails are not wired yet. Share this link manually (Signal, WhatsApp, etc.).",
+      "activeTitle": "Active",
+      "pendingTitle": "Pending invites",
+      "pendingBadge": "Pending",
+      "noHandle": "ambassador",
+      "inviteError": {
+        "invalid_email": "Enter a valid email address.",
+        "invalid_handle": "Handle must be 3–30 characters: letters, numbers, underscores.",
+        "already_member": "This person is already in your organization.",
+        "pending_invite": "A pending invite already exists for this email.",
+        "db_error": "Could not create invite. Try again.",
+        "error": "Could not create invite. Try again."
+      }
     },
     "content": {
       "title": "Content",
@@ -301,6 +327,27 @@
     "profile": {
       "title": "Profile",
       "empty": "Update your handle, social links, and payout details when those flows are wired."
+    }
+  },
+  "invite": {
+    "title": "Ambassador invitation",
+    "subtitle": "You've been invited to join {org} on Ravo.",
+    "emailLabel": "Invited email",
+    "roleLabel": "Role",
+    "roleAmbassador": "Ambassador",
+    "loginPrompt": "Sign in with the invited email to accept.",
+    "acceptAction": "Accept invitation",
+    "accepting": "Accepting…",
+    "wrongAccount": "You're signed in as {actual}. This invite is for {expected}.",
+    "switchAccount": "Sign in with a different account",
+    "invalidTitle": "Invitation not found",
+    "invalidDescription": "This link may have expired or already been used. Ask your festival admin for a new invite.",
+    "error": {
+      "email_mismatch": "Sign in with the email that received this invite.",
+      "invalid_or_expired": "This invitation is invalid or has expired.",
+      "unauthorized": "Sign in to accept this invitation.",
+      "db_error": "Could not accept invitation. Try again.",
+      "error": "Could not accept invitation. Try again."
     }
   }
 }

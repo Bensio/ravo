@@ -80,7 +80,7 @@ export function SalesFeedOrderRow({
 
   useEffect(() => {
     if (!canReassign || ambassadors.length > 0) return;
-    void fetch(`/api/${orgSlug}/ambassadors`, { cache: 'no-store' })
+    void fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { ambassadors?: AmbassadorOption[] } | null) => {
         if (data?.ambassadors) setAmbassadors(data.ambassadors);
