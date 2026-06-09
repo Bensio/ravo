@@ -416,6 +416,24 @@
     "profile": {
       "title": "Profiel",
       "empty": "Werk je handle, socials en uitbetalingsgegevens bij wanneer die flows live zijn."
+    },
+    "onboarding": {
+      "title": "Stel je ambassadeursprofiel in",
+      "subtitle": "Je wordt ambassadeur voor {org}. Voeg een paar details toe zodat het festival weet wie je bent.",
+      "subtitleGeneric": "Voeg een paar details toe zodat festivals weten wie je bent.",
+      "handleLabel": "Je handle",
+      "handlePlaceholder": "jane_dj",
+      "bioLabel": "Korte bio",
+      "bioPlaceholder": "DJ · Amsterdam · Melodic house",
+      "socialsTitle": "Social links (minimaal één, of vul bio hierboven in)",
+      "continue": "Verder naar Ravo",
+      "saving": "Opslaan…",
+      "errors": {
+        "invalid_handle": "Handle moet 3–30 tekens zijn: letters, cijfers, underscores.",
+        "profile_incomplete": "Voeg een korte bio of minimaal één social link toe.",
+        "db_error": "Profiel opslaan mislukt. Probeer opnieuw.",
+        "error": "Profiel opslaan mislukt. Probeer opnieuw."
+      }
     }
   },
   "invite": {

@@ -1,6 +1,7 @@
-export function buildInviteUrl(appOrigin: string, locale: string, plainToken: string): string {
+/** Short canonical path `/i/{token}` (locale resolved on redirect). */
+export function buildInviteUrl(appOrigin: string, _locale: string, plainToken: string): string {
   const base = appOrigin.replace(/\/$/, '');
-  return `${base}/${locale}/invite/${encodeURIComponent(plainToken)}`;
+  return `${base}/i/${plainToken}`;
 }
 
 export function resolveAppOrigin(request: Request): string {

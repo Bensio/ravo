@@ -416,6 +416,24 @@
     "profile": {
       "title": "Profile",
       "empty": "Update your handle, social links, and payout details when those flows are wired."
+    },
+    "onboarding": {
+      "title": "Set up your ambassador profile",
+      "subtitle": "You're joining {org} as an ambassador. Add a few details so the festival knows who you are.",
+      "subtitleGeneric": "Add a few details so festivals know who you are.",
+      "handleLabel": "Your handle",
+      "handlePlaceholder": "jane_dj",
+      "bioLabel": "Short bio",
+      "bioPlaceholder": "DJ · Amsterdam · Melodic house",
+      "socialsTitle": "Social links (add at least one, or fill in bio above)",
+      "continue": "Continue to Ravo",
+      "saving": "Saving…",
+      "errors": {
+        "invalid_handle": "Handle must be 3–30 characters: letters, numbers, underscores.",
+        "profile_incomplete": "Add a short bio or at least one social link.",
+        "db_error": "Could not save profile. Try again.",
+        "error": "Could not save profile. Try again."
+      }
     }
   },
   "invite": {

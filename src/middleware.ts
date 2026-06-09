@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
     return updateSession(request, NextResponse.next({ request }));
   }
 
-  if (pathname.startsWith('/r/')) {
+  if (pathname.startsWith('/r/') || pathname.startsWith('/i/')) {
     return NextResponse.next();
   }
 

@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { getSessionUser } from '@/lib/auth/session';
-import { AmbassadorBottomNav } from '@/components/ambassador/ambassador-bottom-nav';
 
 type Props = {
   children: React.ReactNode;
@@ -17,10 +16,5 @@ export default async function AmbassadorLayout({ children, params }: Props) {
     redirect(`/${locale}/login`);
   }
 
-  return (
-    <div className="ravo-shell-bg min-h-screen pb-20">
-      {children}
-      <AmbassadorBottomNav locale={locale} />
-    </div>
-  );
+  return <div className="ravo-shell-bg min-h-screen">{children}</div>;
 }

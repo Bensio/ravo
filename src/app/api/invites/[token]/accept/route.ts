@@ -29,5 +29,9 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json({ organizationId: result.organizationId });
+  return NextResponse.json({
+    organizationId: result.organizationId,
+    organizationSlug: result.organizationSlug,
+    needsOnboarding: result.needsOnboarding,
+  });
 }

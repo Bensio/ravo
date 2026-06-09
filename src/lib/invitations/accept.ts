@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getAmbassadorProfileByUserId } from '@/lib/ambassadors/ambassador-profile';
 import { normalizeDisplayHandle } from '@/lib/ambassadors/invite-ambassador';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -8,7 +9,12 @@ import type { SessionUser } from '@/lib/auth/session';
 import { serverNow } from '@/lib/time';
 
 export type AcceptInvitationResult =
-  | { ok: true; organizationId: string }
+  | {
+      ok: true;
+      organizationId: string;
+      organizationSlug: string;
+      needsOnboarding: boolean;
+    }
   | {
       ok: false;
       error:
@@ -38,6 +44,30 @@ function mapRpcError(message: string): AcceptInvitationResult {
   if (message.includes('user_not_found')) return { ok: false, error: 'user_not_found' };
   if (message.includes('no_campaign')) return { ok: false, error: 'no_campaign' };
   return { ok: false, error: 'db_error' };
+}
+
+async function resolveOrganizationSlug(organizationId: string): Promise<string> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('organizations')
+    .select('slug')
+    .eq('id', organizationId)
+    .maybeSingle();
+  return data?.slug ?? '';
+}
+
+async function buildAcceptSuccess(
+  user: SessionUser,
+  organizationId: string,
+  needsOnboarding: boolean,
+): Promise<Extract<AcceptInvitationResult, { ok: true }>> {
+  const profile = await getAmbassadorProfileByUserId(user.id);
+  return {
+    ok: true,
+    organizationId,
+    organizationSlug: await resolveOrganizationSlug(organizationId),
+    needsOnboarding: needsOnboarding || (profile?.needsOnboarding ?? true),
+  };
 }
 
 async function ensurePublicUser(admin: SupabaseClient, user: SessionUser): Promise<boolean> {
@@ -164,7 +194,7 @@ async function acceptInvitationDirect(
       return { ok: false, error: 'db_error' };
     }
 
-    return { ok: true, organizationId: invitation.organization_id };
+    return buildAcceptSuccess(user, invitation.organization_id, false);
   }
 
   const campaignId = await resolveCampaignId(
@@ -262,7 +292,7 @@ async function acceptInvitationDirect(
     return { ok: false, error: 'db_error' };
   }
 
-  return { ok: true, organizationId: invitation.organization_id };
+  return buildAcceptSuccess(user, invitation.organization_id, true);
 }
 
 export async function acceptInvitation(
@@ -280,7 +310,7 @@ export async function acceptInvitation(
   });
 
   if (!error && data) {
-    return { ok: true, organizationId: data as string };
+    return buildAcceptSuccess(user, data as string, true);
   }
 
   if (error) {

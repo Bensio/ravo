@@ -34,7 +34,16 @@ export function AcceptInvitePanel({
     setError(null);
     const res = await fetch(`/api/invites/${token}/accept`, { method: 'POST' });
     if (res.ok) {
-      router.push(`/${locale}/app/home`);
+      const body = (await res.json()) as {
+        needsOnboarding?: boolean;
+        organizationId?: string;
+      };
+      if (body.needsOnboarding) {
+        const orgQuery = body.organizationId ? `?org=${body.organizationId}` : '';
+        router.push(`/${locale}/app/onboarding${orgQuery}`);
+      } else {
+        router.push(`/${locale}/app/home`);
+      }
       router.refresh();
       return;
     }

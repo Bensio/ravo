@@ -26,10 +26,11 @@ export type AmbassadorsAdminData = {
 };
 
 export async function listAmbassadorsAdmin(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   organizationId: string,
 ): Promise<AmbassadorsAdminData> {
-  const { data: campaigns, error: campError } = await supabase
+  const admin = createAdminClient();
+  const { data: campaigns, error: campError } = await admin
     .from('ambassador_campaigns')
     .select(
       `
@@ -38,7 +39,7 @@ export async function listAmbassadorsAdmin(
       ambassadors (
         id,
         display_handle,
-        users ( email, display_name )
+        user_id
       )
     `,
     )
@@ -48,7 +49,13 @@ export async function listAmbassadorsAdmin(
   if (campError) throw campError;
 
   const seen = new Set<string>();
-  const ambassadors: AmbassadorListRow[] = [];
+  const rows: Array<{
+    id: string;
+    handle: string | null;
+    userId: string;
+    state: string;
+    joinedAt: string;
+  }> = [];
 
   for (const row of campaigns ?? []) {
     const rawAmb = (row as { ambassadors?: unknown }).ambassadors;
@@ -58,27 +65,48 @@ export async function listAmbassadorsAdmin(
     const a = amb as {
       id: string;
       display_handle: string | null;
-      users?: { email: string; display_name: string | null } | { email: string; display_name: string | null }[] | null;
+      user_id: string;
     };
 
     if (seen.has(a.id)) continue;
     seen.add(a.id);
 
-    const rawUser = a.users;
-    const user = Array.isArray(rawUser) ? rawUser[0] : rawUser;
-
-    ambassadors.push({
+    rows.push({
       id: a.id,
       handle: a.display_handle,
-      displayName: user?.display_name ?? null,
-      email: user?.email ?? null,
+      userId: a.user_id,
       state: (row as { state: string }).state,
       joinedAt: (row as { joined_at: string }).joined_at,
     });
   }
 
+  const userIds = [...new Set(rows.map((r) => r.userId))];
+  const usersById = new Map<string, { email: string; display_name: string | null }>();
+
+  if (userIds.length > 0) {
+    const { data: users } = await admin
+      .from('users')
+      .select('id, email, display_name')
+      .in('id', userIds);
+
+    for (const u of users ?? []) {
+      usersById.set(u.id, { email: u.email, display_name: u.display_name });
+    }
+  }
+
+  const ambassadors: AmbassadorListRow[] = rows.map((row) => {
+    const user = usersById.get(row.userId);
+    return {
+      id: row.id,
+      handle: row.handle,
+      displayName: user?.display_name ?? null,
+      email: user?.email ?? null,
+      state: row.state,
+      joinedAt: row.joinedAt,
+    };
+  });
+
   const nowIso = serverNow().toISOString();
-  const admin = createAdminClient();
   const { data: invites, error: invError } = await admin
     .from('invitations')
     .select('id, email, metadata, expires_at, created_at')
