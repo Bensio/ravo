@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy, Link2, Loader2, Mail, UserPlus, X } from 'lucide-react';
+import { Check, Copy, Loader2, Share2, UserPlus, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -15,21 +15,20 @@ type AdminData = {
   pendingInvites: PendingInviteRow[];
 };
 
-type SuccessState =
-  | { type: 'email'; email: string }
-  | { type: 'link'; email: string; inviteUrl: string };
+type LinkReady = {
+  email: string;
+  inviteUrl: string;
+};
 
 export function AmbassadorsDashboard({
   orgSlug,
   locale,
   canInvite,
-  emailConfigured,
   initialData,
 }: {
   orgSlug: string;
   locale: string;
   canInvite: boolean;
-  emailConfigured: boolean;
   initialData?: AdminData | null;
 }) {
   const t = useTranslations('admin.ambassadors');
@@ -37,9 +36,9 @@ export function AmbassadorsDashboard({
   const [loading, setLoading] = useState(initialData === undefined);
   const [email, setEmail] = useState('');
   const [handle, setHandle] = useState('');
-  const [submitting, setSubmitting] = useState<'email' | 'link' | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<SuccessState | null>(null);
+  const [linkReady, setLinkReady] = useState<LinkReady | null>(null);
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
@@ -56,10 +55,11 @@ export function AmbassadorsDashboard({
     void load();
   }, [initialData, load]);
 
-  async function submitInvite(delivery: 'email' | 'link') {
-    setSubmitting(delivery);
+  async function onCreateInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
     setInviteError(null);
-    setSuccess(null);
+    setLinkReady(null);
     setCopied(false);
 
     const res = await fetch(`/api/${orgSlug}/ambassadors/invite`, {
@@ -68,42 +68,46 @@ export function AmbassadorsDashboard({
       body: JSON.stringify({
         email: email.trim(),
         displayHandle: handle.trim() || undefined,
-        delivery,
         locale,
       }),
     });
 
     if (res.ok) {
-      const body = (await res.json()) as {
-        delivery: 'email' | 'link';
-        email: string;
-        inviteUrl?: string;
-      };
-
-      if (body.delivery === 'email') {
-        setSuccess({ type: 'email', email: body.email });
-        setEmail('');
-        setHandle('');
-      } else if (body.inviteUrl) {
-        setSuccess({ type: 'link', email: body.email, inviteUrl: body.inviteUrl });
-      }
+      const body = (await res.json()) as LinkReady;
+      setLinkReady(body);
+      setEmail('');
+      setHandle('');
       void load();
     } else {
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       setInviteError(body.error ?? 'error');
     }
-    setSubmitting(null);
+    setSubmitting(false);
   }
 
   async function copyLink() {
-    if (success?.type !== 'link') return;
-    await navigator.clipboard.writeText(success.inviteUrl);
+    if (!linkReady) return;
+    await navigator.clipboard.writeText(linkReady.inviteUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function shareLink() {
+    if (!linkReady || !navigator.share) return;
+    try {
+      await navigator.share({
+        title: t('shareTitle'),
+        text: t('shareText', { email: linkReady.email }),
+        url: linkReady.inviteUrl,
+      });
+    } catch {
+      // user cancelled share sheet
+    }
+  }
+
   const ambassadors = data?.ambassadors ?? [];
   const pending = data?.pendingInvites ?? [];
+  const canNativeShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
 
   return (
     <div className="space-y-6">
@@ -118,14 +122,9 @@ export function AmbassadorsDashboard({
             <UserPlus className="h-4 w-4 text-primary" aria-hidden />
             {t('inviteTitle')}
           </div>
+          <p className="text-xs text-muted-foreground">{t('inviteHint')}</p>
 
-          <form
-            className="grid gap-3 sm:grid-cols-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submitInvite(emailConfigured ? 'email' : 'link');
-            }}
-          >
+          <form onSubmit={(e) => void onCreateInvite(e)} className="grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor="invite-email" className="mb-1 block text-xs text-muted-foreground">
                 {t('emailLabel')}
@@ -153,42 +152,17 @@ export function AmbassadorsDashboard({
                 placeholder={t('handlePlaceholder')}
               />
             </div>
-
-            <div className="flex flex-wrap gap-2 sm:col-span-2">
-              <Button
-                type="button"
-                disabled={Boolean(submitting) || !emailConfigured}
-                className="gap-1.5"
-                onClick={() => void submitInvite('email')}
-                title={!emailConfigured ? t('emailNotConfiguredHint') : undefined}
-              >
-                {submitting === 'email' ? (
+            <div className="sm:col-span-2">
+              <Button type="submit" disabled={submitting} className="gap-1.5">
+                {submitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Mail className="h-4 w-4" />
+                  <UserPlus className="h-4 w-4" />
                 )}
-                {submitting === 'email' ? t('sendingEmail') : t('sendEmail')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={Boolean(submitting)}
-                className="gap-1.5"
-                onClick={() => void submitInvite('link')}
-              >
-                {submitting === 'link' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Link2 className="h-4 w-4" />
-                )}
-                {submitting === 'link' ? t('creatingLink') : t('copyLinkAction')}
+                {submitting ? t('creating') : t('createInvite')}
               </Button>
             </div>
           </form>
-
-          {!emailConfigured && (
-            <p className="text-xs text-muted-foreground">{t('emailNotConfiguredHint')}</p>
-          )}
 
           {inviteError && (
             <p className="text-sm text-red-400">
@@ -200,44 +174,25 @@ export function AmbassadorsDashboard({
                   | 'inviteError.pending_invite'
                   | 'inviteError.no_campaign'
                   | 'inviteError.schema_missing'
-                  | 'inviteError.email_not_configured'
-                  | 'inviteError.email_send_failed'
                   | 'inviteError.db_error'
                   | 'inviteError.error',
               )}
             </p>
           )}
 
-          {success?.type === 'email' && (
-            <div className="flex items-start justify-between gap-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-emerald-300">{t('emailSentTitle')}</p>
-                <p className="mt-0.5 text-sm text-emerald-200/80">{success.email}</p>
-              </div>
-              <button
-                type="button"
-                className="shrink-0 text-emerald-300/70 hover:text-emerald-200"
-                onClick={() => setSuccess(null)}
-                aria-label={t('dismiss')}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {success?.type === 'link' && (
-            <div className="space-y-3 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4">
+          {linkReady && (
+            <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">{t('linkReadyTitle')}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {t('linkReadySubtitle', { email: success.email })}
+                    {t('linkReadySubtitle', { email: linkReady.email })}
                   </p>
                 </div>
                 <button
                   type="button"
                   className="shrink-0 text-muted-foreground hover:text-foreground"
-                  onClick={() => setSuccess(null)}
+                  onClick={() => setLinkReady(null)}
                   aria-label={t('dismiss')}
                 >
                   <X className="h-4 w-4" />
@@ -246,7 +201,7 @@ export function AmbassadorsDashboard({
               <div className="flex gap-2">
                 <input
                   readOnly
-                  value={success.inviteUrl}
+                  value={linkReady.inviteUrl}
                   className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-background/60 px-3 py-2 text-xs text-muted-foreground"
                   onFocus={(e) => e.target.select()}
                 />
@@ -260,6 +215,18 @@ export function AmbassadorsDashboard({
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? t('copied') : t('copyLink')}
                 </Button>
+                {canNativeShare && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                    onClick={() => void shareLink()}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    {t('share')}
+                  </Button>
+                )}
               </div>
             </div>
           )}
