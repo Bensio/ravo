@@ -3,6 +3,7 @@ import { AmbassadorsDashboard } from '@/components/admin/ambassadors/ambassadors
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { roleHasPermission } from '@/lib/auth/permissions';
 import { listAmbassadorsAdmin } from '@/lib/ambassadors/list-ambassadors-admin';
+import { isEmailConfigured } from '@/lib/email/config';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
@@ -15,12 +16,14 @@ export default async function AmbassadorsPage({ params }: Props) {
     ? await listAmbassadorsAdmin(ctx.supabase, ctx.org.id).catch(() => null)
     : null;
   const canInvite = ctx ? roleHasPermission(ctx.membership.role, 'ambassador.invite') : false;
+  const emailConfigured = isEmailConfigured();
 
   return (
     <AmbassadorsDashboard
       orgSlug={org_slug}
       locale={locale}
       canInvite={canInvite}
+      emailConfigured={emailConfigured}
       initialData={initialData}
     />
   );
