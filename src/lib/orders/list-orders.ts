@@ -17,8 +17,10 @@ export type OrderListItem = {
   ticket_summary: string;
   ref_param: string | null;
   attribution: {
+    id: string;
     tier: number;
     signal: string;
+    confidence: number;
     ambassador_handle: string | null;
     state: string;
   } | null;
@@ -43,8 +45,10 @@ type OrderRow = {
 
 type AttributionRow = {
   order_id: string;
+  id: string;
   tier: number;
   signal: string;
+  confidence: number;
   state: string;
   ambassadors: { display_handle: string | null } | { display_handle: string | null }[] | null;
 };
@@ -77,7 +81,7 @@ async function fetchAttributionMap(
 
   const { data, error } = await supabase
     .from('attributions')
-    .select('order_id, tier, signal, state, ambassadors ( display_handle )')
+    .select('order_id, id, tier, signal, confidence, state, ambassadors ( display_handle )')
     .in('order_id', orderIds);
 
   if (error) {
@@ -91,8 +95,10 @@ async function fetchAttributionMap(
     const rawAmb = row.ambassadors;
     const amb = Array.isArray(rawAmb) ? rawAmb[0] : rawAmb;
     result.set(row.order_id, {
+      id: row.id,
       tier: row.tier,
       signal: row.signal,
+      confidence: Number(row.confidence),
       state: row.state,
       ambassador_handle: amb?.display_handle ?? null,
     });

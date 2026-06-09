@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { attributeOrder } from '@/lib/attribution/attribute-order';
+import { applyRefundCascade } from '@/lib/attribution/refund-cascade';
 import type { NormalizedOrderEvent } from '@/lib/providers/types';
 import { resolveShopId } from '@/lib/webhooks/resolve-connection';
 
@@ -78,8 +79,11 @@ export async function upsertOrderFromWebhook(
     if (itemsError) throw itemsError;
   }
 
-  if (event.status === 'refunded' || event.status === 'partially_refunded') {
-    await recordRefundIfNeeded(admin, organizationId, orderId, event);
+  if (event.status === 'refunded' || event.status === 'partially_refunded' || event.status === 'cancelled') {
+    if (event.status === 'refunded' || event.status === 'partially_refunded') {
+      await recordRefundIfNeeded(admin, organizationId, orderId, event);
+    }
+    await applyRefundCascade(organizationId, orderId, event.status);
   }
 
   let attributed = false;

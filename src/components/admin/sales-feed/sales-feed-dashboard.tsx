@@ -4,10 +4,9 @@ import Link from 'next/link';
 import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { SalesFeedOrderRow } from '@/components/admin/sales-feed/sales-feed-order-row';
 import { Button } from '@/components/ui/button';
 import { formatMoney, moneyFromCents } from '@/lib/money';
-import { formatInFestivalTz } from '@/lib/time';
-import { cn } from '@/lib/utils';
 
 export type SalesFeedRow = {
   id: string;
@@ -21,29 +20,25 @@ export type SalesFeedRow = {
   ticket_summary: string;
   ref_param: string | null;
   attribution: {
+    id: string;
     tier: number;
     signal: string;
+    confidence: number;
     ambassador_handle: string | null;
     state: string;
   } | null;
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  paid: 'bg-emerald-500/15 text-emerald-400',
-  pending: 'bg-amber-500/15 text-amber-400',
-  refunded: 'bg-red-500/15 text-red-400',
-  partially_refunded: 'bg-orange-500/15 text-orange-400',
-  cancelled: 'bg-white/10 text-muted-foreground',
 };
 
 export function SalesFeedDashboard({
   orgSlug,
   locale,
   initialOrders,
+  canReassign = false,
 }: {
   orgSlug: string;
   locale: string;
   initialOrders?: SalesFeedRow[];
+  canReassign?: boolean;
 }) {
   const t = useTranslations('admin.salesFeed');
   const [orders, setOrders] = useState<SalesFeedRow[]>(initialOrders ?? []);
@@ -123,69 +118,14 @@ export function SalesFeedDashboard({
         ) : (
           <div className="space-y-2">
             {orders.map((order) => (
-              <div
+              <SalesFeedOrderRow
                 key={order.id}
-                className="flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                        STATUS_STYLE[order.status] ?? STATUS_STYLE.pending,
-                      )}
-                    >
-                      {t(
-                        `status.${order.status as 'paid' | 'pending' | 'refunded' | 'partially_refunded' | 'cancelled'}`,
-                      )}
-                    </span>
-                    {order.verification === 'estimated' && (
-                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400">
-                        {t('estimated')}
-                      </span>
-                    )}
-                    {order.attribution ? (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-                        {t('attributed', {
-                          ambassador: order.attribution.ambassador_handle ?? t('unknownAmbassador'),
-                        })}
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        {t('unattributed')}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 font-mono text-sm">{order.provider_order_id}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {order.ticket_summary} · {order.provider_display_name}
-                  </p>
-                  {order.attribution && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {t('tierLabel', { tier: order.attribution.tier })}
-                    </p>
-                  )}
-                  {order.ref_param && !order.attribution && (
-                    <p className="mt-0.5 text-xs text-amber-400">{t('attributionPending')}</p>
-                  )}
-                  {order.ref_param && (
-                    <p className="mt-0.5 truncate font-mono text-xs text-primary/80">
-                      ref={order.ref_param}
-                    </p>
-                  )}
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-lg font-semibold tabular-nums">
-                    {formatMoney(
-                      moneyFromCents(BigInt(order.gross_amount_cents), order.currency),
-                      locale,
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatInFestivalTz(order.placed_at, { timezone: 'Europe/Amsterdam' }, 'PPp')}
-                  </p>
-                </div>
-              </div>
+                order={order}
+                orgSlug={orgSlug}
+                locale={locale}
+                canReassign={canReassign}
+                onReassigned={() => void load()}
+              />
             ))}
           </div>
         )}
