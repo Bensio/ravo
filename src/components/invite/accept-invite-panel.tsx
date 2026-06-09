@@ -101,6 +101,8 @@ export function AcceptInvitePanel({
                   | 'error.email_mismatch'
                   | 'error.invalid_or_expired'
                   | 'error.unauthorized'
+                  | 'error.user_not_found'
+                  | 'error.no_campaign'
                   | 'error.db_error'
                   | 'error.error',
               )}

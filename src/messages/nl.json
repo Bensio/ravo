@@ -365,6 +365,8 @@
       "email_mismatch": "Log in met het e-mailadres dat deze uitnodiging ontving.",
       "invalid_or_expired": "Deze uitnodiging is ongeldig of verlopen.",
       "unauthorized": "Log in om deze uitnodiging te accepteren.",
+      "user_not_found": "Je account is nog niet volledig ingesteld. Log uit, log opnieuw in en probeer het nog eens.",
+      "no_campaign": "Dit festival is nog niet klaar voor ambassadeurs. Vraag de admin om eerst Tracklinks te openen.",
       "db_error": "Accepteren mislukt. Probeer opnieuw.",
       "error": "Accepteren mislukt. Probeer opnieuw."
     }

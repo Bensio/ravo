@@ -18,7 +18,7 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'missing_token' }, { status: 400 });
   }
 
-  const result = await acceptInvitation(token);
+  const result = await acceptInvitation(token, user);
   if (!result.ok) {
     const status =
       result.error === 'unauthorized'

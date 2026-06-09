@@ -1,8 +1,10 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createPublicClient } from '@/lib/supabase/public';
-import { createClient } from '@/lib/supabase/server';
 import { hashInviteToken } from '@/lib/invitations/token';
 import { serverNow } from '@/lib/time';
+
+export { acceptInvitation } from '@/lib/invitations/accept';
+export type { AcceptInvitationResult } from '@/lib/invitations/accept';
 
 export type InvitationPreview = {
   organizationName: string;
@@ -94,26 +96,4 @@ export async function previewInvitation(
   }
 
   return previewViaDirectLookup(trimmed);
-}
-
-export async function acceptInvitation(plainToken: string): Promise<
-  | { ok: true; organizationId: string }
-  | { ok: false; error: string }
-> {
-  const trimmed = plainToken.trim();
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('accept_ambassador_invitation', {
-    p_plain_token: trimmed,
-  });
-
-  if (error) {
-    const message = error.message ?? 'unknown';
-    if (message.includes('email_mismatch')) return { ok: false, error: 'email_mismatch' };
-    if (message.includes('invalid_or_expired')) return { ok: false, error: 'invalid_or_expired' };
-    if (message.includes('not authenticated')) return { ok: false, error: 'unauthorized' };
-    console.error('accept_ambassador_invitation failed', { code: error.code, message });
-    return { ok: false, error: 'db_error' };
-  }
-
-  return { ok: true, organizationId: data as string };
 }

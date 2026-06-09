@@ -365,6 +365,8 @@
       "email_mismatch": "Sign in with the email that received this invite.",
       "invalid_or_expired": "This invitation is invalid or has expired.",
       "unauthorized": "Sign in to accept this invitation.",
+      "user_not_found": "Your account is not fully set up yet. Sign out, sign in again, then retry.",
+      "no_campaign": "This festival is not ready for ambassadors yet. Ask the admin to open Tracklinks once.",
       "db_error": "Could not accept invitation. Try again.",
       "error": "Could not accept invitation. Try again."
     }
