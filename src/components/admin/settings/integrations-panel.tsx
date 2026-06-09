@@ -20,7 +20,7 @@ const STATUS_STYLE: Record<string, string> = {
   rotating: 'text-amber-400',
 };
 
-type IntegrationConnectionSummary = {
+export type IntegrationConnectionSummary = {
   id: string;
   provider: string;
   status: string;
@@ -77,7 +77,7 @@ export function IntegrationsPanel({
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      <article className="ravo-glass-panel space-y-4 p-6">
+      <article className="ravo-glass-panel space-y-4 p-6 md:p-8">
         <div className="flex flex-wrap items-start gap-3">
           <Plug className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
@@ -118,7 +118,7 @@ export function IntegrationsPanel({
         )}
       </article>
 
-      <article className="ravo-glass-panel space-y-4 p-6">
+      <article className="ravo-glass-panel space-y-4 p-6 md:p-8">
         <div className="flex flex-wrap items-start gap-3">
           <Plug className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <div className="flex-1">

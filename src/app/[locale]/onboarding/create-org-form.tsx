@@ -4,28 +4,22 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { slugifyOrgName } from '@/lib/org/org-settings';
 import { useTranslations } from 'next-intl';
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 63);
-}
 
 export function CreateOrgForm({ locale }: { locale: string }) {
   const t = useTranslations('onboarding');
   const router = useRouter();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function onNameChange(value: string) {
     setName(value);
-    if (!slug || slug === slugify(name)) {
-      setSlug(slugify(value));
+    if (!slugTouched) {
+      setSlug(slugifyOrgName(value));
     }
   }
 
@@ -75,7 +69,10 @@ export function CreateOrgForm({ locale }: { locale: string }) {
           required
           pattern="^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$"
           value={slug}
-          onChange={(e) => setSlug(e.target.value)}
+          onChange={(e) => {
+            setSlugTouched(true);
+            setSlug(e.target.value.toLowerCase());
+          }}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
         />
       </div>

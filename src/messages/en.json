@@ -269,7 +269,77 @@
     },
     "settings": {
       "title": "Settings",
-      "subtitle": "Organization profile and ticketing integrations.",
+      "subtitle": "Organization profile, team, billing, and integrations.",
+      "comingSoon": "Coming soon",
+      "nav": {
+        "ariaLabel": "Settings sections",
+        "organization": "Organization",
+        "integrations": "Integrations",
+        "team": "Team",
+        "billing": "Billing",
+        "soon": "Soon"
+      },
+      "organization": {
+        "title": "Organization",
+        "subtitle": "Festival name, URL, and defaults used across dashboards and reports.",
+        "loading": "Loading organization…",
+        "nameLabel": "Organization name",
+        "slugLabel": "URL slug",
+        "slugHint": "Admin URL: /{slug}/overview",
+        "slugChangeWarning": "Changing the slug updates your admin URL. Bookmarks will need updating.",
+        "countryLabel": "Country",
+        "currencyLabel": "Default currency",
+        "timezoneLabel": "Default timezone",
+        "timezoneHint": "Used for festival-day charts and date ranges in admin views.",
+        "localeLabel": "Default locale",
+        "localeHint": "Default language for org-facing emails and reports.",
+        "billingEmailLabel": "Billing email",
+        "billingEmailPlaceholder": "finance@festival.nl",
+        "billingEmailHint": "Invoices and billing notices go here.",
+        "billingEmailOwnerOnly": "Only the organization owner can change the billing email.",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "countries": {
+          "NL": "Netherlands",
+          "BE": "Belgium",
+          "DE": "Germany",
+          "GB": "United Kingdom",
+          "IE": "Ireland",
+          "FR": "France",
+          "ES": "Spain",
+          "PT": "Portugal",
+          "AT": "Austria",
+          "CH": "Switzerland",
+          "LU": "Luxembourg",
+          "DK": "Denmark",
+          "SE": "Sweden",
+          "NO": "Norway",
+          "FI": "Finland",
+          "PL": "Poland",
+          "IT": "Italy"
+        },
+        "locales": {
+          "en": "English",
+          "nl": "Dutch"
+        },
+        "errors": {
+          "invalid_name": "Name must be at least 2 characters.",
+          "invalid_slug": "Slug must be lowercase letters, numbers, and hyphens (3–64 characters).",
+          "slug_taken": "That URL slug is already in use.",
+          "invalid_billing_email": "Enter a valid billing email.",
+          "db_error": "Could not save. Try again.",
+          "error": "Could not save. Try again."
+        }
+      },
+      "team": {
+        "title": "Team",
+        "description": "Invite admins, managers, and analysts. Role management and ownership transfer will live here."
+      },
+      "billing": {
+        "title": "Billing",
+        "description": "Subscription plan, invoices, and payment method. Owner-only once billing is enabled."
+      },
       "integrations": {
         "title": "Integrations",
         "subtitle": "Connect your ticket shop so sales appear in Ravo automatically.",

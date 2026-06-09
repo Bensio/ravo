@@ -1,31 +1,43 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import { setRequestLocale } from 'next-intl/server';
+import { SettingsDashboard } from '@/components/admin/settings/settings-dashboard';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
+import { roleHasPermission } from '@/lib/auth/permissions';
 import { listIntegrationConnections } from '@/lib/integrations/list-connections';
-import { IntegrationsPanel } from '@/components/admin/settings/integrations-panel';
+import { getOrgSettings } from '@/lib/org/org-settings';
 
-type Props = { params: Promise<{ locale: string; org_slug: string }> };
+type Props = {
+  params: Promise<{ locale: string; org_slug: string }>;
+};
 
 export default async function SettingsPage({ params }: Props) {
   const { locale, org_slug } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('admin.settings');
 
   const ctx = await requireOrgPageContext(org_slug, 'org.integrations');
-  const initialConnections = ctx
-    ? await listIntegrationConnections(ctx.org.id).catch(() => [])
-    : [];
+  if (!ctx) {
+    notFound();
+  }
+
+  const initialSettings = await getOrgSettings(ctx.org.id).catch(() => null);
+  const initialConnections = await listIntegrationConnections(ctx.org.id).catch(() => []);
 
   return (
-    <main className="space-y-8 p-6 md:p-8">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
-      </div>
-      <IntegrationsPanel
+    <Suspense fallback={null}>
+      <SettingsDashboard
         orgSlug={org_slug}
         locale={locale}
-        initialConnections={initialConnections}
+        initialSettings={initialSettings}
+        initialConnections={initialConnections.map((c) => ({
+          id: c.id,
+          provider: c.provider,
+          status: c.status,
+        }))}
+        canUpdateOrg={roleHasPermission(ctx.membership.role, 'org.update')}
+        canManageBilling={roleHasPermission(ctx.membership.role, 'org.billing')}
+        canManageTeam={roleHasPermission(ctx.membership.role, 'org.members.update')}
       />
-    </main>
+    </Suspense>
   );
 }

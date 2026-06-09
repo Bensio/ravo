@@ -269,7 +269,77 @@
     },
     "settings": {
       "title": "Instellingen",
-      "subtitle": "Organisatieprofiel en ticketintegraties.",
+      "subtitle": "Organisatieprofiel, team, facturatie en integraties.",
+      "comingSoon": "Binnenkort",
+      "nav": {
+        "ariaLabel": "Instellingen secties",
+        "organization": "Organisatie",
+        "integrations": "Integraties",
+        "team": "Team",
+        "billing": "Facturatie",
+        "soon": "Binnenkort"
+      },
+      "organization": {
+        "title": "Organisatie",
+        "subtitle": "Festivalnaam, URL en standaardwaarden voor dashboards en rapporten.",
+        "loading": "Organisatie laden…",
+        "nameLabel": "Organisatienaam",
+        "slugLabel": "URL-slug",
+        "slugHint": "Admin-URL: /{slug}/overview",
+        "slugChangeWarning": "Een nieuwe slug wijzigt je admin-URL. Bladwijzers moeten worden bijgewerkt.",
+        "countryLabel": "Land",
+        "currencyLabel": "Standaardvaluta",
+        "timezoneLabel": "Standaard tijdzone",
+        "timezoneHint": "Gebruikt voor festivaldag-grafieken en datumbereiken in admin.",
+        "localeLabel": "Standaardtaal",
+        "localeHint": "Standaardtaal voor org-e-mails en rapporten.",
+        "billingEmailLabel": "Facturatie-e-mail",
+        "billingEmailPlaceholder": "finance@festival.nl",
+        "billingEmailHint": "Facturen en facturatiemeldingen gaan hierheen.",
+        "billingEmailOwnerOnly": "Alleen de eigenaar kan het facturatie-e-mailadres wijzigen.",
+        "save": "Wijzigingen opslaan",
+        "saving": "Opslaan…",
+        "saved": "Opgeslagen",
+        "countries": {
+          "NL": "Nederland",
+          "BE": "België",
+          "DE": "Duitsland",
+          "GB": "Verenigd Koninkrijk",
+          "IE": "Ierland",
+          "FR": "Frankrijk",
+          "ES": "Spanje",
+          "PT": "Portugal",
+          "AT": "Oostenrijk",
+          "CH": "Zwitserland",
+          "LU": "Luxemburg",
+          "DK": "Denemarken",
+          "SE": "Zweden",
+          "NO": "Noorwegen",
+          "FI": "Finland",
+          "PL": "Polen",
+          "IT": "Italië"
+        },
+        "locales": {
+          "en": "Engels",
+          "nl": "Nederlands"
+        },
+        "errors": {
+          "invalid_name": "Naam moet minimaal 2 tekens zijn.",
+          "invalid_slug": "Slug: kleine letters, cijfers en koppeltekens (3–64 tekens).",
+          "slug_taken": "Die URL-slug is al in gebruik.",
+          "invalid_billing_email": "Voer een geldig facturatie-e-mailadres in.",
+          "db_error": "Opslaan mislukt. Probeer opnieuw.",
+          "error": "Opslaan mislukt. Probeer opnieuw."
+        }
+      },
+      "team": {
+        "title": "Team",
+        "description": "Nodig admins, managers en analisten uit. Rolbeheer en eigenaarsoverdracht komen hier."
+      },
+      "billing": {
+        "title": "Facturatie",
+        "description": "Abonnement, facturen en betaalmethode. Alleen voor de eigenaar zodra facturatie live is."
+      },
       "integrations": {
         "title": "Integraties",
         "subtitle": "Koppel je ticketshop zodat verkopen automatisch in Ravo verschijnen.",
