@@ -487,9 +487,8 @@
       "noSocials": "No social links added.",
       "displayNameLabel": "Display name",
       "displayNamePlaceholder": "Jane van Dijk",
-      "avatarLabel": "Profile photo URL",
-      "avatarPlaceholder": "https://…",
-      "avatarHint": "Paste a public image URL (HTTPS). Direct upload is coming soon.",
+      "avatarChange": "Change profile photo",
+      "avatarTapHint": "Tap to upload a photo (JPG, PNG or WebP, max 2 MB)",
       "socialsTitle": "Social links",
       "save": "Save changes",
       "saving": "Saving…",
@@ -497,6 +496,9 @@
       "errors": {
         "invalid_handle": "Handle must be 3–30 characters: letters, numbers, underscores.",
         "invalid_avatar_url": "Photo URL must be a valid https:// link.",
+        "invalid_avatar_file": "Use a JPG, PNG, or WebP image.",
+        "avatar_too_large": "Photo must be 2 MB or smaller.",
+        "avatar_upload_failed": "Could not upload photo. Try again.",
         "profile_incomplete": "Add a short bio or at least one social link.",
         "db_error": "Could not save profile. Try again.",
         "error": "Could not save profile. Try again."

@@ -2,6 +2,7 @@
 
 import { ExternalLink, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { ProfileAvatarPicker } from '@/components/ambassador/profile-avatar-picker';
 import { Button } from '@/components/ui/button';
 import type { AmbassadorProfile } from '@/lib/ambassadors/ambassador-profile';
 
@@ -31,9 +32,11 @@ function socialUrl(network: string, handle: string): string {
 export function AmbassadorProfileView({
   profile,
   onEdit,
+  onAvatarUpdated,
 }: {
   profile: AmbassadorProfile;
   onEdit: () => void;
+  onAvatarUpdated: (avatarUrl: string) => void;
 }) {
   const t = useTranslations('ambassador.profile');
   const displayName = profile.displayName?.trim() || profile.displayHandle || t('fallbackName');
@@ -53,18 +56,11 @@ export function AmbassadorProfileView({
       </div>
 
       <div className="ravo-glass-panel flex flex-col items-center gap-4 p-6 text-center">
-        {profile.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.avatarUrl}
-            alt=""
-            className="h-24 w-24 rounded-full border border-white/10 object-cover"
-          />
-        ) : (
-          <div className="flex h-24 w-24 items-center justify-center rounded-full border border-white/10 bg-primary/10 text-3xl font-semibold text-primary">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-        )}
+        <ProfileAvatarPicker
+          avatarUrl={profile.avatarUrl}
+          displayName={displayName}
+          onAvatarChange={onAvatarUpdated}
+        />
 
         <div>
           <p className="text-lg font-semibold">{displayName}</p>

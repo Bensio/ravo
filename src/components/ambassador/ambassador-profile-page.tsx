@@ -47,6 +47,10 @@ export function AmbassadorProfilePage({
   }
 
   return (
-    <AmbassadorProfileView profile={profile} onEdit={() => setEditing(true)} />
+    <AmbassadorProfileView
+      profile={profile}
+      onEdit={() => setEditing(true)}
+      onAvatarUpdated={(avatarUrl) => setProfile((p) => ({ ...p, avatarUrl }))}
+    />
   );
 }

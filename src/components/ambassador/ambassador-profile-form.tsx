@@ -3,6 +3,7 @@
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { ProfileAvatarPicker } from '@/components/ambassador/profile-avatar-picker';
 import { Button } from '@/components/ui/button';
 import type { AmbassadorProfile } from '@/lib/ambassadors/ambassador-profile';
 
@@ -65,7 +66,6 @@ export function AmbassadorProfileForm({
         displayName: displayName.trim() || null,
         displayHandle: handle.trim(),
         bio: bio.trim() || null,
-        avatarUrl: avatarUrl.trim() || null,
         socialLinks: {
           instagram: instagram.trim() || undefined,
           tiktok: tiktok.trim() || undefined,
@@ -92,6 +92,9 @@ export function AmbassadorProfileForm({
     setSaving(false);
   }
 
+  const displayNameForAvatar =
+    displayName.trim() || handle.trim() || tProfile('fallbackName');
+
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="ravo-glass-panel space-y-5 p-6">
       {variant === 'onboarding' && (
@@ -110,20 +113,13 @@ export function AmbassadorProfileForm({
         </div>
       )}
 
-      <div>
-        <label htmlFor="profile-avatar" className="mb-1 block text-xs text-muted-foreground">
-          {tProfile('avatarLabel')}
-        </label>
-        <input
-          id="profile-avatar"
-          type="url"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          className={inputClass}
-          placeholder={tProfile('avatarPlaceholder')}
-        />
-        <p className="mt-1 text-[11px] text-muted-foreground">{tProfile('avatarHint')}</p>
-      </div>
+      <ProfileAvatarPicker
+        avatarUrl={avatarUrl || null}
+        displayName={displayNameForAvatar}
+        size="md"
+        onAvatarChange={(url) => setAvatarUrl(url)}
+        className="pb-1"
+      />
 
       <div>
         <label htmlFor="profile-name" className="mb-1 block text-xs text-muted-foreground">

@@ -487,9 +487,8 @@
       "noSocials": "Geen social links toegevoegd.",
       "displayNameLabel": "Weergavenaam",
       "displayNamePlaceholder": "Jane van Dijk",
-      "avatarLabel": "Profielfoto-URL",
-      "avatarPlaceholder": "https://…",
-      "avatarHint": "Plak een publieke afbeelding-URL (HTTPS). Direct uploaden komt binnenkort.",
+      "avatarChange": "Profielfoto wijzigen",
+      "avatarTapHint": "Tik om een foto te uploaden (JPG, PNG of WebP, max 2 MB)",
       "socialsTitle": "Social links",
       "save": "Wijzigingen opslaan",
       "saving": "Opslaan…",
@@ -497,6 +496,9 @@
       "errors": {
         "invalid_handle": "Handle moet 3–30 tekens zijn: letters, cijfers, underscores.",
         "invalid_avatar_url": "Foto-URL moet een geldige https://-link zijn.",
+        "invalid_avatar_file": "Gebruik een JPG-, PNG- of WebP-afbeelding.",
+        "avatar_too_large": "Foto mag maximaal 2 MB zijn.",
+        "avatar_upload_failed": "Foto uploaden mislukt. Probeer opnieuw.",
         "profile_incomplete": "Voeg een korte bio of minimaal één social link toe.",
         "db_error": "Profiel opslaan mislukt. Probeer opnieuw.",
         "error": "Profiel opslaan mislukt. Probeer opnieuw."
