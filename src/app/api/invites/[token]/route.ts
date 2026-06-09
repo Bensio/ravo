@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic';
 type RouteContext = { params: Promise<{ token: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const { token } = await context.params;
+  const { token: rawToken } = await context.params;
+  const token = decodeURIComponent(rawToken ?? '');
   if (!token?.trim()) {
     return NextResponse.json({ error: 'missing_token' }, { status: 400 });
   }

@@ -7,7 +7,8 @@ import { previewInvitation } from '@/lib/invitations/preview';
 type Props = { params: Promise<{ locale: string; token: string }> };
 
 export default async function InvitePage({ params }: Props) {
-  const { locale, token } = await params;
+  const { locale, token: rawToken } = await params;
+  const token = decodeURIComponent(rawToken);
   setRequestLocale(locale);
   const t = await getTranslations('invite');
 

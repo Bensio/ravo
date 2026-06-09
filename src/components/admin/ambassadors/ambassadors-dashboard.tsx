@@ -68,7 +68,7 @@ export function AmbassadorsDashboard({
 
     if (res.ok) {
       const body = (await res.json()) as { inviteToken: string };
-      const link = `${window.location.origin}/${locale}/invite/${body.inviteToken}`;
+      const link = `${window.location.origin}/${locale}/invite/${encodeURIComponent(body.inviteToken)}`;
       setInviteLink(link);
       setEmail('');
       setHandle('');

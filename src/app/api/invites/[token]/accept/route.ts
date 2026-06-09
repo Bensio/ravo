@@ -12,8 +12,9 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  const { token } = await context.params;
-  if (!token?.trim()) {
+  const { token: rawToken } = await context.params;
+  const token = decodeURIComponent(rawToken ?? '');
+  if (!token.trim()) {
     return NextResponse.json({ error: 'missing_token' }, { status: 400 });
   }
 
