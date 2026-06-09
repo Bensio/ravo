@@ -45,5 +45,6 @@ export const POST = requirePermission('ambassador.invite', async ({ request, ctx
     email: result.email,
     displayHandle: result.displayHandle,
     expiresAt: result.expiresAt,
+    refreshed: result.refreshed ?? false,
   });
 });

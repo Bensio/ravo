@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { serverNow } from '@/lib/time';
 
 export type AmbassadorListRow = {
@@ -16,6 +17,7 @@ export type PendingInviteRow = {
   displayHandle: string | null;
   expiresAt: string;
   createdAt: string;
+  expired: boolean;
 };
 
 export type AmbassadorsAdminData = {
@@ -75,13 +77,14 @@ export async function listAmbassadorsAdmin(
     });
   }
 
-  const { data: invites, error: invError } = await supabase
+  const nowIso = serverNow().toISOString();
+  const admin = createAdminClient();
+  const { data: invites, error: invError } = await admin
     .from('invitations')
     .select('id, email, metadata, expires_at, created_at')
     .eq('organization_id', organizationId)
     .eq('role', 'ambassador')
     .is('accepted_at', null)
-    .gt('expires_at', serverNow().toISOString())
     .order('created_at', { ascending: false });
 
   if (invError) throw invError;
@@ -97,6 +100,7 @@ export async function listAmbassadorsAdmin(
         : null,
     expiresAt: inv.expires_at,
     createdAt: inv.created_at,
+    expired: inv.expires_at <= nowIso,
   }));
 
   return { ambassadors, pendingInvites };

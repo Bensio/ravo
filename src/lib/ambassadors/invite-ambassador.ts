@@ -15,6 +15,7 @@ export type InviteAmbassadorResult =
       expiresAt: string;
       email: string;
       displayHandle: string;
+      refreshed?: boolean;
     }
   | {
       ok: false;
@@ -23,6 +24,7 @@ export type InviteAmbassadorResult =
         | 'invalid_handle'
         | 'already_member'
         | 'pending_invite'
+        | 'invite_not_found'
         | 'no_campaign'
         | 'schema_missing'
         | 'db_error';
@@ -102,6 +104,135 @@ async function ensureCampaign(organizationId: string, ownerUserId: string): Prom
   }
 }
 
+async function findPendingInvite(
+  organizationId: string,
+  normalizedEmail: string,
+): Promise<{ id: string; email: string; metadata: unknown } | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('invitations')
+    .select('id, email, metadata')
+    .eq('organization_id', organizationId)
+    .ilike('email', normalizedEmail)
+    .eq('role', 'ambassador')
+    .is('accepted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+async function rotateInvitation(
+  invitationId: string,
+  organizationId: string,
+  invitedByUserId: string,
+  displayHandle: string,
+  email: string,
+): Promise<InviteAmbassadorResult> {
+  const plainToken = generateInviteToken();
+  const tokenHash = hashInviteToken(plainToken);
+  const expiresAt = addDays(serverNow(), 7).toISOString();
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from('invitations')
+    .update({
+      token: tokenHash,
+      expires_at: expiresAt,
+      invited_by: invitedByUserId,
+      metadata: { display_handle: displayHandle },
+    })
+    .eq('id', invitationId)
+    .eq('organization_id', organizationId)
+    .is('accepted_at', null)
+    .select('id')
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error('rotate invitation failed', { message: error?.message });
+    return { ok: false, error: 'db_error' };
+  }
+
+  return {
+    ok: true,
+    invitationId: data.id,
+    plainToken,
+    expiresAt,
+    email,
+    displayHandle,
+    refreshed: true,
+  };
+}
+
+/** Issue a new invite link for an existing pending invitation. */
+export async function refreshAmbassadorInvite(
+  organizationId: string,
+  invitationId: string,
+  invitedByUserId: string,
+  displayHandleInput?: string,
+): Promise<InviteAmbassadorResult> {
+  const admin = createAdminClient();
+  const { data: row } = await admin
+    .from('invitations')
+    .select('id, email, metadata')
+    .eq('id', invitationId)
+    .eq('organization_id', organizationId)
+    .eq('role', 'ambassador')
+    .is('accepted_at', null)
+    .maybeSingle();
+
+  if (!row) {
+    return { ok: false, error: 'invite_not_found' };
+  }
+
+  const existingHandle =
+    typeof row.metadata === 'object' &&
+    row.metadata !== null &&
+    'display_handle' in row.metadata
+      ? String((row.metadata as { display_handle?: string }).display_handle ?? '')
+      : '';
+
+  const displayHandle = normalizeDisplayHandle(
+    displayHandleInput ?? existingHandle,
+    row.email,
+  );
+
+  if (!isValidDisplayHandle(displayHandle)) {
+    return { ok: false, error: 'invalid_handle' };
+  }
+
+  return rotateInvitation(row.id, organizationId, invitedByUserId, displayHandle, row.email);
+}
+
+/** Revoke a pending ambassador invite (not yet accepted). */
+export async function revokeAmbassadorInvite(
+  organizationId: string,
+  invitationId: string,
+): Promise<{ ok: true } | { ok: false; error: 'invite_not_found' | 'db_error' }> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('invitations')
+    .delete()
+    .eq('id', invitationId)
+    .eq('organization_id', organizationId)
+    .eq('role', 'ambassador')
+    .is('accepted_at', null)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('revoke invitation failed', { message: error.message });
+    return { ok: false, error: 'db_error' };
+  }
+
+  if (!data) {
+    return { ok: false, error: 'invite_not_found' };
+  }
+
+  return { ok: true };
+}
+
 export async function inviteAmbassador(
   organizationId: string,
   invitedByUserId: string,
@@ -126,6 +257,17 @@ export async function inviteAmbassador(
       message: err instanceof Error ? err.message : 'unknown',
     });
     return { ok: false, error: 'no_campaign' };
+  }
+
+  const pending = await findPendingInvite(organizationId, normalizedEmail);
+  if (pending) {
+    return rotateInvitation(
+      pending.id,
+      organizationId,
+      invitedByUserId,
+      displayHandle,
+      normalizedEmail,
+    );
   }
 
   const plainToken = generateInviteToken();
