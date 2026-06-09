@@ -252,7 +252,7 @@
       "refresh": "Refresh",
       "purgeTest": "Clear test sales",
       "purgingTest": "Clearing…",
-      "purgeTestConfirm": "Remove all simulated test sales from this festival? Real provider orders are not affected.",
+      "purgeTestConfirm": "Remove all simulated and Manual UTM test sales from this festival? Real provider orders are not affected.",
       "purgeTestSuccess": "Removed {count} test {count, plural, one {sale} other {sales}}.",
       "purgeTestEmpty": "No test sales to remove.",
       "purgeTestError": "Could not clear test sales. Try again.",

@@ -6,6 +6,10 @@ describe('isTestOrder', () => {
     expect(isTestOrder({ provider_order_id: 'sim-1710000000000' })).toBe(true);
   });
 
+  it('detects test- provider order ids from Manual UTM test sale', () => {
+    expect(isTestOrder({ provider_order_id: 'test-1780921088320' })).toBe(true);
+  });
+
   it('detects simulate_sale metadata source', () => {
     expect(
       isTestOrder({

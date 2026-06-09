@@ -252,7 +252,7 @@
       "refresh": "Verversen",
       "purgeTest": "Testverkopen wissen",
       "purgingTest": "Wissen…",
-      "purgeTestConfirm": "Alle gesimuleerde testverkopen voor dit festival verwijderen? Echte provider-orders blijven staan.",
+      "purgeTestConfirm": "Alle gesimuleerde en Manual UTM-testverkopen voor dit festival verwijderen? Echte provider-orders blijven staan.",
       "purgeTestSuccess": "{count} test{count, plural, one {verkoop} other {verkopen}} verwijderd.",
       "purgeTestEmpty": "Geen testverkopen om te verwijderen.",
       "purgeTestError": "Testverkopen wissen mislukt. Probeer opnieuw.",
