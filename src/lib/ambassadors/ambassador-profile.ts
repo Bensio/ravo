@@ -11,6 +11,8 @@ export type SocialLinks = {
 export type AmbassadorProfile = {
   id: string;
   displayHandle: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
   bio: string | null;
   socialLinks: SocialLinks;
   needsOnboarding: boolean;
@@ -18,15 +20,26 @@ export type AmbassadorProfile = {
 
 export type AmbassadorProfilePatch = {
   displayHandle?: string;
+  displayName?: string | null;
+  avatarUrl?: string | null;
   bio?: string | null;
   socialLinks?: SocialLinks;
+};
+
+export type UpdateAmbassadorProfileOptions = {
+  requireBioOrSocial?: boolean;
 };
 
 export type UpdateAmbassadorProfileResult =
   | { ok: true; profile: AmbassadorProfile }
   | {
       ok: false;
-      error: 'not_found' | 'invalid_handle' | 'profile_incomplete' | 'db_error';
+      error:
+        | 'not_found'
+        | 'invalid_handle'
+        | 'invalid_avatar_url'
+        | 'profile_incomplete'
+        | 'db_error';
     };
 
 function hasBioOrSocial(bio: string | null | undefined, socialLinks: SocialLinks): boolean {
@@ -52,6 +65,22 @@ function normalizeSocialLinks(raw: unknown): SocialLinks {
   return out;
 }
 
+function normalizeAvatarUrl(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'https:') {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function ambassadorNeedsOnboarding(profile: {
   bio: string | null;
   socialLinks: SocialLinks;
@@ -62,20 +91,37 @@ export function ambassadorNeedsOnboarding(profile: {
   return !Object.values(profile.socialLinks).some((v) => v?.trim());
 }
 
-function mapProfile(row: {
-  id: string;
-  display_handle: string | null;
-  bio: string | null;
-  social_links: unknown;
-}): AmbassadorProfile {
+function mapProfile(
+  row: {
+    id: string;
+    display_handle: string | null;
+    bio: string | null;
+    social_links: unknown;
+  },
+  user: { display_name: string | null; avatar_url: string | null } | null,
+): AmbassadorProfile {
   const socialLinks = normalizeSocialLinks(row.social_links);
   return {
     id: row.id,
     displayHandle: row.display_handle,
+    displayName: user?.display_name ?? null,
+    avatarUrl: user?.avatar_url ?? null,
     bio: row.bio,
     socialLinks,
     needsOnboarding: ambassadorNeedsOnboarding({ bio: row.bio, socialLinks }),
   };
+}
+
+async function loadUserProfile(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<{ display_name: string | null; avatar_url: string | null } | null> {
+  const { data } = await admin
+    .from('users')
+    .select('display_name, avatar_url')
+    .eq('id', userId)
+    .maybeSingle();
+  return data;
 }
 
 export async function getAmbassadorProfileByUserId(
@@ -95,14 +141,17 @@ export async function getAmbassadorProfileByUserId(
     return null;
   }
 
-  return mapProfile(data);
+  const user = await loadUserProfile(admin, userId);
+  return mapProfile(data, user);
 }
 
 export async function updateAmbassadorProfile(
   userId: string,
   userEmail: string,
   patch: AmbassadorProfilePatch,
+  options: UpdateAmbassadorProfileOptions = {},
 ): Promise<UpdateAmbassadorProfileResult> {
+  const requireBioOrSocial = options.requireBioOrSocial ?? true;
   const admin = createAdminClient();
   const { data: existing } = await admin
     .from('ambassadors')
@@ -114,10 +163,15 @@ export async function updateAmbassadorProfile(
     return { ok: false, error: 'not_found' };
   }
 
-  const updates: {
+  const ambassadorUpdates: {
     display_handle?: string;
     bio?: string | null;
     social_links?: SocialLinks;
+  } = {};
+
+  const userUpdates: {
+    display_name?: string | null;
+    avatar_url?: string | null;
   } = {};
 
   if (patch.displayHandle !== undefined) {
@@ -125,35 +179,62 @@ export async function updateAmbassadorProfile(
     if (!isValidDisplayHandle(handle)) {
       return { ok: false, error: 'invalid_handle' };
     }
-    updates.display_handle = handle;
+    ambassadorUpdates.display_handle = handle;
+  }
+
+  if (patch.displayName !== undefined) {
+    const name = patch.displayName?.trim() ?? '';
+    userUpdates.display_name = name.length > 0 ? name.slice(0, 80) : null;
+  }
+
+  if (patch.avatarUrl !== undefined) {
+    if (patch.avatarUrl === null || patch.avatarUrl.trim() === '') {
+      userUpdates.avatar_url = null;
+    } else {
+      const normalized = normalizeAvatarUrl(patch.avatarUrl);
+      if (!normalized) {
+        return { ok: false, error: 'invalid_avatar_url' };
+      }
+      userUpdates.avatar_url = normalized;
+    }
   }
 
   if (patch.bio !== undefined) {
     const bio = patch.bio?.trim() ?? '';
-    updates.bio = bio.length > 0 ? bio.slice(0, 280) : null;
+    ambassadorUpdates.bio = bio.length > 0 ? bio.slice(0, 280) : null;
   }
 
   if (patch.socialLinks !== undefined) {
-    updates.social_links = normalizeSocialLinks(patch.socialLinks);
+    ambassadorUpdates.social_links = normalizeSocialLinks(patch.socialLinks);
   }
 
-  const nextBio = patch.bio !== undefined ? updates.bio ?? null : existing.bio;
+  const nextBio =
+    patch.bio !== undefined ? ambassadorUpdates.bio ?? null : existing.bio;
   const nextSocials =
     patch.socialLinks !== undefined
-      ? updates.social_links ?? {}
+      ? ambassadorUpdates.social_links ?? {}
       : normalizeSocialLinks(existing.social_links);
 
-  if (!hasBioOrSocial(nextBio, nextSocials)) {
+  if (requireBioOrSocial && !hasBioOrSocial(nextBio, nextSocials)) {
     return { ok: false, error: 'profile_incomplete' };
   }
 
-  if (Object.keys(updates).length === 0) {
-    return { ok: true, profile: mapProfile(existing) };
+  if (Object.keys(userUpdates).length > 0) {
+    const { error: userError } = await admin.from('users').update(userUpdates).eq('id', userId);
+    if (userError) {
+      console.error('update user profile failed', { message: userError.message });
+      return { ok: false, error: 'db_error' };
+    }
+  }
+
+  if (Object.keys(ambassadorUpdates).length === 0) {
+    const user = await loadUserProfile(admin, userId);
+    return { ok: true, profile: mapProfile(existing, user) };
   }
 
   const { data, error } = await admin
     .from('ambassadors')
-    .update(updates)
+    .update(ambassadorUpdates)
     .eq('id', existing.id)
     .select('id, display_handle, bio, social_links')
     .single();
@@ -163,5 +244,6 @@ export async function updateAmbassadorProfile(
     return { ok: false, error: 'db_error' };
   }
 
-  return { ok: true, profile: mapProfile(data) };
+  const user = await loadUserProfile(admin, userId);
+  return { ok: true, profile: mapProfile(data, user) };
 }

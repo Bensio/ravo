@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseISO, subDays } from 'date-fns';
+import { getAmbassadorMemberUserIds } from '@/lib/ambassadors/ambassador-member-filter';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { comparePeriods } from '@/lib/stats/compare-periods';
 import { serverNow } from '@/lib/time';
@@ -82,6 +83,8 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
   const currentWeek = allDays.slice(-7);
   const priorWeek = allDays.slice(-14, -7);
 
+  const ambassadorUserIds = await getAmbassadorMemberUserIds(organizationId);
+
   const [{ data: campaignRows }, { data: links }, { data: clicks }, { data: attributions }] =
     await Promise.all([
       admin
@@ -92,6 +95,7 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
           ambassadors (
             id,
             display_handle,
+            user_id,
             users ( display_name, avatar_url )
           )
         `,
@@ -127,10 +131,12 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
       | {
           id: string;
           display_handle: string | null;
+          user_id: string;
           users?: { display_name: string | null; avatar_url: string | null } | null;
         }
       | undefined;
     if (!amb?.id) continue;
+    if (!ambassadorUserIds.has(amb.user_id)) continue;
 
     const rawUser = amb.users;
     const user = Array.isArray(rawUser) ? rawUser[0] : rawUser;

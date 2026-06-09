@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getAmbassadorMemberUserIds } from '@/lib/ambassadors/ambassador-member-filter';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export type OrgAmbassadorOption = {
   id: string;
@@ -7,10 +9,13 @@ export type OrgAmbassadorOption = {
 };
 
 export async function listOrgAmbassadors(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   organizationId: string,
 ): Promise<OrgAmbassadorOption[]> {
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  const ambassadorUserIds = await getAmbassadorMemberUserIds(organizationId);
+
+  const { data, error } = await admin
     .from('ambassador_campaigns')
     .select(
       `
@@ -18,7 +23,7 @@ export async function listOrgAmbassadors(
       ambassadors (
         id,
         display_handle,
-        users ( display_name )
+        user_id
       )
     `,
     )
@@ -28,7 +33,7 @@ export async function listOrgAmbassadors(
   if (error) throw error;
 
   const seen = new Set<string>();
-  const result: OrgAmbassadorOption[] = [];
+  const rows: Array<{ id: string; handle: string | null; userId: string }> = [];
 
   for (const row of data ?? []) {
     const rawAmb = (row as { ambassadors?: unknown }).ambassadors;
@@ -38,23 +43,37 @@ export async function listOrgAmbassadors(
     const a = amb as {
       id: string;
       display_handle: string | null;
-      users?: { display_name: string | null } | { display_name: string | null }[] | null;
+      user_id: string;
     };
 
     if (seen.has(a.id)) continue;
+    if (!ambassadorUserIds.has(a.user_id)) continue;
     seen.add(a.id);
 
-    const rawUser = a.users;
-    const user = Array.isArray(rawUser) ? rawUser[0] : rawUser;
-
-    result.push({
-      id: a.id,
-      handle: a.display_handle,
-      displayName: user?.display_name ?? null,
-    });
+    rows.push({ id: a.id, handle: a.display_handle, userId: a.user_id });
   }
 
-  return result.sort((x, y) =>
-    (x.handle ?? x.displayName ?? '').localeCompare(y.handle ?? y.displayName ?? ''),
-  );
+  const userIds = [...new Set(rows.map((r) => r.userId))];
+  const usersById = new Map<string, string | null>();
+
+  if (userIds.length > 0) {
+    const { data: users } = await admin
+      .from('users')
+      .select('id, display_name')
+      .in('id', userIds);
+
+    for (const u of users ?? []) {
+      usersById.set(u.id, u.display_name);
+    }
+  }
+
+  return rows
+    .map((row) => ({
+      id: row.id,
+      handle: row.handle,
+      displayName: usersById.get(row.userId) ?? null,
+    }))
+    .sort((x, y) =>
+      (x.handle ?? x.displayName ?? '').localeCompare(y.handle ?? y.displayName ?? ''),
+    );
 }

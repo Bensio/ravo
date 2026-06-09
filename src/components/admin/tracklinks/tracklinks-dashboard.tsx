@@ -4,6 +4,8 @@ import { Check, Copy, Link2, Plus, Trash2, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { NativeSelect } from '@/components/ui/native-select';
+import type { OrgAmbassadorOption } from '@/lib/ambassadors/list-org-ambassadors';
 import { cn } from '@/lib/utils';
 
 export type TracklinkRow = {
@@ -33,6 +35,8 @@ export function TracklinksDashboard({
   const [filter, setFilter] = useState<'all' | 'active'>('all');
   const [destinationUrl, setDestinationUrl] = useState('');
   const [label, setLabel] = useState('');
+  const [ambassadors, setAmbassadors] = useState<OrgAmbassadorOption[]>([]);
+  const [ambassadorId, setAmbassadorId] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -55,10 +59,23 @@ export function TracklinksDashboard({
     setLoading(false);
   }, [orgSlug, t]);
 
+  const loadAmbassadors = useCallback(async () => {
+    const res = await fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = (await res.json()) as { ambassadors?: OrgAmbassadorOption[] };
+    const list = data.ambassadors ?? [];
+    setAmbassadors(list);
+    setAmbassadorId((current) => current || list[0]?.id || '');
+  }, [orgSlug]);
+
   useEffect(() => {
     if (initialLinks !== undefined) return;
     void load();
   }, [initialLinks, load]);
+
+  useEffect(() => {
+    void loadAmbassadors();
+  }, [loadAmbassadors]);
 
   const filtered = links.filter((l) => (filter === 'active' ? !l.disabled : true));
   const totalClicks = filtered.reduce((sum, l) => sum + l.click_count, 0);
@@ -78,6 +95,7 @@ export function TracklinksDashboard({
       body: JSON.stringify({
         destination_url: destinationUrl,
         label: label || undefined,
+        ambassador_id: ambassadorId || undefined,
         bootstrap: true,
       }),
     });
@@ -89,7 +107,9 @@ export function TracklinksDashboard({
           ? 'createErrorInvalidUrl'
           : data.error === 'bootstrap_failed'
             ? 'createErrorBootstrap'
-            : data.error === 'missing_service_role'
+            : data.error === 'no_ambassador'
+              ? 'createErrorNoAmbassador'
+              : data.error === 'missing_service_role'
               ? 'createErrorServiceRole'
               : data.error === 'schema_missing' || data.error === 'rpc_missing'
                 ? 'createErrorSchema'
@@ -232,25 +252,52 @@ export function TracklinksDashboard({
           ))}
         </div>
 
-        <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <input
-            type="url"
-            required
-            placeholder={t('destinationPlaceholder')}
-            value={destinationUrl}
-            onChange={(e) => setDestinationUrl(e.target.value)}
-            className="rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <input
-            type="text"
-            placeholder={t('labelPlaceholder')}
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            className="rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs text-muted-foreground">{t('ambassadorLabel')}</label>
+            <NativeSelect
+              value={ambassadorId}
+              onChange={(e) => setAmbassadorId(e.target.value)}
+              disabled={ambassadors.length === 0}
+              className="w-full"
+            >
+              {ambassadors.length === 0 ? (
+                <option value="">{t('ambassadorEmpty')}</option>
+              ) : (
+                ambassadors.map((amb) => (
+                  <option key={amb.id} value={amb.id}>
+                    {amb.handle ? `@${amb.handle}` : amb.displayName ?? t('unknownAmbassador')}
+                  </option>
+                ))
+              )}
+            </NativeSelect>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted-foreground">{t('labelPlaceholder')}</label>
+            <input
+              type="text"
+              placeholder={t('labelExample')}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs text-muted-foreground">{t('destinationPlaceholder')}</label>
+            <input
+              type="url"
+              required
+              placeholder="https://tickets.yourfestival.com/..."
+              value={destinationUrl}
+              onChange={(e) => setDestinationUrl(e.target.value)}
+              className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end">
           <Button
             type="button"
-            disabled={creating || !destinationUrl}
+            disabled={creating || !destinationUrl || !ambassadorId}
             onClick={() => void createLink()}
             className="gap-1.5"
           >
@@ -258,6 +305,9 @@ export function TracklinksDashboard({
             {creating ? t('creating') : t('create')}
           </Button>
         </div>
+        {ambassadors.length === 0 && (
+          <p className="text-xs text-muted-foreground">{t('ambassadorInviteHint')}</p>
+        )}
         {loadError && <p className="text-sm text-red-400">{loadError}</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
         {simulateMessage && (
@@ -291,8 +341,14 @@ export function TracklinksDashboard({
                 )}
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 font-mono text-sm text-primary">
-                    <Link2 className="h-4 w-4 shrink-0" />
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {link.label ||
+                      (link.ambassador?.display_handle
+                        ? `@${link.ambassador.display_handle}`
+                        : t('unlabeledLink'))}
+                  </p>
+                  <div className="mt-1 flex items-center gap-2 font-mono text-xs text-primary">
+                    <Link2 className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{link.public_url}</span>
                   </div>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
@@ -300,7 +356,7 @@ export function TracklinksDashboard({
                   </p>
                   {link.ambassador?.display_handle && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      @{link.ambassador.display_handle}
+                      {t('assignedTo', { handle: link.ambassador.display_handle })}
                     </p>
                   )}
                 </div>

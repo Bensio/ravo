@@ -182,8 +182,16 @@
       "kpiActive": "Actief",
       "filterAll": "Alle",
       "filterActive": "Actief",
-      "destinationPlaceholder": "https://tickets.jouwfestival.nl/...",
-      "labelPlaceholder": "Label (optioneel, bv. instagram-story)",
+      "destinationPlaceholder": "Ticketshop-URL",
+      "labelPlaceholder": "Label",
+      "labelExample": "bv. Instagram-story, bio-link",
+      "ambassadorLabel": "Toewijzen aan ambassadeur",
+      "ambassadorEmpty": "Nog geen ambassadeurs",
+      "ambassadorInviteHint": "Nodig eerst ambassadeurs uit — elke tracklink hoort bij één ambassadeur voor attributie.",
+      "unknownAmbassador": "Ambassadeur",
+      "unlabeledLink": "Link zonder label",
+      "assignedTo": "Ambassadeur: @{handle}",
+      "createErrorNoAmbassador": "Kies een ambassadeur. Nodig iemand uit via de Ambassadeurs-pagina.",
       "create": "Nieuwe link",
       "creating": "Aanmaken…",
       "createError": "Link aanmaken mislukt. Probeer opnieuw of neem contact op.",
@@ -415,7 +423,23 @@
     },
     "profile": {
       "title": "Profiel",
-      "empty": "Werk je handle, socials en uitbetalingsgegevens bij wanneer die flows live zijn."
+      "subtitle": "Pas aan hoe festivals je zien. Je handle wordt gebruikt op tracklinks en leaderboards.",
+      "displayNameLabel": "Weergavenaam",
+      "displayNamePlaceholder": "Jane van Dijk",
+      "avatarLabel": "Profielfoto-URL",
+      "avatarPlaceholder": "https://…",
+      "avatarHint": "Plak een publieke afbeelding-URL (HTTPS). Direct uploaden komt binnenkort.",
+      "socialsTitle": "Social links",
+      "save": "Wijzigingen opslaan",
+      "saving": "Opslaan…",
+      "saved": "Profiel opgeslagen.",
+      "errors": {
+        "invalid_handle": "Handle moet 3–30 tekens zijn: letters, cijfers, underscores.",
+        "invalid_avatar_url": "Foto-URL moet een geldige https://-link zijn.",
+        "profile_incomplete": "Voeg een korte bio of minimaal één social link toe.",
+        "db_error": "Profiel opslaan mislukt. Probeer opnieuw.",
+        "error": "Profiel opslaan mislukt. Probeer opnieuw."
+      }
     },
     "onboarding": {
       "title": "Stel je ambassadeursprofiel in",
@@ -430,6 +454,7 @@
       "saving": "Opslaan…",
       "errors": {
         "invalid_handle": "Handle moet 3–30 tekens zijn: letters, cijfers, underscores.",
+        "invalid_avatar_url": "Foto-URL moet een geldige https://-link zijn.",
         "profile_incomplete": "Voeg een korte bio of minimaal één social link toe.",
         "db_error": "Profiel opslaan mislukt. Probeer opnieuw.",
         "error": "Profiel opslaan mislukt. Probeer opnieuw."

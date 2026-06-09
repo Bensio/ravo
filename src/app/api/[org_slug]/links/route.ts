@@ -67,20 +67,23 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
 
   const supabase = await createClient();
   let campaignId = parsed.data.campaign_id;
-  let ambassadorId = parsed.data.ambassador_id;
+  const ambassadorId = parsed.data.ambassador_id;
 
-  if (parsed.data.bootstrap || !campaignId || !ambassadorId) {
+  if (parsed.data.bootstrap || !campaignId) {
     try {
       const boot = await bootstrapCampaignForOrg(ctx.org.id, ctx.user.id);
       campaignId = campaignId ?? boot.campaignId;
-      ambassadorId = ambassadorId ?? boot.ambassadorId;
     } catch (err) {
       return bootstrapErrorResponse(err);
     }
   }
 
-  if (!campaignId || !ambassadorId) {
+  if (!campaignId) {
     return NextResponse.json({ error: 'bootstrap_failed' }, { status: 500 });
+  }
+
+  if (!ambassadorId) {
+    return NextResponse.json({ error: 'no_ambassador' }, { status: 400 });
   }
 
   const result = await createTracklink(supabase, {

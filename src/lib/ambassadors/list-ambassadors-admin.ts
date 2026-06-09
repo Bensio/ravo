@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getAmbassadorMemberUserIds } from '@/lib/ambassadors/ambassador-member-filter';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { serverNow } from '@/lib/time';
 
@@ -48,6 +49,8 @@ export async function listAmbassadorsAdmin(
 
   if (campError) throw campError;
 
+  const ambassadorUserIds = await getAmbassadorMemberUserIds(organizationId);
+
   const seen = new Set<string>();
   const rows: Array<{
     id: string;
@@ -69,6 +72,7 @@ export async function listAmbassadorsAdmin(
     };
 
     if (seen.has(a.id)) continue;
+    if (!ambassadorUserIds.has(a.user_id)) continue;
     seen.add(a.id);
 
     rows.push({

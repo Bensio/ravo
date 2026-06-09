@@ -182,8 +182,16 @@
       "kpiActive": "Active",
       "filterAll": "All",
       "filterActive": "Active",
-      "destinationPlaceholder": "https://tickets.yourfestival.com/...",
-      "labelPlaceholder": "Label (optional, e.g. instagram-story)",
+      "destinationPlaceholder": "Ticket shop URL",
+      "labelPlaceholder": "Label",
+      "labelExample": "e.g. Instagram story, bio link",
+      "ambassadorLabel": "Assign to ambassador",
+      "ambassadorEmpty": "No ambassadors yet",
+      "ambassadorInviteHint": "Invite ambassadors first — each tracklink is owned by one ambassador for attribution.",
+      "unknownAmbassador": "Ambassador",
+      "unlabeledLink": "Unlabeled link",
+      "assignedTo": "Ambassador: @{handle}",
+      "createErrorNoAmbassador": "Select an ambassador. Invite someone from the Ambassadors page first.",
       "create": "New link",
       "creating": "Creating…",
       "createError": "Could not create link. Try again or contact support.",
@@ -415,7 +423,23 @@
     },
     "profile": {
       "title": "Profile",
-      "empty": "Update your handle, social links, and payout details when those flows are wired."
+      "subtitle": "Update how festivals see you. Your handle is used on tracklinks and leaderboards.",
+      "displayNameLabel": "Display name",
+      "displayNamePlaceholder": "Jane van Dijk",
+      "avatarLabel": "Profile photo URL",
+      "avatarPlaceholder": "https://…",
+      "avatarHint": "Paste a public image URL (HTTPS). Direct upload is coming soon.",
+      "socialsTitle": "Social links",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Profile saved.",
+      "errors": {
+        "invalid_handle": "Handle must be 3–30 characters: letters, numbers, underscores.",
+        "invalid_avatar_url": "Photo URL must be a valid https:// link.",
+        "profile_incomplete": "Add a short bio or at least one social link.",
+        "db_error": "Could not save profile. Try again.",
+        "error": "Could not save profile. Try again."
+      }
     },
     "onboarding": {
       "title": "Set up your ambassador profile",
@@ -430,6 +454,7 @@
       "saving": "Saving…",
       "errors": {
         "invalid_handle": "Handle must be 3–30 characters: letters, numbers, underscores.",
+        "invalid_avatar_url": "Photo URL must be a valid https:// link.",
         "profile_incomplete": "Add a short bio or at least one social link.",
         "db_error": "Could not save profile. Try again.",
         "error": "Could not save profile. Try again."

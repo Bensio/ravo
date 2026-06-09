@@ -17,14 +17,17 @@ export const GET = requirePermission('self.profile.read', async ({ ctx }) => {
 });
 
 export const PATCH = requirePermission('self.profile.update', async ({ request, ctx }) => {
-  let body: AmbassadorProfilePatch;
+  let body: AmbassadorProfilePatch & { requireBioOrSocial?: boolean };
   try {
-    body = (await request.json()) as AmbassadorProfilePatch;
+    body = (await request.json()) as AmbassadorProfilePatch & { requireBioOrSocial?: boolean };
   } catch {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
   }
 
-  const result = await updateAmbassadorProfile(ctx.user.id, ctx.user.email, body);
+  const { requireBioOrSocial, ...patch } = body;
+  const result = await updateAmbassadorProfile(ctx.user.id, ctx.user.email, patch, {
+    requireBioOrSocial: requireBioOrSocial ?? true,
+  });
   if (!result.ok) {
     const status = result.error === 'not_found' ? 404 : 400;
     return NextResponse.json({ error: result.error }, { status });

@@ -1,15 +1,28 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { PageShell } from '@/components/shared/page-shell';
+import { redirect } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
+import { AmbassadorProfileForm } from '@/components/ambassador/ambassador-profile-form';
+import { getAmbassadorProfileByUserId } from '@/lib/ambassadors/ambassador-profile';
+import { getSessionUser } from '@/lib/auth/session';
 
 type Props = { params: Promise<{ locale: string }> };
 
 export default async function ProfilePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('ambassador.profile');
+
+  const user = await getSessionUser();
+  if (!user) {
+    redirect(`/${locale}/login`);
+  }
+
+  const profile = await getAmbassadorProfileByUserId(user.id);
+  if (!profile) {
+    redirect(`/${locale}/login`);
+  }
+
   return (
     <main className="p-6 md:p-8">
-      <PageShell title={t('title')} description={t('empty')} />
+      <AmbassadorProfileForm locale={locale} initialProfile={profile} variant="edit" />
     </main>
   );
 }
