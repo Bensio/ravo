@@ -146,6 +146,8 @@
         "invalid_handle": "Handle moet 3–30 tekens zijn: letters, cijfers, underscores.",
         "already_member": "Deze persoon zit al in je organisatie.",
         "pending_invite": "Er is al een openstaande uitnodiging voor dit e-mailadres.",
+        "no_campaign": "Er is nog geen campagne. Maak eerst een tracklink aan om je festival te initialiseren.",
+        "schema_missing": "Uitnodigingstabellen ontbreken — voer migraties 20260526000001 en 20260526000002 uit in de Supabase SQL-editor.",
         "db_error": "Uitnodiging aanmaken mislukt. Probeer opnieuw.",
         "error": "Uitnodiging aanmaken mislukt. Probeer opnieuw."
       }

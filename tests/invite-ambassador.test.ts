@@ -19,6 +19,11 @@ describe('invite ambassador helpers', () => {
     expect(isValidDisplayHandle('jane_dj')).toBe(true);
     expect(isValidDisplayHandle('ab')).toBe(false);
   });
+
+  it('pads short email local parts', () => {
+    expect(normalizeDisplayHandle('', 'ab@test.com')).toBe('ab_amb');
+    expect(isValidDisplayHandle(normalizeDisplayHandle('', 'ab@test.com'))).toBe(true);
+  });
 });
 
 describe('invite token', () => {

@@ -1,4 +1,5 @@
 import { addDays } from 'date-fns';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateInviteToken, hashInviteToken } from '@/lib/invitations/token';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
@@ -22,6 +23,8 @@ export type InviteAmbassadorResult =
         | 'invalid_handle'
         | 'already_member'
         | 'pending_invite'
+        | 'no_campaign'
+        | 'schema_missing'
         | 'db_error';
     };
 
@@ -30,21 +33,81 @@ export function normalizeInviteEmail(email: string): string {
 }
 
 export function normalizeDisplayHandle(raw: string, email: string): string {
-  const fromInput = raw.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  const fallback = email.split('@')[0]?.toLowerCase().replace(/[^a-z0-9_]/g, '_') ?? 'ambassador';
-  const handle = (fromInput.length >= 3 ? fromInput : fallback).slice(0, 30);
-  return handle.length >= 3 ? handle : `${fallback}`.slice(0, 30);
+  const clean = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+
+  const fromInput = clean(raw.trim());
+  const localPart = email.split('@')[0] ?? 'ambassador';
+  const fallback = clean(localPart) || 'ambassador';
+
+  let handle = (fromInput.length >= 3 ? fromInput : fallback).slice(0, 30);
+  if (handle.length < 3) {
+    handle = `${handle}_amb`.slice(0, 30);
+  }
+  if (handle.length < 3) {
+    handle = 'ambassador';
+  }
+  return handle;
 }
 
 export function isValidDisplayHandle(handle: string): boolean {
   return HANDLE_RE.test(handle);
 }
 
+function mapRpcError(message: string): NonNullable<Extract<InviteAmbassadorResult, { ok: false }>['error']> {
+  if (message.includes('invalid_email')) return 'invalid_email';
+  if (message.includes('invalid_handle')) return 'invalid_handle';
+  if (message.includes('already_member')) return 'already_member';
+  if (message.includes('pending_invite')) return 'pending_invite';
+  if (message.includes('no_campaign')) return 'no_campaign';
+  if (message.includes('not authenticated') || message.includes('forbidden')) return 'db_error';
+  if (
+    message.includes('campaign_id') ||
+    message.includes('metadata') ||
+    message.includes('create_ambassador_invitation') ||
+    message.includes('PGRST202') ||
+    message.includes('42883')
+  ) {
+    return 'schema_missing';
+  }
+  return 'db_error';
+}
+
+function isSchemaError(message: string, code?: string): boolean {
+  return (
+    code === 'PGRST204' ||
+    code === '42703' ||
+    message.includes('campaign_id') ||
+    message.includes('metadata') ||
+    message.includes('create_ambassador_invitation')
+  );
+}
+
+/** Ensures org has a campaign before invite RPC runs. */
+async function ensureCampaign(organizationId: string, ownerUserId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data: campaign } = await admin
+    .from('campaigns')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  if (!campaign) {
+    await bootstrapCampaignForOrg(organizationId, ownerUserId);
+  }
+}
+
 export async function inviteAmbassador(
   organizationId: string,
   invitedByUserId: string,
   email: string,
-  displayHandleInput?: string,
+  displayHandleInput: string | undefined,
+  supabase: SupabaseClient,
 ): Promise<InviteAmbassadorResult> {
   const normalizedEmail = normalizeInviteEmail(email);
   if (!normalizedEmail.includes('@')) {
@@ -56,62 +119,91 @@ export async function inviteAmbassador(
     return { ok: false, error: 'invalid_handle' };
   }
 
-  const admin = createAdminClient();
-
-  const { data: existingUser } = await admin
-    .from('users')
-    .select('id')
-    .ilike('email', normalizedEmail)
-    .maybeSingle();
-
-  if (existingUser) {
-    const { data: membership } = await admin
-      .from('memberships')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .eq('user_id', existingUser.id)
-      .is('suspended_at', null)
-      .maybeSingle();
-
-    if (membership) {
-      return { ok: false, error: 'already_member' };
-    }
+  try {
+    await ensureCampaign(organizationId, invitedByUserId);
+  } catch (err) {
+    console.error('ambassador invite bootstrap failed', {
+      message: err instanceof Error ? err.message : 'unknown',
+    });
+    return { ok: false, error: 'no_campaign' };
   }
-
-  const { data: pending } = await admin
-    .from('invitations')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .ilike('email', normalizedEmail)
-    .eq('role', 'ambassador')
-    .is('accepted_at', null)
-    .gt('expires_at', serverNow().toISOString())
-    .maybeSingle();
-
-  if (pending) {
-    return { ok: false, error: 'pending_invite' };
-  }
-
-  const { campaignId } = await bootstrapCampaignForOrg(organizationId, invitedByUserId);
 
   const plainToken = generateInviteToken();
   const tokenHash = hashInviteToken(plainToken);
   const expiresAt = addDays(serverNow(), 7).toISOString();
 
-  const { data: inserted, error } = await admin.from('invitations').insert({
-    organization_id: organizationId,
-    email: normalizedEmail,
-    role: 'ambassador',
-    token: tokenHash,
-    invited_by: invitedByUserId,
-    expires_at: expiresAt,
-    campaign_id: campaignId,
-    metadata: { display_handle: displayHandle },
-  }).select('id').single();
+  const { data: invitationId, error: rpcError } = await supabase.rpc(
+    'create_ambassador_invitation',
+    {
+      p_org_id: organizationId,
+      p_email: normalizedEmail,
+      p_display_handle: displayHandle,
+      p_token_hash: tokenHash,
+      p_expires_at: expiresAt,
+    },
+  );
 
-  if (error || !inserted) {
-    console.error('ambassador invite insert failed', { message: error?.message });
-    return { ok: false, error: 'db_error' };
+  if (!rpcError && invitationId) {
+    return {
+      ok: true,
+      invitationId: invitationId as string,
+      plainToken,
+      expiresAt,
+      email: normalizedEmail,
+      displayHandle,
+    };
+  }
+
+  const rpcMessage = rpcError?.message ?? '';
+  if (isSchemaError(rpcMessage, rpcError?.code)) {
+    return { ok: false, error: 'schema_missing' };
+  }
+
+  if (rpcError) {
+    const mapped = mapRpcError(rpcMessage);
+    if (mapped !== 'db_error') {
+      return { ok: false, error: mapped };
+    }
+    console.error('create_ambassador_invitation rpc failed', {
+      code: rpcError.code,
+      message: rpcMessage,
+    });
+  }
+
+  // Fallback: direct insert via service role (pre-RPC deployments).
+  const admin = createAdminClient();
+  const { data: campaign } = await admin
+    .from('campaigns')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: inserted, error: insertError } = await admin
+    .from('invitations')
+    .insert({
+      organization_id: organizationId,
+      email: normalizedEmail,
+      role: 'ambassador',
+      token: tokenHash,
+      invited_by: invitedByUserId,
+      expires_at: expiresAt,
+      campaign_id: campaign?.id ?? null,
+      metadata: { display_handle: displayHandle },
+    })
+    .select('id')
+    .single();
+
+  if (insertError || !inserted) {
+    const msg = insertError?.message ?? '';
+    if (isSchemaError(msg, insertError?.code)) {
+      return { ok: false, error: 'schema_missing' };
+    }
+    console.error('ambassador invite insert failed', {
+      code: insertError?.code,
+      message: msg,
+    });
+    return { ok: false, error: mapRpcError(msg) };
   }
 
   return {

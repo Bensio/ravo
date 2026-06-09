@@ -146,6 +146,8 @@ export function AmbassadorsDashboard({
                   | 'inviteError.invalid_handle'
                   | 'inviteError.already_member'
                   | 'inviteError.pending_invite'
+                  | 'inviteError.no_campaign'
+                  | 'inviteError.schema_missing'
                   | 'inviteError.db_error'
                   | 'inviteError.error',
               )}

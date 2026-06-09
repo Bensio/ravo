@@ -146,6 +146,8 @@
         "invalid_handle": "Handle must be 3–30 characters: letters, numbers, underscores.",
         "already_member": "This person is already in your organization.",
         "pending_invite": "A pending invite already exists for this email.",
+        "no_campaign": "No campaign exists yet. Create a tracklink first to bootstrap your festival.",
+        "schema_missing": "Invite tables not ready — run migrations 20260526000001 and 20260526000002 in Supabase SQL editor.",
         "db_error": "Could not create invite. Try again.",
         "error": "Could not create invite. Try again."
       }
