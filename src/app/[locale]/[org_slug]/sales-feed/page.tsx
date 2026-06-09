@@ -13,6 +13,7 @@ export default async function SalesFeedPage({ params }: Props) {
   const ctx = await requireOrgPageContext(org_slug, 'order.read');
   const initialOrders = ctx ? await listOrdersForOrg(ctx.supabase, ctx.org.id).catch(() => []) : [];
   const canReassign = ctx ? roleHasPermission(ctx.membership.role, 'attribution.reassign') : false;
+  const canPurgeTest = ctx ? roleHasPermission(ctx.membership.role, 'order.purge_test') : false;
 
   return (
     <SalesFeedDashboard
@@ -20,6 +21,7 @@ export default async function SalesFeedPage({ params }: Props) {
       locale={locale}
       initialOrders={initialOrders}
       canReassign={canReassign}
+      canPurgeTest={canPurgeTest}
     />
   );
 }

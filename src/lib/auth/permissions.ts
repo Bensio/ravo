@@ -21,6 +21,7 @@ export const PERMISSIONS = {
   'attribution.reassign': ['owner', 'admin'],
   'report.export': ['owner', 'admin', 'manager', 'analyst'],
   'order.read': ['owner', 'admin', 'manager', 'analyst'],
+  'order.purge_test': ['owner', 'admin'],
   'link.read': ['owner', 'admin', 'manager', 'analyst'],
   'link.create': ['owner', 'admin', 'manager'],
   'link.update': ['owner', 'admin', 'manager'],

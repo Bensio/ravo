@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
-import { AmbassadorProfileForm } from '@/components/ambassador/ambassador-profile-form';
+import { AmbassadorProfilePage } from '@/components/ambassador/ambassador-profile-page';
 import { getAmbassadorProfileByUserId } from '@/lib/ambassadors/ambassador-profile';
 import { getSessionUser } from '@/lib/auth/session';
 
@@ -22,7 +22,7 @@ export default async function ProfilePage({ params }: Props) {
 
   return (
     <main className="p-6 md:p-8">
-      <AmbassadorProfileForm locale={locale} initialProfile={profile} variant="edit" />
+      <AmbassadorProfilePage locale={locale} initialProfile={profile} />
     </main>
   );
 }

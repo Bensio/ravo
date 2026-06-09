@@ -1,7 +1,6 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -22,16 +21,18 @@ export function AmbassadorProfileForm({
   initialProfile,
   variant,
   orgName,
+  onSaved,
+  onCancel,
 }: {
   locale: string;
   initialProfile: AmbassadorProfile;
   variant: 'onboarding' | 'edit';
   orgName?: string | null;
+  onSaved?: (profile: AmbassadorProfile) => void;
+  onCancel?: () => void;
 }) {
   const tOnboard = useTranslations('ambassador.onboarding');
   const tProfile = useTranslations('ambassador.profile');
-  const t = variant === 'onboarding' ? tOnboard : tProfile;
-  const router = useRouter();
 
   const [displayName, setDisplayName] = useState(initialProfile.displayName ?? '');
   const [handle, setHandle] = useState(initialProfile.displayHandle ?? '');
@@ -42,14 +43,12 @@ export function AmbassadorProfileForm({
   const [youtube, setYoutube] = useState(initialProfile.socialLinks.youtube ?? '');
   const [twitter, setTwitter] = useState(initialProfile.socialLinks.twitter ?? '');
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<ErrorKey | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    setSaved(false);
 
     const trimmedBio = bio.trim();
     const hasSocial = [instagram, tiktok, youtube, twitter].some((v) => v.trim());
@@ -78,14 +77,13 @@ export function AmbassadorProfileForm({
     });
 
     if (res.ok) {
+      const body = (await res.json()) as { profile: AmbassadorProfile };
       if (variant === 'onboarding') {
-        router.push(`/${locale}/app/home`);
-        router.refresh();
+        window.location.href = `/${locale}/app/home`;
         return;
       }
-      setSaved(true);
+      onSaved?.(body.profile);
       setSaving(false);
-      router.refresh();
       return;
     }
 
@@ -95,32 +93,20 @@ export function AmbassadorProfileForm({
   }
 
   return (
-    <form onSubmit={(e) => void onSubmit(e)} className="ravo-glass-panel mx-auto w-full max-w-lg space-y-5 p-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">
-          {variant === 'onboarding' ? tOnboard('title') : tProfile('title')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {variant === 'onboarding'
-            ? orgName
-              ? tOnboard('subtitle', { org: orgName })
-              : tOnboard('subtitleGeneric')
-            : tProfile('subtitle')}
-        </p>
-      </div>
-
-      {initialProfile.avatarUrl || avatarUrl ? (
-        <div className="flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={avatarUrl || initialProfile.avatarUrl || ''}
-            alt=""
-            className="h-20 w-20 rounded-full border border-white/10 object-cover"
-          />
+    <form onSubmit={(e) => void onSubmit(e)} className="ravo-glass-panel space-y-5 p-6">
+      {variant === 'onboarding' && (
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">{tOnboard('title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {orgName ? tOnboard('subtitle', { org: orgName }) : tOnboard('subtitleGeneric')}
+          </p>
         </div>
-      ) : (
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-dashed border-white/15 bg-white/[0.02] text-2xl font-semibold text-muted-foreground">
-          {(displayName || handle || '?').charAt(0).toUpperCase()}
+      )}
+
+      {variant === 'edit' && (
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">{tProfile('editTitle')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{tProfile('editSubtitle')}</p>
         </div>
       )}
 
@@ -211,26 +197,29 @@ export function AmbassadorProfileForm({
 
       {error && (
         <p className="text-sm text-red-400">
-          {t(
+          {(variant === 'onboarding' ? tOnboard : tProfile)(
             `errors.${error}` as `errors.${ErrorKey}`,
           )}
         </p>
       )}
 
-      {saved && variant === 'edit' && (
-        <p className="text-sm text-emerald-400">{tProfile('saved')}</p>
-      )}
-
-      <Button type="submit" disabled={saving} className="w-full gap-1.5">
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {saving
-          ? variant === 'onboarding'
-            ? tOnboard('saving')
-            : tProfile('saving')
-          : variant === 'onboarding'
-            ? tOnboard('continue')
-            : tProfile('save')}
-      </Button>
+      <div className="flex gap-2 pt-1">
+        {variant === 'edit' && onCancel && (
+          <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+            {tProfile('cancelEdit')}
+          </Button>
+        )}
+        <Button type="submit" disabled={saving} className="flex-1 gap-1.5">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {saving
+            ? variant === 'onboarding'
+              ? tOnboard('saving')
+              : tProfile('saving')
+            : variant === 'onboarding'
+              ? tOnboard('continue')
+              : tProfile('save')}
+        </Button>
+      </div>
     </form>
   );
 }

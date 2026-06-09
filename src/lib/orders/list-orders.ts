@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isTestOrder } from '@/lib/orders/is-test-order';
 
 export type OrderListItem = {
   id: string;
@@ -16,6 +17,7 @@ export type OrderListItem = {
   verification: 'estimated' | 'verified';
   ticket_summary: string;
   ref_param: string | null;
+  is_simulated: boolean;
   attribution: {
     id: string;
     tier: number;
@@ -167,6 +169,7 @@ export async function listOrdersForOrg(
       verification: provider === 'manual_utm' ? 'estimated' : 'verified',
       ticket_summary: ticketSummary(row.order_items),
       ref_param: row.metadata?.attribution_hint?.refParam ?? null,
+      is_simulated: isTestOrder(row),
       attribution: attributionByOrder.get(row.id) ?? null,
     };
   });

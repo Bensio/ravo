@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { SalesFeedOrderRow } from '@/components/admin/sales-feed/sales-feed-order-row';
@@ -19,6 +19,7 @@ export type SalesFeedRow = {
   verification: 'estimated' | 'verified';
   ticket_summary: string;
   ref_param: string | null;
+  is_simulated: boolean;
   attribution: {
     id: string;
     tier: number;
@@ -34,20 +35,25 @@ export function SalesFeedDashboard({
   locale,
   initialOrders,
   canReassign = false,
+  canPurgeTest = false,
 }: {
   orgSlug: string;
   locale: string;
   initialOrders?: SalesFeedRow[];
   canReassign?: boolean;
+  canPurgeTest?: boolean;
 }) {
   const t = useTranslations('admin.salesFeed');
   const [orders, setOrders] = useState<SalesFeedRow[]>(initialOrders ?? []);
   const [loading, setLoading] = useState(initialOrders === undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [purging, setPurging] = useState(false);
+  const [purgeMessage, setPurgeMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+    setPurgeMessage(null);
     const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
@@ -64,6 +70,29 @@ export function SalesFeedDashboard({
     void load();
   }, [initialOrders, load]);
 
+  const testOrderCount = orders.filter((o) => o.is_simulated).length;
+
+  async function onPurgeTest() {
+    if (!window.confirm(t('purgeTestConfirm'))) {
+      return;
+    }
+    setPurging(true);
+    setPurgeMessage(null);
+    setLoadError(null);
+    const res = await fetch(`/api/${orgSlug}/orders/purge-test`, { method: 'POST' });
+    setPurging(false);
+    if (res.ok) {
+      const body = (await res.json()) as { removedOrders?: number };
+      const count = body.removedOrders ?? 0;
+      setPurgeMessage(
+        count > 0 ? t('purgeTestSuccess', { count }) : t('purgeTestEmpty'),
+      );
+      void load();
+      return;
+    }
+    setLoadError(t('purgeTestError'));
+  }
+
   const totalCents = orders.reduce((sum, o) => sum + BigInt(o.gross_amount_cents), 0n);
   const displayCurrency = orders[0]?.currency ?? 'EUR';
 
@@ -74,11 +103,28 @@ export function SalesFeedDashboard({
           <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void load()}>
-          <RefreshCw className="h-4 w-4" />
-          {t('refresh')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canPurgeTest && testOrderCount > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-amber-400 hover:text-amber-300"
+              disabled={purging}
+              onClick={() => void onPurgeTest()}
+            >
+              <Trash2 className="h-4 w-4" />
+              {purging ? t('purgingTest') : t('purgeTest')}
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void load()}>
+            <RefreshCw className="h-4 w-4" />
+            {t('refresh')}
+          </Button>
+        </div>
       </div>
+
+      {purgeMessage && <p className="text-sm text-emerald-400">{purgeMessage}</p>}
 
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="ravo-glass-panel p-5">

@@ -147,6 +147,11 @@ export function SalesFeedOrderRow({
                 `status.${order.status as 'paid' | 'pending' | 'refunded' | 'partially_refunded' | 'cancelled'}`,
               )}
             </span>
+            {order.is_simulated && (
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400">
+                {t('simulatedBadge')}
+              </span>
+            )}
             {order.verification === 'estimated' && (
               <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400">
                 {t('estimated')}
