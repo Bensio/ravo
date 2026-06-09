@@ -18,6 +18,7 @@ const ingestSchema = z.object({
   user_agent_hash: z.string().max(64).optional().nullable(),
   ip_subnet: z.string().max(64).optional().nullable(),
   occurred_at: z.string().datetime().optional(),
+  click_id: z.string().uuid().optional(),
 });
 
 export async function POST(request: Request) {
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const clickId = crypto.randomUUID();
+  const clickId = payload.click_id ?? crypto.randomUUID();
   const { error } = await admin.from('clicks').insert({
     id: clickId,
     organization_id: payload.organization_id,
@@ -99,6 +100,9 @@ export async function POST(request: Request) {
   });
 
   if (error) {
+    if (error.code === '23505') {
+      return NextResponse.json({ ok: true, click_id: clickId }, { status: 202 });
+    }
     return NextResponse.json({ error: 'insert_failed' }, { status: 500 });
   }
 

@@ -198,6 +198,7 @@ export async function GET(
 
   scheduleBackground(
     ingestClick(appOrigin, {
+      click_id: clickId,
       link_id: link.link_id,
       organization_id: link.organization_id,
       visitor_cookie_id: visitorCookieId,

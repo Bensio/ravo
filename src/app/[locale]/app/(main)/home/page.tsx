@@ -1,5 +1,5 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { PageShell } from '@/components/shared/page-shell';
+import { setRequestLocale } from 'next-intl/server';
+import { AmbassadorHomeDashboard } from '@/components/ambassador/home/ambassador-home-dashboard';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -8,11 +8,9 @@ type Props = {
 export default async function AmbassadorHomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('ambassador.home');
-
   return (
     <main className="p-6 md:p-8">
-      <PageShell title={t('title')} description={t('dayZero')} />
+      <AmbassadorHomeDashboard locale={locale} />
     </main>
   );
 }

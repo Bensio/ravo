@@ -412,7 +412,18 @@
     },
     "home": {
       "title": "Home",
-      "dayZero": "Your feed will show clicks, sales, and new rewards once you are on an active campaign."
+      "dayZero": "Share your tracklink to start driving clicks and sales.",
+      "subtitleActive": "Your performance over the last 30 days.",
+      "loading": "Loading…",
+      "getStarted": "Copy your tracklink and share it with your audience. Clicks and attributed sales show up here.",
+      "shareCta": "Share links",
+      "statsCta": "View stats",
+      "kpiClicks": "Clicks",
+      "kpiSales": "Sales",
+      "vsLastWeek": "vs last week",
+      "recentTitle": "Recent activity",
+      "activityClick": "Click",
+      "activitySale": "Sale"
     },
     "share": {
       "title": "Share",
@@ -438,7 +449,23 @@
     },
     "stats": {
       "title": "Stats",
-      "empty": "Clicks, sales, and tier progress for this festival will show here."
+      "subtitle": "Clicks, sales, and conversion for your tracklinks (last 30 days).",
+      "empty": "No clicks or sales yet. Share your tracklink to get started.",
+      "emptyCta": "Go to Share",
+      "loading": "Loading stats…",
+      "loadError": "Could not load stats. Try again.",
+      "retry": "Try again",
+      "refresh": "Refresh",
+      "kpiClicks": "Clicks",
+      "kpiSales": "Sales",
+      "kpiConversion": "Conversion",
+      "vsLastWeek": "vs last week",
+      "chartTitle": "Clicks & sales",
+      "chartClicks": "Clicks",
+      "chartSales": "Sales",
+      "linksTitle": "By tracklink",
+      "linkClicks": "{count} clicks",
+      "linkSales": "{count} sales"
     },
     "rewards": {
       "title": "Rewards",

@@ -412,7 +412,18 @@
     },
     "home": {
       "title": "Home",
-      "dayZero": "Je feed toont clicks, verkopen en nieuwe beloningen zodra je op een actieve campagne zit."
+      "dayZero": "Deel je tracklink om clicks en verkopen te genereren.",
+      "subtitleActive": "Je prestaties over de afgelopen 30 dagen.",
+      "loading": "Laden…",
+      "getStarted": "Kopieer je tracklink en deel hem met je publiek. Clicks en toegeschreven verkopen verschijnen hier.",
+      "shareCta": "Links delen",
+      "statsCta": "Bekijk stats",
+      "kpiClicks": "Clicks",
+      "kpiSales": "Verkopen",
+      "vsLastWeek": "vs vorige week",
+      "recentTitle": "Recente activiteit",
+      "activityClick": "Click",
+      "activitySale": "Verkoop"
     },
     "share": {
       "title": "Delen",
@@ -438,7 +449,23 @@
     },
     "stats": {
       "title": "Stats",
-      "empty": "Clicks, verkopen en tier-voortgang voor dit festival komen hier."
+      "subtitle": "Clicks, verkopen en conversie voor je tracklinks (afgelopen 30 dagen).",
+      "empty": "Nog geen clicks of verkopen. Deel je tracklink om te beginnen.",
+      "emptyCta": "Naar Delen",
+      "loading": "Stats laden…",
+      "loadError": "Stats laden mislukt. Probeer opnieuw.",
+      "retry": "Opnieuw proberen",
+      "refresh": "Verversen",
+      "kpiClicks": "Clicks",
+      "kpiSales": "Verkopen",
+      "kpiConversion": "Conversie",
+      "vsLastWeek": "vs vorige week",
+      "chartTitle": "Clicks & verkopen",
+      "chartClicks": "Clicks",
+      "chartSales": "Verkopen",
+      "linksTitle": "Per tracklink",
+      "linkClicks": "{count} clicks",
+      "linkSales": "{count} verkopen"
     },
     "rewards": {
       "title": "Beloningen",

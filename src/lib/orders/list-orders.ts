@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { reconcileMissingAttributions } from '@/lib/attribution/attribute-order';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isTestOrder } from '@/lib/orders/is-test-order';
 
@@ -31,6 +32,7 @@ export type OrderListItem = {
 type OrderRow = {
   id: string;
   provider_order_id: string;
+  provider_connection_id: string;
   status: string;
   currency: string;
   gross_amount_cents: string | bigint;
@@ -120,6 +122,7 @@ export async function listOrdersForOrg(
       `
       id,
       provider_order_id,
+      provider_connection_id,
       status,
       currency,
       gross_amount_cents,
@@ -142,6 +145,16 @@ export async function listOrdersForOrg(
 
   const rows = (data ?? []) as unknown as OrderRow[];
   const orderIds = rows.map((r) => r.id);
+
+  await reconcileMissingAttributions(
+    organizationId,
+    rows.map((row) => ({
+      id: row.id,
+      provider_connection_id: row.provider_connection_id,
+      metadata: row.metadata,
+      status: row.status,
+    })),
+  );
 
   const admin = createAdminClient();
   const attributionByOrder = await fetchAttributionMap(admin, orderIds);
