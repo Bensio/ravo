@@ -23,10 +23,12 @@ export function TracklinksDashboard({
   orgSlug,
   locale,
   initialLinks,
+  initialAmbassadors,
 }: {
   orgSlug: string;
   locale: string;
   initialLinks?: TracklinkRow[];
+  initialAmbassadors?: OrgAmbassadorOption[];
 }) {
   const t = useTranslations('admin.tracklinks');
   const [links, setLinks] = useState<TracklinkRow[]>(initialLinks ?? []);
@@ -35,8 +37,9 @@ export function TracklinksDashboard({
   const [filter, setFilter] = useState<'all' | 'active'>('all');
   const [destinationUrl, setDestinationUrl] = useState('');
   const [label, setLabel] = useState('');
-  const [ambassadors, setAmbassadors] = useState<OrgAmbassadorOption[]>([]);
-  const [ambassadorId, setAmbassadorId] = useState('');
+  const [ambassadors, setAmbassadors] = useState<OrgAmbassadorOption[]>(initialAmbassadors ?? []);
+  const [ambassadorsReady, setAmbassadorsReady] = useState(initialAmbassadors !== undefined);
+  const [ambassadorId, setAmbassadorId] = useState(initialAmbassadors?.[0]?.id ?? '');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -61,11 +64,15 @@ export function TracklinksDashboard({
 
   const loadAmbassadors = useCallback(async () => {
     const res = await fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' });
-    if (!res.ok) return;
+    if (!res.ok) {
+      setAmbassadorsReady(true);
+      return;
+    }
     const data = (await res.json()) as { ambassadors?: OrgAmbassadorOption[] };
     const list = data.ambassadors ?? [];
     setAmbassadors(list);
     setAmbassadorId((current) => current || list[0]?.id || '');
+    setAmbassadorsReady(true);
   }, [orgSlug]);
 
   useEffect(() => {
@@ -74,8 +81,9 @@ export function TracklinksDashboard({
   }, [initialLinks, load]);
 
   useEffect(() => {
+    if (initialAmbassadors !== undefined) return;
     void loadAmbassadors();
-  }, [loadAmbassadors]);
+  }, [initialAmbassadors, loadAmbassadors]);
 
   const filtered = links.filter((l) => (filter === 'active' ? !l.disabled : true));
   const totalClicks = filtered.reduce((sum, l) => sum + l.click_count, 0);
@@ -165,11 +173,19 @@ export function TracklinksDashboard({
     setSimulatingId(null);
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (data.error === 'attributions_missing') {
-        setError(t('simulateErrorSchema'));
-      } else {
-        setError(t('simulateError'));
-      }
+      const errorKey =
+        data.error === 'attributions_missing'
+          ? 'simulateErrorSchema'
+          : data.error === 'orders_schema_missing'
+            ? 'simulateErrorOrdersSchema'
+            : data.error === 'clicks_schema_missing'
+              ? 'simulateErrorClicksSchema'
+              : data.error === 'missing_service_role'
+                ? 'createErrorServiceRole'
+                : data.error === 'manual_utm_missing' || data.error === 'no_org_admin'
+                  ? 'simulateErrorProvider'
+                  : 'simulateError';
+      setError(t(errorKey));
       return;
     }
     const data = (await res.json()) as {
@@ -252,61 +268,77 @@ export function TracklinksDashboard({
           ))}
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">{t('ambassadorLabel')}</label>
-            <NativeSelect
-              value={ambassadorId}
-              onChange={(e) => setAmbassadorId(e.target.value)}
-              disabled={ambassadors.length === 0}
-              className="w-full"
-            >
-              {ambassadors.length === 0 ? (
-                <option value="">{t('ambassadorEmpty')}</option>
-              ) : (
-                ambassadors.map((amb) => (
-                  <option key={amb.id} value={amb.id}>
-                    {amb.handle ? `@${amb.handle}` : amb.displayName ?? t('unknownAmbassador')}
-                  </option>
-                ))
-              )}
-            </NativeSelect>
+        {!ambassadorsReady ? (
+          <div className="space-y-3" aria-hidden>
+            <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
+            <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
+            <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">{t('labelPlaceholder')}</label>
-            <input
-              type="text"
-              placeholder={t('labelExample')}
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-xs text-muted-foreground">{t('destinationPlaceholder')}</label>
-            <input
-              type="url"
-              required
-              placeholder="https://tickets.yourfestival.com/..."
-              value={destinationUrl}
-              onChange={(e) => setDestinationUrl(e.target.value)}
-              className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            disabled={creating || !destinationUrl || !ambassadorId}
-            onClick={() => void createLink()}
-            className="gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            {creating ? t('creating') : t('create')}
-          </Button>
-        </div>
-        {ambassadors.length === 0 && (
-          <p className="text-xs text-muted-foreground">{t('ambassadorInviteHint')}</p>
+        ) : (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">
+                  {t('ambassadorLabel')}
+                </label>
+                <NativeSelect
+                  value={ambassadorId}
+                  onChange={(e) => setAmbassadorId(e.target.value)}
+                  disabled={ambassadors.length === 0}
+                  className="w-full"
+                >
+                  {ambassadors.length === 0 ? (
+                    <option value="">{t('ambassadorEmpty')}</option>
+                  ) : (
+                    ambassadors.map((amb) => (
+                      <option key={amb.id} value={amb.id}>
+                        {amb.handle ? `@${amb.handle}` : amb.displayName ?? t('unknownAmbassador')}
+                      </option>
+                    ))
+                  )}
+                </NativeSelect>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">
+                  {t('labelPlaceholder')}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t('labelExample')}
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs text-muted-foreground">
+                  {t('destinationPlaceholder')}
+                </label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://tickets.yourfestival.com/..."
+                  value={destinationUrl}
+                  onChange={(e) => setDestinationUrl(e.target.value)}
+                  className="w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                disabled={creating || !destinationUrl || !ambassadorId}
+                onClick={() => void createLink()}
+                className="gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                {creating ? t('creating') : t('create')}
+              </Button>
+            </div>
+            {ambassadors.length === 0 && (
+              <p className="text-xs text-muted-foreground">{t('ambassadorInviteHint')}</p>
+            )}
+          </>
         )}
         {loadError && <p className="text-sm text-red-400">{loadError}</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}

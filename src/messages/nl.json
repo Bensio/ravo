@@ -235,7 +235,10 @@
       "simulateSuccess": "Gesimuleerde klik + €35 verkoop toegeschreven aan @{ambassador}. Bekijk de verkoopfeed.",
       "simulateSuccessUnattributed": "Gesimuleerde verkoop geregistreerd maar niet toegeschreven — voer de attributions-migratie uit in Supabase.",
       "simulateError": "Simulatie mislukt. Probeer opnieuw.",
-      "simulateErrorSchema": "Attributie niet beschikbaar — voer migratie 20260525000001_attributions.sql uit in Supabase."
+      "simulateErrorSchema": "Attributie niet beschikbaar — voer migratie 20260525000001_attributions.sql uit in Supabase.",
+      "simulateErrorOrdersSchema": "Order-tabellen ontbreken — voer migratie 20260524000001_phase3_orders.sql uit in Supabase.",
+      "simulateErrorClicksSchema": "Clicks-tabel ontbreekt — voer migratie 20260522000001_phase2_links.sql uit in Supabase.",
+      "simulateErrorProvider": "Handmatige order-provider kon niet worden ingesteld. Vernieuw en probeer opnieuw."
     },
     "salesFeed": {
       "title": "Verkoopfeed",

@@ -235,7 +235,10 @@
       "simulateSuccess": "Simulated click + €35 sale attributed to @{ambassador}. Check Sales feed.",
       "simulateSuccessUnattributed": "Simulated sale recorded but not attributed — run the attributions migration in Supabase.",
       "simulateError": "Could not simulate sale. Try again.",
-      "simulateErrorSchema": "Attribution is unavailable — run migration 20260525000001_attributions.sql in Supabase."
+      "simulateErrorSchema": "Attribution is unavailable — run migration 20260525000001_attributions.sql in Supabase.",
+      "simulateErrorOrdersSchema": "Orders tables are missing — run migration 20260524000001_phase3_orders.sql in Supabase.",
+      "simulateErrorClicksSchema": "Clicks table is missing — run migration 20260522000001_phase2_links.sql in Supabase.",
+      "simulateErrorProvider": "Could not set up the manual order provider for this festival. Refresh and try again."
     },
     "salesFeed": {
       "title": "Sales feed",

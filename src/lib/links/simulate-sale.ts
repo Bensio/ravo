@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { ensureManualUtmForOrg } from '@/lib/integrations/ensure-manual-utm';
 import { upsertOrderFromWebhook } from '@/lib/orders/upsert-order';
 import { serverNow } from '@/lib/time';
 
@@ -10,6 +11,44 @@ export type SimulateSaleResult = {
   ambassadorHandle: string | null;
   tier: number | null;
 };
+
+function isMissingTableError(message: string, table: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes(`relation "${table}"`) ||
+    lower.includes(`relation '${table}'`) ||
+    lower.includes(`table '${table}'`) ||
+    lower.includes(`table "${table}"`)
+  );
+}
+
+export function mapSimulateSaleError(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return 'simulate_failed';
+  }
+
+  const message = err.message;
+  if (message === 'link_not_found') return 'link_not_found';
+  if (message === 'link_disabled') return 'link_disabled';
+  if (message === 'no_org_admin') return 'no_org_admin';
+  if (message === 'manual_utm_create_failed') return 'manual_utm_missing';
+
+  if (isMissingTableError(message, 'orders') || isMissingTableError(message, 'order_items')) {
+    return 'orders_schema_missing';
+  }
+  if (isMissingTableError(message, 'attributions')) {
+    return 'attributions_missing';
+  }
+  if (isMissingTableError(message, 'clicks')) {
+    return 'clicks_schema_missing';
+  }
+
+  if (message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+    return 'missing_service_role';
+  }
+
+  return 'simulate_failed';
+}
 
 /**
  * Simulates the full ambassador funnel without a real ticket purchase:
@@ -37,17 +76,7 @@ export async function simulateSaleForLink(
     throw new Error('link_disabled');
   }
 
-  const { data: connection, error: connError } = await admin
-    .from('provider_connections')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('provider', 'manual_utm')
-    .limit(1)
-    .maybeSingle();
-
-  if (connError || !connection) {
-    throw new Error('manual_utm_missing');
-  }
+  const connectionId = await ensureManualUtmForOrg(organizationId);
 
   const clickId = crypto.randomUUID();
   const now = serverNow().toISOString();
@@ -62,13 +91,17 @@ export async function simulateSaleForLink(
   });
 
   if (clickError) {
+    console.error('simulate sale click insert failed', {
+      code: clickError.code,
+      message: clickError.message,
+    });
     throw clickError;
   }
 
   const providerOrderId = `sim-${Date.now()}`;
   const amountCents = 3500n;
 
-  const { orderId, attributed } = await upsertOrderFromWebhook(organizationId, connection.id, {
+  const { orderId, attributed } = await upsertOrderFromWebhook(organizationId, connectionId, {
     provider: 'manual_utm',
     externalOrderId: providerOrderId,
     externalShopId: 'manual_utm',

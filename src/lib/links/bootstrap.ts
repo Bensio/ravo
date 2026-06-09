@@ -1,45 +1,11 @@
 import { addDays } from 'date-fns';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { ensureManualUtmConnection } from '@/lib/integrations/ensure-manual-utm';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { serverNow } from '@/lib/time';
 
 const DEFAULT_EVENT_SLUG = 'default-festival';
 const DEFAULT_CAMPAIGN_SLUG = 'default-campaign';
-
-async function ensureManualUtmConnection(
-  admin: SupabaseClient,
-  organizationId: string,
-  ownerUserId: string,
-): Promise<string> {
-  const { data: connection } = await admin
-    .from('provider_connections')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('provider', 'manual_utm')
-    .limit(1)
-    .maybeSingle();
-
-  if (connection) {
-    return connection.id;
-  }
-
-  const token = crypto.randomUUID().replace(/-/g, '');
-  const { data: created, error } = await admin
-    .from('provider_connections')
-    .insert({
-      organization_id: organizationId,
-      provider: 'manual_utm',
-      display_name: 'Manual UTM',
-      created_by: ownerUserId,
-      webhook_url_token: token,
-    })
-    .select('id')
-    .single();
-  if (error || !created) {
-    throw error ?? new Error('Failed to create provider connection');
-  }
-  return created.id;
-}
 
 async function ensureCampaignForEvent(
   admin: SupabaseClient,

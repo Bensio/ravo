@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/require-permission';
-import { simulateSaleForLink } from '@/lib/links/simulate-sale';
+import { mapSimulateSaleError, simulateSaleForLink } from '@/lib/links/simulate-sale';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,16 +11,21 @@ export const POST = requirePermission('link.create', async ({ ctx, params }) => 
     const result = await simulateSaleForLink(ctx.org.id, id);
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'simulate_failed';
+    const error = mapSimulateSaleError(err);
     const status =
-      message === 'link_not_found'
+      error === 'link_not_found'
         ? 404
-        : message === 'link_disabled'
+        : error === 'link_disabled'
           ? 400
-          : message === 'manual_utm_missing'
+          : error === 'missing_service_role' ||
+              error === 'manual_utm_missing' ||
+              error === 'orders_schema_missing' ||
+              error === 'attributions_missing' ||
+              error === 'clicks_schema_missing' ||
+              error === 'no_org_admin'
             ? 503
             : 500;
-    console.error('simulate sale failed', { orgId: ctx.org.id, linkId: id, message });
-    return NextResponse.json({ error: message }, { status });
+    console.error('simulate sale failed', { orgId: ctx.org.id, linkId: id, error });
+    return NextResponse.json({ error }, { status });
   }
 });
