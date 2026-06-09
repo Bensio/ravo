@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ComingSoonPanel } from '@/components/admin/settings/coming-soon-panel';
 import { IntegrationsPanel } from '@/components/admin/settings/integrations-panel';
@@ -18,6 +18,10 @@ function parseSection(value: string | null): SettingsSection {
     return value;
   }
   return 'organization';
+}
+
+function sectionPanelClass(active: SettingsSection, panel: SettingsSection): string | undefined {
+  return active === panel ? undefined : 'hidden';
 }
 
 export function SettingsDashboard({
@@ -38,22 +42,29 @@ export function SettingsDashboard({
   canManageTeam: boolean;
 }) {
   const t = useTranslations('admin.settings');
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const requestedSection = parseSection(searchParams.get('section'));
-  const section =
-    (requestedSection === 'team' && !canManageTeam) ||
-    (requestedSection === 'billing' && !canManageBilling)
+  const requestedFromUrl = parseSection(searchParams.get('section'));
+  const allowedSection =
+    (requestedFromUrl === 'team' && !canManageTeam) ||
+    (requestedFromUrl === 'billing' && !canManageBilling)
       ? 'organization'
-      : requestedSection;
+      : requestedFromUrl;
+
+  const [section, setSectionState] = useState<SettingsSection>(allowedSection);
+
+  useEffect(() => {
+    setSectionState(allowedSection);
+  }, [allowedSection]);
 
   const setSection = useCallback(
     (next: SettingsSection) => {
-      const params = new URLSearchParams(searchParams.toString());
+      setSectionState(next);
+      const params = new URLSearchParams(window.location.search);
       params.set('section', next);
-      router.replace(`/${locale}/${orgSlug}/settings?${params.toString()}`, { scroll: false });
+      const nextUrl = `/${locale}/${orgSlug}/settings?${params.toString()}`;
+      window.history.replaceState(window.history.state, '', nextUrl);
     },
-    [locale, orgSlug, router, searchParams],
+    [locale, orgSlug],
   );
 
   return (
@@ -70,7 +81,7 @@ export function SettingsDashboard({
         showBilling={canManageBilling}
       />
 
-      <div className={section === 'organization' ? undefined : 'hidden'}>
+      <div className={sectionPanelClass(section, 'organization')}>
         <OrganizationPanel
           orgSlug={orgSlug}
           locale={locale}
@@ -80,7 +91,7 @@ export function SettingsDashboard({
         />
       </div>
 
-      <div className={section === 'integrations' ? undefined : 'hidden'}>
+      <div className={sectionPanelClass(section, 'integrations')}>
         <IntegrationsPanel
           orgSlug={orgSlug}
           locale={locale}
@@ -88,13 +99,13 @@ export function SettingsDashboard({
         />
       </div>
 
-      {section === 'team' && (
+      <div className={sectionPanelClass(section, 'team')}>
         <ComingSoonPanel title={t('team.title')} description={t('team.description')} />
-      )}
+      </div>
 
-      {section === 'billing' && (
+      <div className={sectionPanelClass(section, 'billing')}>
         <ComingSoonPanel title={t('billing.title')} description={t('billing.description')} />
-      )}
+      </div>
     </div>
   );
 }

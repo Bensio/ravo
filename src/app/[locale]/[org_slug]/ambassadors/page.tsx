@@ -15,12 +15,14 @@ export default async function AmbassadorsPage({ params }: Props) {
     ? await listAmbassadorsAdmin(ctx.supabase, ctx.org.id).catch(() => null)
     : null;
   const canInvite = ctx ? roleHasPermission(ctx.membership.role, 'ambassador.invite') : false;
+  const canSuspend = ctx ? roleHasPermission(ctx.membership.role, 'ambassador.suspend') : false;
 
   return (
     <AmbassadorsDashboard
       orgSlug={org_slug}
       locale={locale}
       canInvite={canInvite}
+      canSuspend={canSuspend}
       initialData={initialData}
     />
   );

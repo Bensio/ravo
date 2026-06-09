@@ -1,6 +1,19 @@
 'use client';
 
-import { Check, Copy, Loader2, Share2, Trash2, UserPlus, X } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Loader2,
+  Mail,
+  Share2,
+  Trash2,
+  UserMinus,
+  UserPlus,
+  UserRoundCheck,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -26,11 +39,13 @@ export function AmbassadorsDashboard({
   orgSlug,
   locale,
   canInvite,
+  canSuspend,
   initialData,
 }: {
   orgSlug: string;
   locale: string;
   canInvite: boolean;
+  canSuspend: boolean;
   initialData?: AdminData | null;
 }) {
   const t = useTranslations('admin.ambassadors');
@@ -45,6 +60,7 @@ export function AmbassadorsDashboard({
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [linkReady, setLinkReady] = useState<LinkReady | null>(null);
   const [copied, setCopied] = useState(false);
+  const [suspendingId, setSuspendingId] = useState<string | null>(null);
 
   const load = useCallback(async (background = false) => {
     if (background) {
@@ -181,8 +197,34 @@ export function AmbassadorsDashboard({
   }
 
   const ambassadors = data?.ambassadors ?? [];
+  const activeAmbassadors = ambassadors.filter((a) => a.state === 'active');
+  const suspendedAmbassadors = ambassadors.filter((a) => a.state !== 'active');
   const pending = data?.pendingInvites ?? [];
   const canNativeShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
+
+  async function onToggleSuspend(ambassadorId: string, suspend: boolean, label: string) {
+    const confirmKey = suspend ? 'suspendConfirm' : 'reactivateConfirm';
+    if (!window.confirm(t(confirmKey, { name: label }))) {
+      return;
+    }
+
+    setSuspendingId(ambassadorId);
+    setInviteError(null);
+
+    const res = await fetch(`/api/${orgSlug}/ambassadors/${ambassadorId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: suspend ? 'suspend' : 'reactivate' }),
+    });
+
+    if (res.ok) {
+      void load(true);
+    } else {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setInviteError(body.error ?? 'suspend_error');
+    }
+    setSuspendingId(null);
+  }
 
   return (
     <div className="space-y-6">
@@ -296,9 +338,13 @@ export function AmbassadorsDashboard({
 
       {inviteError && (
         <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-          {inviteErrorMessage(inviteError)}
+          {inviteError === 'suspend_error'
+            ? t('suspendError')
+            : inviteErrorMessage(inviteError)}
         </p>
       )}
+
+      <p className="text-xs text-muted-foreground">{t('managementHint')}</p>
 
       <section className="ravo-glass-panel space-y-4 p-4 md:p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -344,47 +390,201 @@ export function AmbassadorsDashboard({
       <section className="ravo-glass-panel overflow-hidden p-4 md:p-5">
         <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {t('activeTitle')}
+          {!loading && activeAmbassadors.length > 0 && (
+            <span className="ml-1 normal-case tracking-normal">({activeAmbassadors.length})</span>
+          )}
         </p>
-        {loading && ambassadors.length === 0 ? (
+        {loading && activeAmbassadors.length === 0 ? (
           <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             {t('loading')}
           </div>
-        ) : ambassadors.length === 0 ? (
+        ) : activeAmbassadors.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{t('emptyActive')}</p>
         ) : (
           <div className="space-y-2">
-            {ambassadors.map((row) => (
-              <div
+            {activeAmbassadors.map((row) => (
+              <ActiveAmbassadorRow
                 key={row.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">
-                    @{row.handle ?? t('noHandle')}{' '}
-                    {row.displayName && (
-                      <span className="text-muted-foreground">({row.displayName})</span>
-                    )}
-                  </p>
-                  {row.email && (
-                    <p className="truncate text-xs text-muted-foreground">{row.email}</p>
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                    row.state === 'active'
-                      ? 'bg-emerald-500/15 text-emerald-400'
-                      : 'bg-white/10 text-muted-foreground',
-                  )}
-                >
-                  {row.state}
-                </span>
-              </div>
+                row={row}
+                canSuspend={canSuspend}
+                busy={suspendingId === row.id}
+                onSuspend={() =>
+                  void onToggleSuspend(
+                    row.id,
+                    true,
+                    row.handle ? `@${row.handle}` : (row.displayName ?? row.email ?? ''),
+                  )
+                }
+                t={t}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {!loading && suspendedAmbassadors.length > 0 && (
+        <section className="ravo-glass-panel overflow-hidden p-4 md:p-5">
+          <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {t('suspendedTitle')} ({suspendedAmbassadors.length})
+          </p>
+          <div className="space-y-2">
+            {suspendedAmbassadors.map((row) => (
+              <ActiveAmbassadorRow
+                key={row.id}
+                row={row}
+                canSuspend={canSuspend}
+                busy={suspendingId === row.id}
+                onReactivate={() =>
+                  void onToggleSuspend(
+                    row.id,
+                    false,
+                    row.handle ? `@${row.handle}` : (row.displayName ?? row.email ?? ''),
+                  )
+                }
+                t={t}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function ActiveAmbassadorRow({
+  row,
+  canSuspend,
+  busy,
+  onSuspend,
+  onReactivate,
+  t,
+}: {
+  row: AmbassadorListRow;
+  canSuspend: boolean;
+  busy: boolean;
+  onSuspend?: () => void;
+  onReactivate?: () => void;
+  t: ReturnType<typeof useTranslations<'admin.ambassadors'>>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const joinedLabel = formatUtc(row.joinedAt, 'PP');
+  const socialEntries = Object.entries(row.socialLinks).filter(([, v]) => v?.trim());
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-medium">
+              @{row.handle ?? t('noHandle')}{' '}
+              {row.displayName && (
+                <span className="text-muted-foreground">({row.displayName})</span>
+              )}
+            </p>
+            <span
+              className={cn(
+                'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                row.state === 'active'
+                  ? 'bg-emerald-500/15 text-emerald-400'
+                  : 'bg-white/10 text-muted-foreground',
+              )}
+            >
+              {row.state}
+            </span>
+          </div>
+          {row.email && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{row.email}</p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('joinedOn', { date: joinedLabel })} · {t('linkCount', { count: row.linkCount })}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {row.email && (
+            <a
+              href={`mailto:${row.email}`}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/[0.08] px-3 text-xs font-medium text-foreground transition-colors hover:bg-white/[0.04]"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              {t('contact')}
+            </a>
+          )}
+          {canSuspend && onSuspend && row.state === 'active' && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-amber-400 hover:text-amber-300"
+              disabled={busy}
+              onClick={onSuspend}
+            >
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <UserMinus className="h-3.5 w-3.5" />
+              )}
+              {t('suspend')}
+            </Button>
+          )}
+          {canSuspend && onReactivate && row.state !== 'active' && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              disabled={busy}
+              onClick={onReactivate}
+            >
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <UserRoundCheck className="h-3.5 w-3.5" />
+              )}
+              {t('reactivate')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                {t('hideDetails')}
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                {t('showDetails')}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 border-t border-white/[0.06] pt-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">{t('profileDetails')}</p>
+          <p className="mt-1">{row.bio?.trim() ? row.bio : t('noBio')}</p>
+          {socialEntries.length > 0 ? (
+            <ul className="mt-2 space-y-0.5">
+              {socialEntries.map(([network, handle]) => (
+                <li key={network}>
+                  <span className="capitalize">{network}</span>: @{handle}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2">{t('noSocials')}</p>
+          )}
+          <p className="mt-2 text-[11px]">{t('editNote')}</p>
+        </div>
+      )}
     </div>
   );
 }

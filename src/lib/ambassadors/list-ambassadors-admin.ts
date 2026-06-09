@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SocialLinks } from '@/lib/ambassadors/ambassador-profile';
 import { getAmbassadorMemberUserIds } from '@/lib/ambassadors/ambassador-member-filter';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { serverNow } from '@/lib/time';
@@ -8,6 +9,9 @@ export type AmbassadorListRow = {
   handle: string | null;
   displayName: string | null;
   email: string | null;
+  bio: string | null;
+  socialLinks: SocialLinks;
+  linkCount: number;
   state: string;
   joinedAt: string;
 };
@@ -40,7 +44,9 @@ export async function listAmbassadorsAdmin(
       ambassadors (
         id,
         display_handle,
-        user_id
+        user_id,
+        bio,
+        social_links
       )
     `,
     )
@@ -56,6 +62,8 @@ export async function listAmbassadorsAdmin(
     id: string;
     handle: string | null;
     userId: string;
+    bio: string | null;
+    socialLinks: SocialLinks;
     state: string;
     joinedAt: string;
   }> = [];
@@ -69,19 +77,45 @@ export async function listAmbassadorsAdmin(
       id: string;
       display_handle: string | null;
       user_id: string;
+      bio: string | null;
+      social_links: unknown;
     };
 
     if (seen.has(a.id)) continue;
     if (!ambassadorUserIds.has(a.user_id)) continue;
     seen.add(a.id);
 
+    const socialLinks: SocialLinks =
+      a.social_links && typeof a.social_links === 'object'
+        ? (a.social_links as SocialLinks)
+        : {};
+
     rows.push({
       id: a.id,
       handle: a.display_handle,
       userId: a.user_id,
+      bio: a.bio,
+      socialLinks,
       state: (row as { state: string }).state,
       joinedAt: (row as { joined_at: string }).joined_at,
     });
+  }
+
+  const linkCountByAmbassador = new Map<string, number>();
+  const ambassadorIds = rows.map((r) => r.id);
+  if (ambassadorIds.length > 0) {
+    const { data: linkRows } = await admin
+      .from('links')
+      .select('ambassador_id')
+      .eq('organization_id', organizationId)
+      .in('ambassador_id', ambassadorIds);
+
+    for (const link of linkRows ?? []) {
+      linkCountByAmbassador.set(
+        link.ambassador_id,
+        (linkCountByAmbassador.get(link.ambassador_id) ?? 0) + 1,
+      );
+    }
   }
 
   const userIds = [...new Set(rows.map((r) => r.userId))];
@@ -105,6 +139,9 @@ export async function listAmbassadorsAdmin(
       handle: row.handle,
       displayName: user?.display_name ?? null,
       email: user?.email ?? null,
+      bio: row.bio,
+      socialLinks: row.socialLinks,
+      linkCount: linkCountByAmbassador.get(row.id) ?? 0,
       state: row.state,
       joinedAt: row.joinedAt,
     };
