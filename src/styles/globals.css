@@ -29,6 +29,17 @@
   body {
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
   }
+
+  /* Native selects: dark dropdown list on Windows (avoids white-on-white options). */
+  select,
+  .ravo-native-select {
+    color-scheme: dark;
+  }
+
+  select option {
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+  }
 }
 
 @layer utilities {

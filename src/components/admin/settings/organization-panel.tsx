@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
   ORG_COUNTRIES,
   ORG_CURRENCIES,
@@ -19,7 +20,7 @@ import {
 } from '@/lib/org/org-settings';
 
 const inputClass =
-  'w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm outline-none focus:border-primary/40';
+  'w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-foreground outline-none focus:border-primary/40';
 
 export function OrganizationPanel({
   orgSlug,
@@ -179,57 +180,54 @@ export function OrganizationPanel({
           <label htmlFor="org-country" className="mb-1 block text-xs text-muted-foreground">
             {t('countryLabel')}
           </label>
-          <select
+          <NativeSelect
             id="org-country"
             disabled={!canEdit}
             value={country}
             onChange={(e) => setCountry(e.target.value as OrgCountry)}
-            className={inputClass}
           >
             {ORG_COUNTRIES.map((code) => (
               <option key={code} value={code}>
                 {t(`countries.${code}`)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div>
           <label htmlFor="org-currency" className="mb-1 block text-xs text-muted-foreground">
             {t('currencyLabel')}
           </label>
-          <select
+          <NativeSelect
             id="org-currency"
             disabled={!canEdit}
             value={defaultCurrency}
             onChange={(e) => setDefaultCurrency(e.target.value as OrgCurrency)}
-            className={inputClass}
           >
             {ORG_CURRENCIES.map((code) => (
               <option key={code} value={code}>
                 {code}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div>
           <label htmlFor="org-timezone" className="mb-1 block text-xs text-muted-foreground">
             {t('timezoneLabel')}
           </label>
-          <select
+          <NativeSelect
             id="org-timezone"
             disabled={!canEdit}
             value={defaultTimezone}
             onChange={(e) => setDefaultTimezone(e.target.value as OrgTimezone)}
-            className={inputClass}
           >
             {ORG_TIMEZONES.map((zone) => (
               <option key={zone} value={zone}>
                 {zone.replace('_', ' ')}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <p className="mt-1 text-xs text-muted-foreground">{t('timezoneHint')}</p>
         </div>
 
@@ -237,19 +235,18 @@ export function OrganizationPanel({
           <label htmlFor="org-locale" className="mb-1 block text-xs text-muted-foreground">
             {t('localeLabel')}
           </label>
-          <select
+          <NativeSelect
             id="org-locale"
             disabled={!canEdit}
             value={defaultLocale}
             onChange={(e) => setDefaultLocale(e.target.value as OrgLocale)}
-            className={inputClass}
           >
             {ORG_LOCALES.map((code) => (
               <option key={code} value={code}>
                 {t(`locales.${code}`)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <p className="mt-1 text-xs text-muted-foreground">{t('localeHint')}</p>
         </div>
 

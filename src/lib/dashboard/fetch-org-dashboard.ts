@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseISO, subDays } from 'date-fns';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -59,7 +60,7 @@ function periodTotals(
   return { clicks, sales, revenueCents };
 }
 
-export async function fetchOrgDashboard(organizationId: string): Promise<OrgDashboardData> {
+export const fetchOrgDashboard = cache(async (organizationId: string): Promise<OrgDashboardData> => {
   const admin = createAdminClient();
 
   const [{ data: org }, { data: event }] = await Promise.all([
@@ -265,4 +266,4 @@ export async function fetchOrgDashboard(organizationId: string): Promise<OrgDash
     currency,
     timezone: tz,
   };
-}
+});

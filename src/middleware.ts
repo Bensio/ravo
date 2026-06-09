@@ -32,7 +32,11 @@ export async function middleware(request: NextRequest) {
   const intlResponse = intlMiddleware(request);
   const response = intlResponse ?? NextResponse.next({ request });
 
-  await updateSession(request, response);
+  // Prefetch fires for every nav link in the sidebar — skip auth round-trip there.
+  const isPrefetch = request.headers.get('Next-Router-Prefetch') === '1';
+  if (!isPrefetch) {
+    await updateSession(request, response);
+  }
 
   const isPublic = isPublicPath(pathname);
   if (isPublic) {

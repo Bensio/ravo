@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, GitBranch, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { NativeSelect } from '@/components/ui/native-select';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 import { formatInFestivalTz } from '@/lib/time';
 import { cn } from '@/lib/utils';
@@ -247,11 +248,11 @@ export function SalesFeedOrderRow({
                     <label htmlFor={`reassign-${order.id}`} className="text-xs text-muted-foreground">
                       {t('reassignLabel')}
                     </label>
-                    <select
+                    <NativeSelect
                       id={`reassign-${order.id}`}
                       value={selectedAmbassador}
                       onChange={(e) => setSelectedAmbassador(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm outline-none focus:border-primary/40"
+                      className="mt-1"
                     >
                       <option value="">{t('reassignPlaceholder')}</option>
                       {ambassadors.map((a) => (
@@ -259,7 +260,7 @@ export function SalesFeedOrderRow({
                           @{a.handle ?? a.displayName ?? a.id.slice(0, 8)}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </div>
                   <Button
                     type="button"

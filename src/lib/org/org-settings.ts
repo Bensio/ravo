@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export const ORG_SLUG_RE = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
@@ -120,7 +121,7 @@ function mapRow(row: {
   };
 }
 
-export async function getOrgSettings(organizationId: string): Promise<OrgSettings | null> {
+export const getOrgSettings = cache(async (organizationId: string): Promise<OrgSettings | null> => {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('organizations')
@@ -138,7 +139,7 @@ export async function getOrgSettings(organizationId: string): Promise<OrgSetting
   }
 
   return mapRow(data);
-}
+});
 
 function isValidEmail(value: string): boolean {
   return value.includes('@') && value.includes('.');

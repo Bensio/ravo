@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ComingSoonPanel } from '@/components/admin/settings/coming-soon-panel';
@@ -40,7 +40,12 @@ export function SettingsDashboard({
   const t = useTranslations('admin.settings');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const section = parseSection(searchParams.get('section'));
+  const requestedSection = parseSection(searchParams.get('section'));
+  const section =
+    (requestedSection === 'team' && !canManageTeam) ||
+    (requestedSection === 'billing' && !canManageBilling)
+      ? 'organization'
+      : requestedSection;
 
   const setSection = useCallback(
     (next: SettingsSection) => {
@@ -50,14 +55,6 @@ export function SettingsDashboard({
     },
     [locale, orgSlug, router, searchParams],
   );
-
-  useEffect(() => {
-    const forbidden =
-      (section === 'team' && !canManageTeam) || (section === 'billing' && !canManageBilling);
-    if (forbidden) {
-      setSection('organization');
-    }
-  }, [section, canManageTeam, canManageBilling, setSection]);
 
   return (
     <div className="space-y-6">
@@ -73,7 +70,7 @@ export function SettingsDashboard({
         showBilling={canManageBilling}
       />
 
-      {section === 'organization' && (
+      <div className={section === 'organization' ? undefined : 'hidden'}>
         <OrganizationPanel
           orgSlug={orgSlug}
           locale={locale}
@@ -81,15 +78,15 @@ export function SettingsDashboard({
           canEdit={canUpdateOrg}
           canEditBilling={canManageBilling}
         />
-      )}
+      </div>
 
-      {section === 'integrations' && (
+      <div className={section === 'integrations' ? undefined : 'hidden'}>
         <IntegrationsPanel
           orgSlug={orgSlug}
           locale={locale}
           initialConnections={initialConnections}
         />
-      )}
+      </div>
 
       {section === 'team' && (
         <ComingSoonPanel title={t('team.title')} description={t('team.description')} />

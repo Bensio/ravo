@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
+import { AdminPageSkeleton } from '@/components/admin/admin-page-skeleton';
 import { SettingsDashboard } from '@/components/admin/settings/settings-dashboard';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { roleHasPermission } from '@/lib/auth/permissions';
@@ -24,7 +25,7 @@ export default async function SettingsPage({ params }: Props) {
   const initialConnections = await listIntegrationConnections(ctx.org.id).catch(() => []);
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AdminPageSkeleton />}>
       <SettingsDashboard
         orgSlug={org_slug}
         locale={locale}

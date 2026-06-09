@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronsUpDown } from 'lucide-react';
+import { NativeSelect } from '@/components/ui/native-select';
 import { switchActiveOrgAction } from '@/lib/auth/org-actions';
 import { cn } from '@/lib/utils';
 
@@ -23,8 +24,8 @@ export function OrgSwitcher({
 
   return (
     <div className={cn('relative inline-flex max-w-[14rem]', className)}>
-      <select
-        className="h-9 w-full cursor-pointer appearance-none rounded-lg border border-white/[0.08] bg-muted/60 py-1.5 pl-3 pr-9 text-sm font-medium text-foreground transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+      <NativeSelect
+        className="h-9 cursor-pointer appearance-none py-1.5 pl-3 pr-9 font-medium hover:bg-muted/80 focus:ring-2 focus:ring-ring"
         value={currentOrgId}
         aria-label="Switch organization"
         onChange={async (e) => {
@@ -38,7 +39,7 @@ export function OrgSwitcher({
             {org.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <ChevronsUpDown
         className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden
