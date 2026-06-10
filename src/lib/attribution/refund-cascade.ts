@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { reverseRewardsForOrder } from '@/lib/rewards/reverse-for-order';
 import { invalidateAttributionForRefund } from './reassign';
 import { serverNow } from '@/lib/time';
 
@@ -8,10 +9,7 @@ export type RefundCascadeResult = {
   refundsProcessed: number;
 };
 
-/**
- * Refund cascade: invalidate attribution + mark refunds processed.
- * Reward reversal is a no-op until the rewards engine ships (Phase 7).
- */
+/** Refund cascade: invalidate attribution, reverse rewards, mark refunds processed. */
 export async function applyRefundCascade(
   organizationId: string,
   orderId: string,
@@ -32,7 +30,11 @@ export async function applyRefundCascade(
       orderId,
       'order_refunded',
     );
-    // Phase 7: reverse pending/confirmed rewards linked to this attribution
+    result.rewardsReversed = await reverseRewardsForOrder(
+      organizationId,
+      orderId,
+      'order_refunded',
+    );
   }
 
   const { data: pendingRefunds, error } = await admin

@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { NormalizedOrderEvent } from '@/lib/providers/types';
+import { emitRewardsForAttribution } from '@/lib/rewards/emit-for-attribution';
 import { resolveAttribution } from './waterfall';
 import type { AttributionHint } from './types';
 
@@ -72,6 +73,13 @@ export async function attributeOrderFromHint(
     .select('display_handle')
     .eq('id', inserted.ambassador_id)
     .maybeSingle();
+
+  void emitRewardsForAttribution(organizationId, inserted.id).catch((err: unknown) => {
+    console.error('emit rewards failed', {
+      attributionId: inserted.id,
+      message: err instanceof Error ? err.message : 'unknown',
+    });
+  });
 
   return {
     id: inserted.id,

@@ -303,7 +303,65 @@
     },
     "rewards": {
       "title": "Beloningen",
-      "empty": "Stel beloningsregels in en verzilver perks. Wordt gebouwd na live attributie."
+      "subtitle": "Stel per-verkoop regels in, keur tier-4 cash goed en markeer perks als geleverd.",
+      "empty": "Nog geen beloningen. Voeg een regel toe en attribueer een verkoop om de eerste beloning uit te keren.",
+      "emptyHint": "Begin met een per-verkoop regel en simuleer daarna een verkoop op Tracklinks.",
+      "actionError": "Actie mislukt. Vernieuw en probeer opnieuw.",
+      "rulesEmpty": "Geen actieve regels. Voeg een per-verkoop regel toe om ambassadeurs te belonen.",
+      "loading": "Beloningen laden…",
+      "refresh": "Vernieuwen",
+      "addRule": "Regel toevoegen",
+      "tier": "Tier {tier}",
+      "pendingUntil": "Bevestigt na {date}",
+      "kpi": {
+        "review": "Review nodig",
+        "fulfill": "Klaar om te leveren",
+        "pending": "In terugbetalingsperiode"
+      },
+      "tabs": {
+        "review": "Review",
+        "fulfill": "Leveren",
+        "all": "Alle beloningen",
+        "rules": "Regels"
+      },
+      "state": {
+        "pending": "In afwachting",
+        "confirmed": "Bevestigd",
+        "fulfilled": "Geleverd",
+        "reversed": "Teruggedraaid"
+      },
+      "rewardType": {
+        "cash": "Cash",
+        "free_ticket": "Gratis ticket",
+        "guestlist_perk": "Gastenlijst",
+        "ticket_upgrade": "Upgrade",
+        "branded_merch": "Merch",
+        "partner_product": "Partnerproduct",
+        "experience": "Ervaring",
+        "discount_code_for_audience": "Kortingscode",
+        "status": "Status"
+      },
+      "actions": {
+        "confirm": "Goedkeuren",
+        "fulfill": "Markeer als geleverd"
+      },
+      "form": {
+        "title": "Nieuwe per-verkoop regel",
+        "campaign": "Campagne",
+        "name": "Regelnaam",
+        "namePlaceholder": "bijv. €5 per ticketverkoop",
+        "rewardType": "Beloningstype",
+        "typeCash": "Cash commissie",
+        "typeGuestlist": "Gastenlijst-perk",
+        "typeFreeTicket": "Gratis ticket",
+        "amount": "Bedrag",
+        "perkLabel": "Perk-label",
+        "perkPlaceholder": "bijv. VIP gastenlijst",
+        "submit": "Regel aanmaken",
+        "cancel": "Annuleren",
+        "invalidAmount": "Voer een geldig bedrag in.",
+        "createError": "Regel kon niet worden aangemaakt. Controleer het formulier."
+      }
     },
     "reports": {
       "title": "Rapporten",
@@ -477,7 +535,35 @@
     },
     "rewards": {
       "title": "Beloningen",
-      "empty": "Gratis tickets, cash en partner-perks die je verdient verschijnen hier met duidelijke vervolgstappen."
+      "subtitle": "Alles wat je hebt verdiend — met duidelijke status en vervolgstappen.",
+      "empty": "Nog geen beloningen.",
+      "emptyHint": "Deel je tracklink. Bij een aan jou toegeschreven verkoop verschijnen festivalbeloningen hier.",
+      "loading": "Beloningen laden…",
+      "loadError": "Beloningen laden mislukt.",
+      "retry": "Opnieuw",
+      "refresh": "Vernieuwen",
+      "sections": {
+        "active": "Onderweg",
+        "activeEmpty": "",
+        "received": "Ontvangen",
+        "receivedEmpty": "",
+        "reversed": "Teruggedraaid"
+      },
+      "state": {
+        "pending": "In afwachting",
+        "confirmed": "Bevestigd",
+        "fulfilled": "Ontvangen",
+        "reversed": "Teruggedraaid"
+      },
+      "status": {
+        "pending": "Wacht op terugbetalingsperiode",
+        "pendingUntil": "Verwacht bevestigd na {date}",
+        "confirmed": "Bevestigd — het festival levert dit binnenkort",
+        "fulfilled": "Geleverd",
+        "reversed": "Teruggedraaid",
+        "awaitingFestivalReview": "Wacht op goedkeuring festival (UTM-attributie)",
+        "reversedReason": "Reden: {reason}"
+      }
     },
     "community": {
       "title": "Community",

@@ -303,7 +303,65 @@
     },
     "rewards": {
       "title": "Rewards",
-      "empty": "Configure reward rules and fulfill perks. Built after attribution is live."
+      "subtitle": "Configure per-sale rules, review tier-4 cash, and mark perks delivered.",
+      "empty": "No rewards yet. Add a rule, then attribute a sale to issue the first reward.",
+      "emptyHint": "Start with a per-sale rule, then simulate a sale on Tracklinks to see the first reward.",
+      "actionError": "That action failed. Refresh and try again.",
+      "rulesEmpty": "No active rules. Add a per-sale rule to start rewarding ambassadors.",
+      "loading": "Loading rewards…",
+      "refresh": "Refresh",
+      "addRule": "Add rule",
+      "tier": "Tier {tier}",
+      "pendingUntil": "Confirms after {date}",
+      "kpi": {
+        "review": "Needs review",
+        "fulfill": "Ready to fulfill",
+        "pending": "In refund window"
+      },
+      "tabs": {
+        "review": "Review",
+        "fulfill": "Fulfill",
+        "all": "All rewards",
+        "rules": "Rules"
+      },
+      "state": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "fulfilled": "Fulfilled",
+        "reversed": "Reversed"
+      },
+      "rewardType": {
+        "cash": "Cash",
+        "free_ticket": "Free ticket",
+        "guestlist_perk": "Guestlist",
+        "ticket_upgrade": "Upgrade",
+        "branded_merch": "Merch",
+        "partner_product": "Partner product",
+        "experience": "Experience",
+        "discount_code_for_audience": "Discount code",
+        "status": "Status"
+      },
+      "actions": {
+        "confirm": "Approve",
+        "fulfill": "Mark delivered"
+      },
+      "form": {
+        "title": "New per-sale rule",
+        "campaign": "Campaign",
+        "name": "Rule name",
+        "namePlaceholder": "e.g. €5 per ticket sale",
+        "rewardType": "Reward type",
+        "typeCash": "Cash commission",
+        "typeGuestlist": "Guestlist perk",
+        "typeFreeTicket": "Free ticket",
+        "amount": "Amount",
+        "perkLabel": "Perk label",
+        "perkPlaceholder": "e.g. VIP guestlist entry",
+        "submit": "Create rule",
+        "cancel": "Cancel",
+        "invalidAmount": "Enter a valid amount.",
+        "createError": "Could not create rule. Check the form and try again."
+      }
     },
     "reports": {
       "title": "Reports",
@@ -477,7 +535,35 @@
     },
     "rewards": {
       "title": "Rewards",
-      "empty": "Free tickets, cash, and partner perks you earn will appear here with clear next steps."
+      "subtitle": "Everything you have earned — with clear status and next steps.",
+      "empty": "No rewards yet.",
+      "emptyHint": "Share your tracklink. When a sale is attributed to you, rewards from the festival appear here.",
+      "loading": "Loading rewards…",
+      "loadError": "Could not load rewards.",
+      "retry": "Try again",
+      "refresh": "Refresh",
+      "sections": {
+        "active": "On the way",
+        "activeEmpty": "",
+        "received": "Received",
+        "receivedEmpty": "",
+        "reversed": "Reversed"
+      },
+      "state": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "fulfilled": "Received",
+        "reversed": "Reversed"
+      },
+      "status": {
+        "pending": "Waiting out the refund window",
+        "pendingUntil": "Expected to confirm after {date}",
+        "confirmed": "Confirmed — the festival will deliver this soon",
+        "fulfilled": "Delivered",
+        "reversed": "Reversed",
+        "awaitingFestivalReview": "Waiting for festival approval (UTM attribution)",
+        "reversedReason": "Reason: {reason}"
+      }
     },
     "community": {
       "title": "Community",

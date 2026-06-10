@@ -1,3 +1,4 @@
 import { nightlyReconciliationCron, reconcileOrganizationJob } from './nightly-reconciliation';
+import { rewardsConfirmCron } from './rewards-confirm';
 
-export const functions = [nightlyReconciliationCron, reconcileOrganizationJob];
+export const functions = [nightlyReconciliationCron, reconcileOrganizationJob, rewardsConfirmCron];
