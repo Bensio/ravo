@@ -73,7 +73,9 @@ export function OverviewDashboard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
-          <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
+          <p className="text-xs text-muted-foreground">
+            {data.eventName ? t('subtitleScoped', { event: data.eventName }) : t('subtitle')}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="overview-range">

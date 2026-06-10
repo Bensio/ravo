@@ -115,8 +115,45 @@ export async function listOrdersForOrg(
   supabase: SupabaseClient,
   organizationId: string,
   limit = 50,
+  options?: { eventId?: string | null; campaignIds?: string[] | null },
 ): Promise<OrderListItem[]> {
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  let orderIdFilter: string[] | null = null;
+
+  if (options?.eventId || options?.campaignIds) {
+    const ids = new Set<string>();
+
+    if (options.eventId) {
+      const { data: byEvent } = await admin
+        .from('orders')
+        .select('id')
+        .eq('organization_id', organizationId)
+        .eq('event_id', options.eventId)
+        .limit(500);
+      for (const row of byEvent ?? []) {
+        ids.add(row.id as string);
+      }
+    }
+
+    if (options.campaignIds && options.campaignIds.length > 0) {
+      const { data: byCampaign } = await admin
+        .from('attributions')
+        .select('order_id')
+        .eq('organization_id', organizationId)
+        .in('campaign_id', options.campaignIds)
+        .limit(500);
+      for (const row of byCampaign ?? []) {
+        ids.add(row.order_id as string);
+      }
+    }
+
+    orderIdFilter = [...ids];
+    if (orderIdFilter.length === 0) {
+      return [];
+    }
+  }
+
+  let ordersQuery = supabase
     .from('orders')
     .select(
       `
@@ -139,6 +176,12 @@ export async function listOrdersForOrg(
     .order('placed_at', { ascending: false })
     .limit(limit);
 
+  if (orderIdFilter) {
+    ordersQuery = ordersQuery.in('id', orderIdFilter);
+  }
+
+  const { data, error } = await ordersQuery;
+
   if (error) {
     throw error;
   }
@@ -156,7 +199,6 @@ export async function listOrdersForOrg(
     })),
   );
 
-  const admin = createAdminClient();
   const attributionByOrder = await fetchAttributionMap(admin, orderIds);
 
   return rows.map((row) => {

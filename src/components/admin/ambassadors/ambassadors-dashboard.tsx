@@ -41,12 +41,14 @@ export function AmbassadorsDashboard({
   canInvite,
   canSuspend,
   initialData,
+  activeEventName,
 }: {
   orgSlug: string;
   locale: string;
   canInvite: boolean;
   canSuspend: boolean;
   initialData?: AdminData | null;
+  activeEventName?: string | null;
 }) {
   const t = useTranslations('admin.ambassadors');
   const [data, setData] = useState<AdminData | null>(initialData ?? null);
@@ -231,6 +233,11 @@ export function AmbassadorsDashboard({
       <div>
         <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+        {activeEventName && (
+          <p className="mt-1 text-xs text-primary/90">
+            {t('activeEventHint', { event: activeEventName })}
+          </p>
+        )}
       </div>
 
       {canInvite && (

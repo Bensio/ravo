@@ -5,7 +5,7 @@ import { RavoLogo } from '@/components/shared/ravo-logo';
 import { AdminNavLink } from './admin-nav-link';
 import { ADMIN_NAV_ITEMS } from './admin-nav-config';
 import type { SerializedEvent } from '@/lib/events/types';
-import { AdminEventCard } from './admin-event-card';
+import { AdminEventSwitcher } from './admin-event-switcher';
 import { AdminSidebarUser } from './admin-sidebar-user';
 
 export function AdminSidebar({
@@ -13,13 +13,17 @@ export function AdminSidebar({
   orgSlug,
   userEmail,
   userRole,
+  events,
   activeEvent,
+  canManageEvents,
 }: {
   locale: string;
   orgSlug: string;
   userEmail: string;
   userRole: string;
+  events: SerializedEvent[];
   activeEvent: SerializedEvent | null;
+  canManageEvents: boolean;
 }) {
   const t = useTranslations('admin.nav');
 
@@ -39,7 +43,13 @@ export function AdminSidebar({
         ))}
       </nav>
       <div className="shrink-0 space-y-2 border-t border-white/[0.06] bg-card/40 p-3">
-        <AdminEventCard locale={locale} orgSlug={orgSlug} activeEvent={activeEvent} />
+        <AdminEventSwitcher
+          locale={locale}
+          orgSlug={orgSlug}
+          events={events}
+          activeEvent={activeEvent}
+          canManage={canManageEvents}
+        />
         <AdminSidebarUser email={userEmail} role={userRole} locale={locale} />
       </div>
     </aside>

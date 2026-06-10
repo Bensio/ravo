@@ -5,8 +5,8 @@ import { getUserMemberships } from '@/lib/auth/org-context';
 import { setRequestOrgContext } from '@/lib/auth/set-org-context';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
-import { isStaffRole } from '@/lib/auth/permissions';
-import { resolveActiveEvent } from '@/lib/events/event-context';
+import { isStaffRole, roleHasPermission } from '@/lib/auth/permissions';
+import { listEventsForOrg, resolveActiveEvent } from '@/lib/events/event-context';
 
 type Props = {
   children: React.ReactNode;
@@ -33,7 +33,11 @@ export default async function AdminOrgLayout({ children, params }: Props) {
   }
 
   await setRequestOrgContext(membership.org.id);
-  const activeEvent = await resolveActiveEvent(membership.org.id);
+  const [activeEvent, events] = await Promise.all([
+    resolveActiveEvent(membership.org.id),
+    listEventsForOrg(membership.org.id),
+  ]);
+  const canManageEvents = roleHasPermission(membership.role, 'event.update');
 
   return (
     <div className="ravo-shell-bg flex h-screen overflow-hidden">
@@ -42,7 +46,9 @@ export default async function AdminOrgLayout({ children, params }: Props) {
         orgSlug={org_slug}
         userEmail={user.email}
         userRole={membership.role}
+        events={events}
         activeEvent={activeEvent}
+        canManageEvents={canManageEvents}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AdminHeader

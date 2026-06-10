@@ -8,6 +8,7 @@ import { buildPublicLinkUrl } from '@/lib/links/code';
 import { createTracklink } from '@/lib/links/create-link';
 import { invalidateLinkCache } from '@/lib/links/link-cache';
 import { isValidHttpUrl, normalizeDestinationUrl } from '@/lib/links/destination-url';
+import { resolveEventScope } from '@/lib/events/event-scope';
 import { listLinksForOrg } from '@/lib/links/list-links';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,10 @@ function bootstrapErrorResponse(err: unknown): NextResponse {
 export const GET = requirePermission('link.read', async ({ ctx }) => {
   try {
     const supabase = await createClient();
-    const links = await listLinksForOrg(supabase, ctx.org.id);
+    const scope = await resolveEventScope(ctx.org.id);
+    const links = await listLinksForOrg(supabase, ctx.org.id, {
+      eventId: scope.eventId,
+    });
     return NextResponse.json({ links }, { headers: noStoreHeaders });
   } catch (err) {
     console.error('link list failed', {
@@ -87,7 +91,7 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
   }
 
   if (!campaignId) {
-    return NextResponse.json({ error: 'no_active_festival' }, { status: 400 });
+    return NextResponse.json({ error: 'no_active_event' }, { status: 400 });
   }
 
   if (!ambassadorId) {

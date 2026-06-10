@@ -76,15 +76,24 @@ const REWARD_SELECT = `
 
 export async function fetchOrgRewards(
   organizationId: string,
-  options?: { state?: string; needsReview?: boolean },
+  options?: { state?: string; needsReview?: boolean; campaignIds?: string[] | null },
 ): Promise<SerializedReward[]> {
   const admin = createAdminClient();
+
+  if (options?.campaignIds && options.campaignIds.length === 0) {
+    return [];
+  }
+
   let query = admin
     .from('rewards')
     .select(REWARD_SELECT)
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
     .limit(200);
+
+  if (options?.campaignIds) {
+    query = query.in('campaign_id', options.campaignIds);
+  }
 
   if (options?.state) {
     query = query.eq('state', options.state);
@@ -141,15 +150,28 @@ export async function fetchAmbassadorRewards(userId: string): Promise<Serialized
   return (data as RewardJoinRow[]).map(serializeRow);
 }
 
-export async function fetchOrgRewardRules(organizationId: string): Promise<SerializedRewardRule[]> {
+export async function fetchOrgRewardRules(
+  organizationId: string,
+  options?: { campaignIds?: string[] | null },
+): Promise<SerializedRewardRule[]> {
   const admin = createAdminClient();
 
-  const { data, error } = await admin
+  if (options?.campaignIds && options.campaignIds.length === 0) {
+    return [];
+  }
+
+  let rulesQuery = admin
     .from('reward_rules')
     .select('id, campaign_id, name, trigger_type, reward_type, reward_config, state, inventory_remaining, created_at, campaigns(name)')
     .eq('organization_id', organizationId)
     .neq('state', 'archived')
     .order('created_at', { ascending: false });
+
+  if (options?.campaignIds) {
+    rulesQuery = rulesQuery.in('campaign_id', options.campaignIds);
+  }
+
+  const { data, error } = await rulesQuery;
 
   if (error?.code === 'PGRST205' || error?.code === '42P01') {
     return [];

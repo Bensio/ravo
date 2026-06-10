@@ -74,26 +74,47 @@ function periodTotals(
   return { clicks, sales, revenueCents };
 }
 
+export type OrgDashboardScope = {
+  eventId: string;
+  eventName: string;
+  timezone: string;
+  campaignIds: string[];
+};
+
 export async function fetchOrgDashboard(
   organizationId: string,
   days: DashboardDays = 30,
+  scope?: OrgDashboardScope | null,
 ): Promise<OrgDashboardData> {
   const admin = createAdminClient();
 
-  const [{ data: org }, { data: event }, memberProfiles] = await Promise.all([
+  const [{ data: org }, memberProfiles] = await Promise.all([
     admin.from('organizations').select('default_currency').eq('id', organizationId).single(),
-    admin
-      .from('events')
-      .select('timezone')
-      .eq('organization_id', organizationId)
-      .order('start_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
     getAmbassadorMemberProfiles(organizationId),
   ]);
 
   const currency = org?.default_currency ?? 'EUR';
-  const tz = event?.timezone ?? DEFAULT_TZ;
+  const tz = scope?.timezone ?? DEFAULT_TZ;
+  const campaignIds = scope?.campaignIds ?? null;
+
+  if (scope && campaignIds && campaignIds.length === 0) {
+    const currentDays = dayKeysForRange(days, tz, 0);
+    return {
+      rows: [],
+      series: currentDays.map((day) => ({
+        day,
+        clicks: 0,
+        sales: 0,
+        revenueCents: 0n,
+      })),
+      totals: { clicks: 0, sales: 0, revenueCents: 0n, conversion: 0 },
+      deltas: { clicks: null, sales: null, revenue: null, conversion: null },
+      currency,
+      timezone: tz,
+      days,
+      eventName: scope.eventName,
+    };
+  }
   const currentDays = dayKeysForRange(days, tz, 0);
   const priorDays = dayKeysForRange(days, tz, days);
   const currentDaySet = new Set(currentDays);
@@ -112,26 +133,49 @@ export async function fetchOrgDashboard(
     });
   }
 
-  const [{ data: links }, { data: clicks }, { data: attributions }] = await Promise.all([
-    admin.from('links').select('id, ambassador_id').eq('organization_id', organizationId),
-    admin
-      .from('clicks')
-      .select('link_id, created_at')
-      .eq('organization_id', organizationId)
-      .gte('created_at', since),
-    admin
-      .from('attributions')
-      .select(
-        `
+  let linksQuery = admin
+    .from('links')
+    .select('id, ambassador_id')
+    .eq('organization_id', organizationId);
+  if (campaignIds) {
+    linksQuery = linksQuery.in('campaign_id', campaignIds);
+  }
+
+  let attributionsQuery = admin
+    .from('attributions')
+    .select(
+      `
           ambassador_id,
           created_at,
           orders ( status, net_amount_cents, placed_at )
         `,
-      )
-      .eq('organization_id', organizationId)
-      .eq('state', 'active')
-      .gte('created_at', since),
+    )
+    .eq('organization_id', organizationId)
+    .eq('state', 'active')
+    .gte('created_at', since);
+  if (campaignIds) {
+    attributionsQuery = attributionsQuery.in('campaign_id', campaignIds);
+  }
+
+  const [{ data: links }, { data: attributions }] = await Promise.all([
+    linksQuery,
+    attributionsQuery,
   ]);
+
+  const linkIds = (links ?? []).map((l) => l.id as string);
+  let clicksQuery = admin
+    .from('clicks')
+    .select('link_id, created_at')
+    .eq('organization_id', organizationId)
+    .gte('created_at', since);
+  if (campaignIds) {
+    if (linkIds.length === 0) {
+      clicksQuery = clicksQuery.in('link_id', ['00000000-0000-0000-0000-000000000000']);
+    } else {
+      clicksQuery = clicksQuery.in('link_id', linkIds);
+    }
+  }
+  const { data: clicks } = await clicksQuery;
 
   const linkToAmbassador = new Map((links ?? []).map((l) => [l.id, l.ambassador_id]));
 
@@ -241,5 +285,6 @@ export async function fetchOrgDashboard(
     currency,
     timezone: tz,
     days,
+    eventName: scope?.eventName ?? null,
   };
 }

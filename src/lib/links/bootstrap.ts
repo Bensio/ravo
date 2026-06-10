@@ -4,7 +4,8 @@ import { ensureManualUtmConnection } from '@/lib/integrations/ensure-manual-utm'
 import { createAdminClient } from '@/lib/supabase/admin';
 import { serverNow } from '@/lib/time';
 
-const DEFAULT_EVENT_SLUG = 'default-festival';
+const DEFAULT_EVENT_SLUG = 'default-event';
+const LEGACY_DEFAULT_EVENT_SLUG = 'default-festival';
 const DEFAULT_CAMPAIGN_SLUG = 'default-campaign';
 
 async function ensureCampaignForEvent(
@@ -48,7 +49,7 @@ async function ensureCampaignForEvent(
 export async function bootstrapCampaignForOrg(
   organizationId: string,
   ownerUserId: string,
-): Promise<{ campaignId: string }> {
+): Promise<{ campaignId: string; eventId?: string }> {
   const admin = createAdminClient();
 
   const { data: existingCampaign } = await admin
@@ -59,14 +60,25 @@ export async function bootstrapCampaignForOrg(
     .maybeSingle();
 
   if (existingCampaign) {
-    return { campaignId: existingCampaign.id };
+    const { data: campaignRow } = await admin
+      .from('campaigns')
+      .select('event_id')
+      .eq('id', existingCampaign.id)
+      .maybeSingle();
+    if (campaignRow?.event_id) {
+      const { setActiveEventCookieAction } = await import('@/lib/events/event-actions');
+      await setActiveEventCookieAction(campaignRow.event_id);
+    }
+    return { campaignId: existingCampaign.id, eventId: campaignRow?.event_id };
   }
 
   const { data: existingEvent } = await admin
     .from('events')
     .select('id')
     .eq('organization_id', organizationId)
-    .eq('slug', DEFAULT_EVENT_SLUG)
+    .in('slug', [DEFAULT_EVENT_SLUG, LEGACY_DEFAULT_EVENT_SLUG])
+    .order('created_at', { ascending: true })
+    .limit(1)
     .maybeSingle();
 
   if (existingEvent) {
@@ -75,7 +87,9 @@ export async function bootstrapCampaignForOrg(
       organizationId,
       existingEvent.id,
     );
-    return { campaignId };
+    const { setActiveEventCookieAction } = await import('@/lib/events/event-actions');
+    await setActiveEventCookieAction(existingEvent.id);
+    return { campaignId, eventId: existingEvent.id };
   }
 
   const connectionId = await ensureManualUtmConnection(admin, organizationId, ownerUserId);
@@ -90,7 +104,7 @@ export async function bootstrapCampaignForOrg(
       organization_id: organizationId,
       provider_connection_id: connectionId,
       provider_event_id: `bootstrap-${organizationId.slice(0, 8)}`,
-      name: 'Default festival',
+      name: 'Default event',
       slug: DEFAULT_EVENT_SLUG,
       start_at: startAt,
       end_at: endAt,
@@ -103,5 +117,9 @@ export async function bootstrapCampaignForOrg(
   }
 
   const campaignId = await ensureCampaignForEvent(admin, organizationId, event.id);
-  return { campaignId };
+
+  const { setActiveEventCookieAction } = await import('@/lib/events/event-actions');
+  await setActiveEventCookieAction(event.id);
+
+  return { campaignId, eventId: event.id };
 }

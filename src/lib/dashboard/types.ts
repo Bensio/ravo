@@ -35,6 +35,7 @@ export type OrgDashboardData = {
   currency: string;
   timezone: string;
   days: import('./dashboard-range').DashboardDays;
+  eventName?: string | null;
 };
 
 /** JSON-safe shape for client components (bigint → string). */
@@ -51,6 +52,7 @@ export type SerializedOrgDashboard = {
   currency: string;
   timezone: string;
   days: import('./dashboard-range').DashboardDays;
+  eventName?: string | null;
 };
 
 export function serializeOrgDashboard(data: OrgDashboardData): SerializedOrgDashboard {
@@ -62,5 +64,6 @@ export function serializeOrgDashboard(data: OrgDashboardData): SerializedOrgDash
     currency: data.currency,
     timezone: data.timezone,
     days: data.days,
+    eventName: data.eventName ?? null,
   };
 }

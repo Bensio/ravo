@@ -3,6 +3,7 @@ import { AmbassadorsDashboard } from '@/components/admin/ambassadors/ambassadors
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { roleHasPermission } from '@/lib/auth/permissions';
 import { listAmbassadorsAdmin } from '@/lib/ambassadors/list-ambassadors-admin';
+import { resolveActiveEvent } from '@/lib/events/event-context';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
@@ -16,6 +17,7 @@ export default async function AmbassadorsPage({ params }: Props) {
     : null;
   const canInvite = ctx ? roleHasPermission(ctx.membership.role, 'ambassador.invite') : false;
   const canSuspend = ctx ? roleHasPermission(ctx.membership.role, 'ambassador.suspend') : false;
+  const activeEvent = ctx ? await resolveActiveEvent(ctx.org.id) : null;
 
   return (
     <AmbassadorsDashboard
@@ -24,6 +26,7 @@ export default async function AmbassadorsPage({ params }: Props) {
       canInvite={canInvite}
       canSuspend={canSuspend}
       initialData={initialData}
+      activeEventName={activeEvent?.name ?? null}
     />
   );
 }

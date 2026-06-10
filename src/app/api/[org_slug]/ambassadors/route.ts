@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { listAmbassadorsAdmin } from '@/lib/ambassadors/list-ambassadors-admin';
+import { resolveEventScope } from '@/lib/events/event-scope';
 import { listOrgAmbassadors } from '@/lib/ambassadors/list-org-ambassadors';
 import { createClient } from '@/lib/supabase/server';
 
@@ -12,7 +13,10 @@ export const GET = requirePermission('ambassador.read', async ({ request, ctx })
   const pickerOnly = searchParams.get('picker') === '1';
 
   if (pickerOnly) {
-    const ambassadors = await listOrgAmbassadors(supabase, ctx.org.id);
+    const scope = await resolveEventScope(ctx.org.id);
+    const ambassadors = await listOrgAmbassadors(supabase, ctx.org.id, {
+      eventId: scope.eventId,
+    });
     return NextResponse.json({ ambassadors });
   }
 

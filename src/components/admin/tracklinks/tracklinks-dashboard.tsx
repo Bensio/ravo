@@ -113,7 +113,7 @@ export function TracklinksDashboard({
       const errorKey =
         data.error === 'invalid_url'
           ? 'createErrorInvalidUrl'
-          : data.error === 'no_active_festival'
+          : data.error === 'no_active_event' || data.error === 'no_active_festival'
             ? 'createErrorNoEvent'
             : data.error === 'bootstrap_failed'
             ? 'createErrorBootstrap'

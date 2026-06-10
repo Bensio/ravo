@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAmbassadorMemberUserIds } from '@/lib/ambassadors/ambassador-member-filter';
+import { getCampaignIdsForEvent } from '@/lib/events/event-scope';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export type OrgAmbassadorOption = {
@@ -11,11 +12,20 @@ export type OrgAmbassadorOption = {
 export async function listOrgAmbassadors(
   _supabase: SupabaseClient,
   organizationId: string,
+  options?: { eventId?: string | null },
 ): Promise<OrgAmbassadorOption[]> {
   const admin = createAdminClient();
   const ambassadorUserIds = await getAmbassadorMemberUserIds(organizationId);
 
-  const { data, error } = await admin
+  let campaignIds: string[] | null = null;
+  if (options?.eventId) {
+    campaignIds = await getCampaignIdsForEvent(organizationId, options.eventId);
+    if (campaignIds.length === 0) {
+      return [];
+    }
+  }
+
+  let membershipQuery = admin
     .from('ambassador_campaigns')
     .select(
       `
@@ -29,6 +39,12 @@ export async function listOrgAmbassadors(
     )
     .eq('organization_id', organizationId)
     .eq('state', 'active');
+
+  if (campaignIds) {
+    membershipQuery = membershipQuery.in('campaign_id', campaignIds);
+  }
+
+  const { data, error } = await membershipQuery;
 
   if (error) throw error;
 

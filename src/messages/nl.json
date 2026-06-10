@@ -84,6 +84,19 @@
       "createCta": "Event aanmaken →",
       "manageCta": "Events beheren →"
     },
+    "eventSwitcher": {
+      "label": "Werk-event",
+      "noEventTitle": "Nog geen event",
+      "createCta": "Maak je eerste event →",
+      "pickEvent": "Kies event…",
+      "manageCta": "Events beheren",
+      "newEvent": "Nieuw event",
+      "phase": {
+        "upcoming": "Komend",
+        "live": "Live",
+        "past": "Afgelopen"
+      }
+    },
     "events": {
       "title": "Events",
       "subtitle": "Elke event-editie heeft een eigen ambassadeursprogramma, tracklinks en beloningen.",
@@ -177,7 +190,8 @@
     },
     "overview": {
       "title": "Overzicht",
-      "subtitle": "Clicks, toegeschreven verkopen en top-ambassadeurs voor je festival.",
+      "subtitle": "Clicks, toegeschreven verkopen en top-ambassadeurs voor het actieve event.",
+      "subtitleScoped": "Metrics voor {event}. Wissel events in de zijbalk.",
       "empty": "Nog geen activiteit. Maak een tracklink en simuleer een verkoop om dit dashboard te vullen.",
       "emptyCta": "Naar Tracklinks →",
       "loadError": "Dashboardmetrics laden mislukt.",
@@ -224,7 +238,8 @@
     },
     "ambassadors": {
       "title": "Ambassadeurs",
-      "subtitle": "Nodig mensen uit om je festival te promoten en beloningen te verdienen op toegeschreven verkopen.",
+      "subtitle": "Org-brede ambassadeurslijst. Uitnodigingen gaan naar het actieve event (wissel in de zijbalk).",
+      "activeEventHint": "Nieuwe uitnodigingen en tracklinks richten op: {event}",
       "emptyActive": "Nog geen actieve ambassadeurs.",
       "emptyPending": "Geen openstaande uitnodigingen.",
       "loading": "Ambassadeurs laden…",
@@ -398,7 +413,7 @@
     },
     "rewards": {
       "title": "Beloningen",
-      "subtitle": "Regels gelden voor toegeschreven tracklink-verkopen — dezelfde festival-setup als je links, geen aparte campagne nodig.",
+      "subtitle": "Regels voor het ambassadeursprogramma van het actieve event. Wissel events in de zijbalk voor een andere editie.",
       "empty": "Nog geen beloningen. Voeg een regel toe en attribueer een verkoop om de eerste beloning uit te keren.",
       "emptyHint": "Begin met een per-verkoop regel en simuleer daarna een verkoop op Tracklinks.",
       "actionError": "Actie mislukt. Vernieuw en probeer opnieuw.",

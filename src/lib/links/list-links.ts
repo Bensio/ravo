@@ -28,10 +28,16 @@ type RpcRow = {
 export async function listLinksForOrg(
   supabase: SupabaseClient,
   organizationId: string,
+  options?: { eventId?: string | null },
 ): Promise<LinkListItem[]> {
-  const { data, error } = await supabase.rpc('list_org_tracklinks', {
+  const rpcArgs: { p_org_id: string; p_event_id?: string } = {
     p_org_id: organizationId,
-  });
+  };
+  if (options?.eventId) {
+    rpcArgs.p_event_id = options.eventId;
+  }
+
+  const { data, error } = await supabase.rpc('list_org_tracklinks', rpcArgs);
 
   if (error) {
     throw error;

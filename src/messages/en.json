@@ -84,6 +84,19 @@
       "createCta": "Create event →",
       "manageCta": "Manage events →"
     },
+    "eventSwitcher": {
+      "label": "Working event",
+      "noEventTitle": "No event yet",
+      "createCta": "Create your first event →",
+      "pickEvent": "Select event…",
+      "manageCta": "Manage events",
+      "newEvent": "New event",
+      "phase": {
+        "upcoming": "Upcoming",
+        "live": "Live",
+        "past": "Past"
+      }
+    },
     "events": {
       "title": "Events",
       "subtitle": "Each event edition has its own ambassador program, tracklinks, and rewards.",
@@ -177,7 +190,8 @@
     },
     "overview": {
       "title": "Overview",
-      "subtitle": "Clicks, attributed sales, and top ambassadors for your festival.",
+      "subtitle": "Clicks, attributed sales, and top ambassadors for the active event.",
+      "subtitleScoped": "Metrics for {event}. Switch events in the sidebar.",
       "empty": "No activity yet. Create a tracklink and simulate a sale to populate this dashboard.",
       "emptyCta": "Go to Tracklinks →",
       "loadError": "Could not load dashboard metrics.",
@@ -224,7 +238,8 @@
     },
     "ambassadors": {
       "title": "Ambassadors",
-      "subtitle": "Invite people to promote your festival and earn rewards on attributed sales.",
+      "subtitle": "Org-wide ambassador roster. Invites join the active event's program (switch in sidebar).",
+      "activeEventHint": "New invites and tracklinks target: {event}",
       "emptyActive": "No active ambassadors yet.",
       "emptyPending": "No pending invites.",
       "loading": "Loading ambassadors…",
@@ -398,7 +413,7 @@
     },
     "rewards": {
       "title": "Rewards",
-      "subtitle": "Rules apply to attributed tracklink sales — same festival setup as your links, no separate campaign config needed.",
+      "subtitle": "Rules for the active event's ambassador program. Switch events in the sidebar to manage another edition.",
       "empty": "No rewards yet. Add a rule, then attribute a sale to issue the first reward.",
       "emptyHint": "Start with a per-sale rule, then simulate a sale on Tracklinks to see the first reward.",
       "actionError": "That action failed. Refresh and try again.",

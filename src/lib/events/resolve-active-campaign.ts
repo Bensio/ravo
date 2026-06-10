@@ -2,14 +2,17 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { resolveActiveEvent } from './event-context';
 import type { SerializedCampaignProgram, SerializedEvent } from './types';
 
-export type ActiveFestivalContext = {
+export type ActiveEventContext = {
   event: SerializedEvent;
   campaign: SerializedCampaignProgram;
 };
 
+/** @deprecated Use ActiveEventContext */
+export type ActiveFestivalContext = ActiveEventContext;
+
 export async function resolveActiveCampaignForOrg(
   organizationId: string,
-): Promise<ActiveFestivalContext | null> {
+): Promise<ActiveEventContext | null> {
   const event = await resolveActiveEvent(organizationId);
   if (!event) return null;
 

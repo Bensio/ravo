@@ -1,6 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { fetchOrgDashboard } from '@/lib/dashboard/fetch-org-dashboard';
+import { buildDashboardScope } from '@/lib/events/build-dashboard-scope';
 import { serializeOrgDashboard } from '@/lib/dashboard/types';
 import { LeaderboardDashboard } from '@/components/admin/leaderboard/leaderboard-dashboard';
 
@@ -11,8 +12,9 @@ export default async function LeaderboardPage({ params }: Props) {
   setRequestLocale(locale);
 
   const ctx = await requireOrgPageContext(org_slug, 'campaign.read');
+  const dashboardScope = ctx ? await buildDashboardScope(ctx.org.id) : null;
   const initialData = ctx
-    ? serializeOrgDashboard(await fetchOrgDashboard(ctx.org.id).catch(() => ({
+    ? serializeOrgDashboard(await fetchOrgDashboard(ctx.org.id, 30, dashboardScope).catch(() => ({
         rows: [],
         series: [],
         totals: { clicks: 0, sales: 0, revenueCents: 0n, conversion: 0 },

@@ -47,7 +47,7 @@ async function queryCampaigns(
 }
 
 /**
- * Campaigns available for reward rules. Bootstraps the same default festival/campaign
+ * Campaigns available for reward rules. Bootstraps the same default event/campaign
  * stack as tracklink creation when the org has none yet.
  */
 export async function listOrgCampaignsForRewards(

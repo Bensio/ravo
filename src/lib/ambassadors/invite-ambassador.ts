@@ -2,6 +2,7 @@ import { addDays } from 'date-fns';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateInviteToken, hashInviteToken } from '@/lib/invitations/token';
+import { resolveActiveCampaignForOrg } from '@/lib/events/resolve-active-campaign';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
 import { serverNow } from '@/lib/time';
 
@@ -89,19 +90,17 @@ function isSchemaError(message: string, code?: string): boolean {
   );
 }
 
-/** Ensures org has a campaign before invite RPC runs. */
-async function ensureCampaign(organizationId: string, ownerUserId: string): Promise<void> {
-  const admin = createAdminClient();
-  const { data: campaign } = await admin
-    .from('campaigns')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  if (!campaign) {
+/** Resolves the active event's campaign, bootstrapping if needed. */
+async function resolveInviteCampaignId(
+  organizationId: string,
+  ownerUserId: string,
+): Promise<string | null> {
+  let active = await resolveActiveCampaignForOrg(organizationId);
+  if (!active) {
     await bootstrapCampaignForOrg(organizationId, ownerUserId);
+    active = await resolveActiveCampaignForOrg(organizationId);
   }
+  return active?.campaign.id ?? null;
 }
 
 async function findPendingInvite(
@@ -250,12 +249,17 @@ export async function inviteAmbassador(
     return { ok: false, error: 'invalid_handle' };
   }
 
+  let campaignId: string | null;
   try {
-    await ensureCampaign(organizationId, invitedByUserId);
+    campaignId = await resolveInviteCampaignId(organizationId, invitedByUserId);
   } catch (err) {
     console.error('ambassador invite bootstrap failed', {
       message: err instanceof Error ? err.message : 'unknown',
     });
+    return { ok: false, error: 'no_campaign' };
+  }
+
+  if (!campaignId) {
     return { ok: false, error: 'no_campaign' };
   }
 
@@ -282,6 +286,7 @@ export async function inviteAmbassador(
       p_display_handle: displayHandle,
       p_token_hash: tokenHash,
       p_expires_at: expiresAt,
+      p_campaign_id: campaignId,
     },
   );
 
@@ -314,13 +319,6 @@ export async function inviteAmbassador(
 
   // Fallback: direct insert via service role (pre-RPC deployments).
   const admin = createAdminClient();
-  const { data: campaign } = await admin
-    .from('campaigns')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .limit(1)
-    .maybeSingle();
-
   const { data: inserted, error: insertError } = await admin
     .from('invitations')
     .insert({
@@ -330,7 +328,7 @@ export async function inviteAmbassador(
       token: tokenHash,
       invited_by: invitedByUserId,
       expires_at: expiresAt,
-      campaign_id: campaign?.id ?? null,
+      campaign_id: campaignId,
       metadata: { display_handle: displayHandle },
     })
     .select('id')
