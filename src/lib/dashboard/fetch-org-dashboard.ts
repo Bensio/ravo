@@ -1,10 +1,10 @@
-import { cache } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseISO, subDays } from 'date-fns';
 import { getAmbassadorMemberProfiles } from '@/lib/ambassadors/ambassador-member-filter';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { comparePeriods } from '@/lib/stats/compare-periods';
 import { serverNow } from '@/lib/time';
+import type { DashboardDays } from './dashboard-range';
 import type { DashboardAmbassadorRow, DashboardTrendPoint, OrgDashboardData } from './types';
 
 const DEFAULT_TZ = 'Europe/Amsterdam';
@@ -13,11 +13,11 @@ function isoDayInTz(date: Date, tz: string): string {
   return formatInTimeZone(date, tz, 'yyyy-MM-dd');
 }
 
-function dayKeys(days: number, tz: string): string[] {
-  const now = serverNow();
+function dayKeysForRange(days: number, tz: string, endOffsetDays = 0): string[] {
+  const anchor = subDays(serverNow(), endOffsetDays);
   const out: string[] = [];
   for (let i = days - 1; i >= 0; i--) {
-    out.push(isoDayInTz(subDays(now, i), tz));
+    out.push(isoDayInTz(subDays(anchor, i), tz));
   }
   return out;
 }
@@ -74,7 +74,10 @@ function periodTotals(
   return { clicks, sales, revenueCents };
 }
 
-export const fetchOrgDashboard = cache(async (organizationId: string): Promise<OrgDashboardData> => {
+export async function fetchOrgDashboard(
+  organizationId: string,
+  days: DashboardDays = 30,
+): Promise<OrgDashboardData> {
   const admin = createAdminClient();
 
   const [{ data: org }, { data: event }, memberProfiles] = await Promise.all([
@@ -91,11 +94,12 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
 
   const currency = org?.default_currency ?? 'EUR';
   const tz = event?.timezone ?? DEFAULT_TZ;
-  const since = subDays(serverNow(), 30).toISOString();
-  const allDays = dayKeys(30, tz);
-  const sparkDays = allDays.slice(-14);
-  const currentWeek = allDays.slice(-7);
-  const priorWeek = allDays.slice(-14, -7);
+  const currentDays = dayKeysForRange(days, tz, 0);
+  const priorDays = dayKeysForRange(days, tz, days);
+  const currentDaySet = new Set(currentDays);
+  const priorDaySet = new Set(priorDays);
+  const sparkDays = currentDays.slice(-Math.min(14, days));
+  const since = subDays(serverNow(), days * 2).toISOString();
 
   const validAmbassadorIds = new Set(memberProfiles.map((profile) => profile.id));
   const ambassadorSeeds = new Map<string, AmbassadorSeed>();
@@ -137,30 +141,32 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
   }
 
   const clicksByDay = new Map<string, number>();
-  for (const day of allDays) clicksByDay.set(day, 0);
-
   const salesByDay = new Map<string, number>();
   const revenueByDay = new Map<string, bigint>();
-  for (const day of allDays) {
+  for (const day of currentDays) {
+    clicksByDay.set(day, 0);
     salesByDay.set(day, 0);
     revenueByDay.set(day, 0n);
   }
+
+  const priorClicks = { clicks: 0, sales: 0, revenueCents: 0n };
 
   for (const click of clicks ?? []) {
     const ambassadorId = linkToAmbassador.get(click.link_id);
     if (!ambassadorId || !validAmbassadorIds.has(ambassadorId)) continue;
 
     const day = isoDayInTz(parseISO(click.created_at), tz);
-    clicksByDay.set(day, (clicksByDay.get(day) ?? 0) + 1);
 
-    const row = byAmbassador.get(ambassadorId);
-    if (!row) continue;
-
-    row.clicks += 1;
-
-    const sparkIdx = sparkDays.indexOf(day);
-    if (sparkIdx >= 0) {
-      row.spark[sparkIdx] += 1;
+    if (currentDaySet.has(day)) {
+      clicksByDay.set(day, (clicksByDay.get(day) ?? 0) + 1);
+      const row = byAmbassador.get(ambassadorId);
+      if (row) {
+        row.clicks += 1;
+        const sparkIdx = sparkDays.indexOf(day);
+        if (sparkIdx >= 0) row.spark[sparkIdx] += 1;
+      }
+    } else if (priorDaySet.has(day)) {
+      priorClicks.clicks += 1;
     }
   }
 
@@ -177,14 +183,18 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
     const day = isoDayInTz(parseISO(order.placed_at), tz);
     const cents = BigInt(order.net_amount_cents);
 
-    salesByDay.set(day, (salesByDay.get(day) ?? 0) + 1);
-    revenueByDay.set(day, (revenueByDay.get(day) ?? 0n) + cents);
-
-    const row = byAmbassador.get(ambassadorId);
-    if (!row) continue;
-
-    row.sales += 1;
-    row.revenueCents += cents;
+    if (currentDaySet.has(day)) {
+      salesByDay.set(day, (salesByDay.get(day) ?? 0) + 1);
+      revenueByDay.set(day, (revenueByDay.get(day) ?? 0n) + cents);
+      const row = byAmbassador.get(ambassadorId);
+      if (row) {
+        row.sales += 1;
+        row.revenueCents += cents;
+      }
+    } else if (priorDaySet.has(day)) {
+      priorClicks.sales += 1;
+      priorClicks.revenueCents += cents;
+    }
   }
 
   const rows = [...byAmbassador.values()]
@@ -196,7 +206,7 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
 
   rows.sort((a, b) => b.sales - a.sales || b.clicks - a.clicks);
 
-  const series: DashboardTrendPoint[] = allDays.map((day) => ({
+  const series: DashboardTrendPoint[] = currentDays.map((day) => ({
     day,
     clicks: clicksByDay.get(day) ?? 0,
     sales: salesByDay.get(day) ?? 0,
@@ -208,16 +218,10 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
   const totalRevenue = rows.reduce((s, r) => s + r.revenueCents, 0n);
   const conversion = totalClicks > 0 ? totalSales / totalClicks : 0;
 
-  const currentFrom = currentWeek[0]!;
-  const currentTo = currentWeek[currentWeek.length - 1]!;
-  const priorFrom = priorWeek[0]!;
-  const priorTo = priorWeek[priorWeek.length - 1]!;
-
+  const currentFrom = currentDays[0]!;
+  const currentTo = currentDays[currentDays.length - 1]!;
   const cur = periodTotals(series, currentFrom, currentTo);
-  const prev = periodTotals(series, priorFrom, priorTo);
-
-  const curConv = cur.clicks > 0 ? cur.sales / cur.clicks : 0;
-  const prevConv = prev.clicks > 0 ? prev.sales / prev.clicks : 0;
+  const prevConv = priorClicks.clicks > 0 ? priorClicks.sales / priorClicks.clicks : 0;
 
   return {
     rows,
@@ -229,12 +233,13 @@ export const fetchOrgDashboard = cache(async (organizationId: string): Promise<O
       conversion,
     },
     deltas: {
-      clicks: comparePeriods(cur.clicks, prev.clicks, 5).delta,
-      sales: comparePeriods(cur.sales, prev.sales, 3).delta,
-      revenue: comparePeriods(Number(cur.revenueCents), Number(prev.revenueCents), 3).delta,
-      conversion: comparePeriods(curConv * 100, prevConv * 100, 1).delta,
+      clicks: comparePeriods(cur.clicks, priorClicks.clicks, 5).delta,
+      sales: comparePeriods(cur.sales, priorClicks.sales, 3).delta,
+      revenue: comparePeriods(Number(cur.revenueCents), Number(priorClicks.revenueCents), 3).delta,
+      conversion: comparePeriods(conversion * 100, prevConv * 100, 1).delta,
     },
     currency,
     timezone: tz,
+    days,
   };
-});
+}

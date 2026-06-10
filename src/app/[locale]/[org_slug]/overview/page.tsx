@@ -19,6 +19,7 @@ export default async function OverviewPage({ params }: Props) {
         deltas: { clicks: null, sales: null, revenue: null, conversion: null },
         currency: 'EUR',
         timezone: 'Europe/Amsterdam',
+        days: 30 as const,
       })))
     : null;
 

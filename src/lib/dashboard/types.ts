@@ -34,6 +34,7 @@ export type OrgDashboardData = {
   };
   currency: string;
   timezone: string;
+  days: import('./dashboard-range').DashboardDays;
 };
 
 /** JSON-safe shape for client components (bigint → string). */
@@ -49,6 +50,7 @@ export type SerializedOrgDashboard = {
   deltas: OrgDashboardData['deltas'];
   currency: string;
   timezone: string;
+  days: import('./dashboard-range').DashboardDays;
 };
 
 export function serializeOrgDashboard(data: OrgDashboardData): SerializedOrgDashboard {
@@ -59,5 +61,6 @@ export function serializeOrgDashboard(data: OrgDashboardData): SerializedOrgDash
     deltas: data.deltas,
     currency: data.currency,
     timezone: data.timezone,
+    days: data.days,
   };
 }
