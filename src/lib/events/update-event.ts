@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { toUtc } from '@/lib/time';
 import { slugifyEventName } from './slug';
 import { fetchEventDetail } from './fetch-event-detail';
 import type { SerializedEventDetail } from './types';
@@ -15,7 +16,11 @@ export type UpdateEventInput = {
   venue?: string | null;
   country?: string | null;
   currency?: string;
+  coverImageUrl?: string | null;
   campaign?: {
+    name?: string;
+    startsAt?: string | null;
+    endsAt?: string | null;
     state?: 'draft' | 'active' | 'paused' | 'closed';
     refundWindowDays?: number;
     tier4PayoutPolicy?: 'auto' | 'requires_confirmation' | 'denied';
@@ -65,12 +70,21 @@ export async function updateEvent(input: UpdateEventInput): Promise<UpdateEventR
 
   if (input.startAt !== undefined) patch.start_at = input.startAt;
   if (input.endAt !== undefined) patch.end_at = input.endAt;
+
+  if (input.startAt !== undefined && input.endAt !== undefined) {
+    if (toUtc(input.endAt) <= toUtc(input.startAt)) {
+      return { ok: false, error: 'invalid_input' };
+    }
+  }
   if (input.timezone !== undefined) patch.timezone = input.timezone.trim();
   if (input.venue !== undefined) patch.venue = input.venue?.trim() || null;
   if (input.country !== undefined) {
     patch.country = input.country?.trim().toUpperCase().slice(0, 2) || null;
   }
   if (input.currency !== undefined) patch.currency = input.currency.trim().toUpperCase();
+  if (input.coverImageUrl !== undefined) {
+    patch.cover_image_url = input.coverImageUrl?.trim() || null;
+  }
 
   if (Object.keys(patch).length > 0) {
     const { error } = await admin
@@ -87,6 +101,26 @@ export async function updateEvent(input: UpdateEventInput): Promise<UpdateEventR
 
   if (input.campaign) {
     const campaignPatch: Record<string, unknown> = {};
+    if (input.campaign.name !== undefined) {
+      const campaignName = input.campaign.name.trim();
+      if (campaignName.length < 2) return { ok: false, error: 'invalid_input' };
+      campaignPatch.name = campaignName;
+    }
+    if (input.campaign.startsAt !== undefined) {
+      campaignPatch.starts_at = input.campaign.startsAt;
+    }
+    if (input.campaign.endsAt !== undefined) {
+      campaignPatch.ends_at = input.campaign.endsAt;
+    }
+    if (
+      input.campaign.startsAt !== undefined &&
+      input.campaign.endsAt !== undefined &&
+      input.campaign.startsAt &&
+      input.campaign.endsAt &&
+      toUtc(input.campaign.endsAt) <= toUtc(input.campaign.startsAt)
+    ) {
+      return { ok: false, error: 'invalid_input' };
+    }
     if (input.campaign.state) campaignPatch.state = input.campaign.state;
     if (input.campaign.refundWindowDays !== undefined) {
       if (input.campaign.refundWindowDays < 0) {

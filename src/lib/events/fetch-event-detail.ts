@@ -1,7 +1,10 @@
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ACTIVE_EVENT_COOKIE, resolveActiveEvent } from './event-context';
-import type { SerializedCampaignProgram, SerializedEventDetail } from './types';
+import type {
+  SerializedCampaignProgram,
+  SerializedEventDetail,
+} from './types';
 import { serverNow, toUtc } from '@/lib/time';
 
 type EventRow = {
@@ -15,6 +18,7 @@ type EventRow = {
   country: string | null;
   cover_image_url: string | null;
   currency: string;
+  provider_connections: { provider: string; display_name: string } | null;
 };
 
 function phaseFromRow(row: EventRow) {
@@ -35,7 +39,8 @@ export async function fetchEventDetail(
   const { data: row, error } = await admin
     .from('events')
     .select(
-      'id, name, slug, start_at, end_at, timezone, venue, country, cover_image_url, currency',
+      `id, name, slug, start_at, end_at, timezone, venue, country, cover_image_url, currency,
+       provider_connections ( provider, display_name )`,
     )
     .eq('organization_id', organizationId)
     .eq('id', eventId)
@@ -59,7 +64,16 @@ export async function fetchEventDetail(
   const activeId = cookieStore.get(ACTIVE_EVENT_COOKIE)?.value;
   const activeEvent = await resolveActiveEvent(organizationId);
 
-  const eventRow = row as EventRow;
+  const raw = row as EventRow & {
+    provider_connections:
+      | { provider: string; display_name: string }
+      | { provider: string; display_name: string }[]
+      | null;
+  };
+  const providerConn = Array.isArray(raw.provider_connections)
+    ? raw.provider_connections[0] ?? null
+    : raw.provider_connections;
+  const eventRow: EventRow = { ...raw, provider_connections: providerConn };
   const program: SerializedCampaignProgram | null = campaign
     ? {
         id: campaign.id,
@@ -73,6 +87,14 @@ export async function fetchEventDetail(
         endsAt: campaign.ends_at,
       }
     : null;
+
+  const provider = eventRow.provider_connections?.provider ?? 'manual_utm';
+  const ticketSource: SerializedEventDetail['ticketSource'] =
+    provider === 'manual_utm'
+      ? 'manual_utm'
+      : provider === 'weeztix'
+        ? 'weeztix'
+        : 'other';
 
   return {
     id: eventRow.id,
@@ -88,5 +110,7 @@ export async function fetchEventDetail(
     phase: phaseFromRow(eventRow),
     campaign: program,
     isActive: activeId === eventRow.id || activeEvent?.id === eventRow.id,
+    ticketSource,
+    providerLabel: eventRow.provider_connections?.display_name ?? null,
   };
 }

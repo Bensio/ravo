@@ -29,4 +29,6 @@ export type SerializedCampaignProgram = {
 export type SerializedEventDetail = SerializedEvent & {
   campaign: SerializedCampaignProgram | null;
   isActive: boolean;
+  ticketSource: 'manual_utm' | 'weeztix' | 'other';
+  providerLabel: string | null;
 };

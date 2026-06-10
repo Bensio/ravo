@@ -23,6 +23,7 @@ export default async function FestivalsPage({ params }: Props) {
 
   return (
     <FestivalsDashboard
+      locale={locale}
       orgSlug={org_slug}
       canCreate={canCreate}
       canEdit={canEdit}

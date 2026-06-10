@@ -94,29 +94,75 @@
       "emptyHint": "Create your first edition to replace the auto-generated default and name your event properly.",
       "activeBadge": "Active",
       "setActive": "Set active",
-      "editTitle": "Festival details",
       "readOnly": "You can view settings but not edit them.",
+      "kpiTotal": "Total editions",
+      "kpiActive": "Active context",
+      "kpiLive": "Live now",
       "phase": {
         "upcoming": "Upcoming",
         "live": "Live",
         "past": "Past"
       },
+      "table": {
+        "name": "Festival",
+        "dates": "Dates",
+        "phase": "Status",
+        "actions": "Actions",
+        "manage": "Manage"
+      },
+      "detail": {
+        "back": "All festivals"
+      },
+      "nav": {
+        "edition": "Edition",
+        "program": "Ambassador program",
+        "shortcuts": "Shortcuts",
+        "ariaLabel": "Festival sections"
+      },
+      "edition": {
+        "hint": "Dates, location, and currency for this edition. Shown in dashboards and ambassador views."
+      },
+      "shortcuts": {
+        "title": "Quick links",
+        "hint": "Tracklinks, rewards, and ambassadors use the active festival context from the sidebar.",
+        "tracklinks": "Tracklinks",
+        "rewards": "Rewards",
+        "ambassadors": "Ambassadors",
+        "inactiveWarning": "This edition is not the active context. Set it active so tracklinks and rewards target this festival."
+      },
       "form": {
         "createTitle": "New festival edition",
         "name": "Festival name",
         "namePlaceholder": "e.g. Sun Splash 2026",
+        "slug": "URL slug",
+        "slugHint": "Used in UTM campaign parameters and internal links. Lowercase letters, numbers, and hyphens only.",
+        "slugTaken": "That slug is already in use.",
+        "startAt": "Starts",
+        "endAt": "Ends",
         "venue": "Venue",
         "venuePlaceholder": "e.g. Amsterdamse Bos",
+        "country": "Country",
+        "countryUnset": "Not set",
+        "coverImage": "Cover image URL",
         "timezone": "Timezone",
         "currency": "Currency",
         "createSubmit": "Create festival",
         "createError": "Could not create festival. Check the name and try again.",
         "save": "Save changes",
-        "saveError": "Could not save changes."
+        "saveError": "Could not save changes.",
+        "invalidDates": "End date must be after start date."
       },
       "program": {
         "title": "Ambassador program",
         "hint": "Controls refund window, UTM cash review, and whether ambassadors can earn on this edition.",
+        "name": "Program name",
+        "startsAt": "Program opens",
+        "endsAt": "Program closes",
+        "datesOptional": "Optional — leave empty to run for the full edition.",
+        "ticketSource": "Ticket data source",
+        "ticketSourceManual": "Manual UTM (test sales & simulate)",
+        "ticketSourceWeeztix": "Weeztix",
+        "ticketSourceOther": "Ticketing provider",
         "state": "Program status",
         "stateDraft": "Draft",
         "stateActive": "Active",

@@ -94,29 +94,75 @@
       "emptyHint": "Maak je eerste editie aan om de automatische default te vervangen.",
       "activeBadge": "Actief",
       "setActive": "Actief maken",
-      "editTitle": "Festivaldetails",
       "readOnly": "Je kunt instellingen bekijken maar niet bewerken.",
+      "kpiTotal": "Totaal edities",
+      "kpiActive": "Actieve context",
+      "kpiLive": "Nu live",
       "phase": {
         "upcoming": "Komend",
         "live": "Live",
         "past": "Afgelopen"
       },
+      "table": {
+        "name": "Festival",
+        "dates": "Data",
+        "phase": "Status",
+        "actions": "Acties",
+        "manage": "Beheren"
+      },
+      "detail": {
+        "back": "Alle festivals"
+      },
+      "nav": {
+        "edition": "Editie",
+        "program": "Ambassadeursprogramma",
+        "shortcuts": "Snelkoppelingen",
+        "ariaLabel": "Festivalsecties"
+      },
+      "edition": {
+        "hint": "Data, locatie en valuta voor deze editie. Zichtbaar in dashboards en ambassadeur-weergaven."
+      },
+      "shortcuts": {
+        "title": "Snelkoppelingen",
+        "hint": "Tracklinks, beloningen en ambassadeurs gebruiken de actieve festivalcontext uit de zijbalk.",
+        "tracklinks": "Tracklinks",
+        "rewards": "Beloningen",
+        "ambassadors": "Ambassadeurs",
+        "inactiveWarning": "Deze editie is niet de actieve context. Maak hem actief zodat tracklinks en beloningen op dit festival richten."
+      },
       "form": {
         "createTitle": "Nieuwe festival-editie",
         "name": "Festivalnaam",
         "namePlaceholder": "bijv. Sun Splash 2026",
+        "slug": "URL-slug",
+        "slugHint": "Gebruikt in UTM-campagneparameters en interne links. Alleen kleine letters, cijfers en koppeltekens.",
+        "slugTaken": "Deze slug is al in gebruik.",
+        "startAt": "Start",
+        "endAt": "Einde",
         "venue": "Locatie",
         "venuePlaceholder": "bijv. Amsterdamse Bos",
+        "country": "Land",
+        "countryUnset": "Niet ingesteld",
+        "coverImage": "Coverafbeelding-URL",
         "timezone": "Tijdzone",
         "currency": "Valuta",
         "createSubmit": "Festival aanmaken",
         "createError": "Festival aanmaken mislukt. Controleer de naam.",
         "save": "Wijzigingen opslaan",
-        "saveError": "Opslaan mislukt."
+        "saveError": "Opslaan mislukt.",
+        "invalidDates": "Einddatum moet na de startdatum liggen."
       },
       "program": {
         "title": "Ambassadeursprogramma",
         "hint": "Bepaalt terugbetalingsperiode, UTM-cash review en of ambassadeurs kunnen verdienen.",
+        "name": "Programmanaam",
+        "startsAt": "Programma opent",
+        "endsAt": "Programma sluit",
+        "datesOptional": "Optioneel — leeg laten om de hele editie te lopen.",
+        "ticketSource": "Ticketdatabron",
+        "ticketSourceManual": "Handmatige UTM (testsales & simuleren)",
+        "ticketSourceWeeztix": "Weeztix",
+        "ticketSourceOther": "Ticketprovider",
         "state": "Programmastatus",
         "stateDraft": "Concept",
         "stateActive": "Actief",

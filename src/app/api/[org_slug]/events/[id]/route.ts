@@ -23,7 +23,11 @@ type PatchBody = {
   venue?: string | null;
   country?: string | null;
   currency?: string;
+  coverImageUrl?: string | null;
   campaign?: {
+    name?: string;
+    startsAt?: string | null;
+    endsAt?: string | null;
     state?: 'draft' | 'active' | 'paused' | 'closed';
     refundWindowDays?: number;
     tier4PayoutPolicy?: 'auto' | 'requires_confirmation' | 'denied';
@@ -51,6 +55,7 @@ export const PATCH = requirePermission('event.update', async ({ ctx, params, req
     venue: body.venue,
     country: body.country,
     currency: body.currency,
+    coverImageUrl: body.coverImageUrl,
     campaign: body.campaign,
   });
 

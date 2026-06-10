@@ -1,17 +1,26 @@
 'use client';
 
-import { CalendarDays, Check, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { addDays } from 'date-fns';
+import { CalendarDays, ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import type { SerializedEvent, SerializedEventDetail } from '@/lib/events/types';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
-import { formatInFestivalTz } from '@/lib/time';
+import { datetimeLocalToUtcIso, toDatetimeLocalInput } from '@/lib/events/form-dates';
+import { slugifyEventName } from '@/lib/events/slug';
+import type { SerializedEvent, SerializedEventDetail } from '@/lib/events/types';
+import {
+  ORG_COUNTRIES,
+  ORG_CURRENCIES,
+  ORG_TIMEZONES,
+} from '@/lib/org/org-settings';
+import { clientNow, formatInFestivalTz } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
 const inputClass =
-  'w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-foreground outline-none focus:border-primary/40';
+  'w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
 type EventsData = {
   events: SerializedEvent[];
@@ -19,11 +28,13 @@ type EventsData = {
 };
 
 export function FestivalsDashboard({
+  locale,
   orgSlug,
   canCreate,
   canEdit,
   initialData,
 }: {
+  locale: string;
   orgSlug: string;
   canCreate: boolean;
   canEdit: boolean;
@@ -35,26 +46,23 @@ export function FestivalsDashboard({
   const [loading, setLoading] = useState(initialData === undefined);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<SerializedEventDetail | null>(null);
-  const [saving, setSaving] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const [createName, setCreateName] = useState('');
-  const [createTimezone, setCreateTimezone] = useState('Europe/Amsterdam');
-  const [createCurrency, setCreateCurrency] = useState('EUR');
+  const defaultTz = 'Europe/Amsterdam';
 
-  const [editName, setEditName] = useState('');
-  const [editTimezone, setEditTimezone] = useState('Europe/Amsterdam');
-  const [editCurrency, setEditCurrency] = useState('EUR');
-  const [editVenue, setEditVenue] = useState('');
-  const [editRefundDays, setEditRefundDays] = useState('14');
-  const [editTier4, setEditTier4] = useState<'auto' | 'requires_confirmation' | 'denied'>(
-    'requires_confirmation',
+  const [createName, setCreateName] = useState('');
+  const [createSlug, setCreateSlug] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [createTimezone, setCreateTimezone] = useState(defaultTz);
+  const [createCurrency, setCreateCurrency] = useState('EUR');
+  const [createCountry, setCreateCountry] = useState('');
+  const [createVenue, setCreateVenue] = useState('');
+  const [createStartLocal, setCreateStartLocal] = useState(() =>
+    toDatetimeLocalInput(clientNow().toISOString(), defaultTz),
   );
-  const [editProgramState, setEditProgramState] = useState<'draft' | 'active' | 'paused' | 'closed'>(
-    'active',
+  const [createEndLocal, setCreateEndLocal] = useState(() =>
+    toDatetimeLocalInput(addDays(clientNow(), 90).toISOString(), defaultTz),
   );
 
   const load = useCallback(async () => {
@@ -70,33 +78,13 @@ export function FestivalsDashboard({
     if (initialData === undefined) void load();
   }, [initialData, load]);
 
-  const loadDetail = useCallback(
-    async (eventId: string) => {
-      const res = await fetch(`/api/${orgSlug}/events/${eventId}`, { cache: 'no-store' });
-      if (!res.ok) return;
-      const payload = (await res.json()) as { event?: SerializedEventDetail };
-      const event = payload.event ?? null;
-      setDetail(event);
-      if (event) {
-        setEditName(event.name);
-        setEditTimezone(event.timezone);
-        setEditCurrency(event.currency);
-        setEditVenue(event.venue ?? '');
-        setEditRefundDays(String(event.campaign?.refundWindowDays ?? 14));
-        setEditTier4(event.campaign?.tier4PayoutPolicy ?? 'requires_confirmation');
-        const programState = event.campaign?.state ?? 'active';
-        setEditProgramState(
-          programState === 'archived' ? 'closed' : programState,
-        );
-      }
-    },
-    [orgSlug],
-  );
-
   useEffect(() => {
-    if (selectedId) void loadDetail(selectedId);
-    else setDetail(null);
-  }, [selectedId, loadDetail]);
+    const now = clientNow();
+    setCreateStartLocal(toDatetimeLocalInput(now.toISOString(), createTimezone));
+    setCreateEndLocal(
+      toDatetimeLocalInput(addDays(now, 90).toISOString(), createTimezone),
+    );
+  }, [createTimezone]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -107,18 +95,29 @@ export function FestivalsDashboard({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: createName,
+        slug: createSlug || undefined,
         timezone: createTimezone,
         currency: createCurrency,
+        country: createCountry || undefined,
+        venue: createVenue || undefined,
+        startAt: datetimeLocalToUtcIso(createStartLocal, createTimezone),
+        endAt: datetimeLocalToUtcIso(createEndLocal, createTimezone),
       }),
     });
     setCreating(false);
     if (!res.ok) {
-      setFormError(t('form.createError'));
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      setFormError(
+        payload.error === 'slug_taken' ? t('form.slugTaken') : t('form.createError'),
+      );
       return;
     }
+    const payload = (await res.json()) as { event: SerializedEventDetail };
     setShowCreate(false);
     setCreateName('');
-    await load();
+    setCreateSlug('');
+    setSlugTouched(false);
+    router.push(`/${locale}/${orgSlug}/festivals/${payload.event.id}`);
     router.refresh();
   }
 
@@ -127,40 +126,9 @@ export function FestivalsDashboard({
     const res = await fetch(`/api/${orgSlug}/events/${eventId}/activate`, { method: 'POST' });
     if (res.ok) {
       await load();
-      if (selectedId === eventId) await loadDetail(eventId);
       router.refresh();
     }
     setActivatingId(null);
-  }
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedId || !canEdit) return;
-    setFormError(null);
-    setSaving(true);
-    const res = await fetch(`/api/${orgSlug}/events/${selectedId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: editName,
-        timezone: editTimezone,
-        currency: editCurrency,
-        venue: editVenue || null,
-        campaign: {
-          state: editProgramState,
-          refundWindowDays: Number(editRefundDays),
-          tier4PayoutPolicy: editTier4,
-        },
-      }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      setFormError(t('form.saveError'));
-      return;
-    }
-    await load();
-    await loadDetail(selectedId);
-    router.refresh();
   }
 
   if (loading && !data) {
@@ -169,12 +137,14 @@ export function FestivalsDashboard({
 
   const events = data?.events ?? [];
   const activeId = data?.activeEventId ?? null;
+  const liveCount = events.filter((e) => e.phase === 'live').length;
+  const basePath = `/${locale}/${orgSlug}`;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         <div className="flex gap-2">
@@ -191,45 +161,131 @@ export function FestivalsDashboard({
         </div>
       </div>
 
+      <section className="grid gap-4 sm:grid-cols-3">
+        {[
+          { label: t('kpiTotal'), value: String(events.length) },
+          { label: t('kpiActive'), value: String(activeId ? 1 : 0) },
+          { label: t('kpiLive'), value: String(liveCount) },
+        ].map((kpi) => (
+          <div key={kpi.label} className="ravo-glass-panel p-5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {kpi.label}
+            </p>
+            <p className="mt-2 text-3xl font-bold tabular-nums text-primary">{kpi.value}</p>
+          </div>
+        ))}
+      </section>
+
       {showCreate && canCreate && (
-        <form onSubmit={(e) => void handleCreate(e)} className="ravo-glass-panel space-y-4 p-5">
+        <form onSubmit={(e) => void handleCreate(e)} className="ravo-glass-panel space-y-4 p-6">
           <h2 className="font-medium">{t('form.createTitle')}</h2>
-          <label className="block space-y-1 text-sm">
-            <span>{t('form.name')}</span>
-            <input
-              className={inputClass}
-              value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
-              placeholder={t('form.namePlaceholder')}
-              required
-            />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block space-y-1 text-sm md:col-span-2">
+              <span className="text-xs text-muted-foreground">{t('form.name')}</span>
+              <input
+                className={inputClass}
+                value={createName}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setCreateName(name);
+                  if (!slugTouched) setCreateSlug(slugifyEventName(name));
+                }}
+                placeholder={t('form.namePlaceholder')}
+                required
+              />
+            </label>
+            <label className="block space-y-1 text-sm md:col-span-2">
+              <span className="text-xs text-muted-foreground">{t('form.slug')}</span>
+              <input
+                className={inputClass}
+                value={createSlug}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  setCreateSlug(slugifyEventName(e.target.value));
+                }}
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">{t('form.slugHint')}</p>
+            </label>
             <label className="block space-y-1 text-sm">
-              <span>{t('form.timezone')}</span>
+              <span className="text-xs text-muted-foreground">{t('form.startAt')}</span>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={createStartLocal}
+                onChange={(e) => setCreateStartLocal(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.endAt')}</span>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={createEndLocal}
+                onChange={(e) => setCreateEndLocal(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.timezone')}</span>
               <NativeSelect
                 value={createTimezone}
                 onChange={(e) => setCreateTimezone(e.target.value)}
+                className="w-full"
               >
-                <option value="Europe/Amsterdam">Europe/Amsterdam</option>
-                <option value="Europe/London">Europe/London</option>
-                <option value="Europe/Berlin">Europe/Berlin</option>
+                {ORG_TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
               </NativeSelect>
             </label>
             <label className="block space-y-1 text-sm">
-              <span>{t('form.currency')}</span>
+              <span className="text-xs text-muted-foreground">{t('form.country')}</span>
+              <NativeSelect
+                value={createCountry}
+                onChange={(e) => setCreateCountry(e.target.value)}
+                className="w-full"
+              >
+                <option value="">{t('form.countryUnset')}</option>
+                {ORG_COUNTRIES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.venue')}</span>
+              <input
+                className={inputClass}
+                value={createVenue}
+                onChange={(e) => setCreateVenue(e.target.value)}
+                placeholder={t('form.venuePlaceholder')}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.currency')}</span>
               <NativeSelect
                 value={createCurrency}
                 onChange={(e) => setCreateCurrency(e.target.value)}
+                className="w-full"
               >
-                <option value="EUR">EUR</option>
+                {ORG_CURRENCIES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
               </NativeSelect>
             </label>
           </div>
           {formError && <p className="text-sm text-red-400">{formError}</p>}
-          <Button type="submit" size="sm" disabled={creating}>
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('form.createSubmit')}
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" disabled={creating}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('form.createSubmit')}
+            </Button>
+          </div>
         </form>
       )}
 
@@ -240,186 +296,83 @@ export function FestivalsDashboard({
           <p className="text-xs text-muted-foreground">{t('emptyHint')}</p>
         </section>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ul className="space-y-2">
-            {events.map((event) => {
-              const isActive = event.id === activeId;
-              return (
-                <li key={event.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(event.id)}
-                    className={cn(
-                      'w-full rounded-xl border px-4 py-3 text-left transition-colors',
-                      selectedId === event.id
-                        ? 'border-primary/40 bg-primary/5'
-                        : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium">{event.name}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {formatInFestivalTz(event.startAt, event, 'PP')} –{' '}
-                          {formatInFestivalTz(event.endAt, event, 'PP')}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {isActive && (
-                          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-                            {t('activeBadge')}
-                          </span>
-                        )}
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        <section className="ravo-glass-panel overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/[0.06] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  <th className="px-5 py-3">{t('table.name')}</th>
+                  <th className="px-5 py-3">{t('table.dates')}</th>
+                  <th className="px-5 py-3">{t('table.phase')}</th>
+                  <th className="px-5 py-3 text-right">{t('table.actions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {events.map((event) => {
+                  const isActive = event.id === activeId;
+                  return (
+                    <tr key={event.id} className="group hover:bg-white/[0.02]">
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{event.name}</span>
+                          {isActive && (
+                            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              {t('activeBadge')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{event.slug}</p>
+                      </td>
+                      <td className="px-5 py-4 text-muted-foreground">
+                        {formatInFestivalTz(event.startAt, event, 'PP')} –{' '}
+                        {formatInFestivalTz(event.endAt, event, 'PP')}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                            event.phase === 'live'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : 'bg-white/[0.06] text-muted-foreground',
+                          )}
+                        >
                           {t(`phase.${event.phase}`)}
                         </span>
-                      </div>
-                    </div>
-                    {!isActive && canEdit && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 h-7 text-xs"
-                        disabled={activatingId === event.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleActivate(event.id);
-                        }}
-                      >
-                        {activatingId === event.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          t('setActive')
-                        )}
-                      </Button>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          {selectedId && detail && (
-            <form onSubmit={(e) => void handleSave(e)} className="ravo-glass-panel space-y-4 p-5">
-              <h2 className="font-medium">{t('editTitle')}</h2>
-              {!canEdit && (
-                <p className="text-xs text-muted-foreground">{t('readOnly')}</p>
-              )}
-              <label className="block space-y-1 text-sm">
-                <span>{t('form.name')}</span>
-                <input
-                  className={inputClass}
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  disabled={!canEdit}
-                  required
-                />
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span>{t('form.venue')}</span>
-                <input
-                  className={inputClass}
-                  value={editVenue}
-                  onChange={(e) => setEditVenue(e.target.value)}
-                  disabled={!canEdit}
-                  placeholder={t('form.venuePlaceholder')}
-                />
-              </label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block space-y-1 text-sm">
-                  <span>{t('form.timezone')}</span>
-                  <NativeSelect
-                    value={editTimezone}
-                    onChange={(e) => setEditTimezone(e.target.value)}
-                    disabled={!canEdit}
-                  >
-                    <option value="Europe/Amsterdam">Europe/Amsterdam</option>
-                    <option value="Europe/London">Europe/London</option>
-                    <option value="Europe/Berlin">Europe/Berlin</option>
-                  </NativeSelect>
-                </label>
-                <label className="block space-y-1 text-sm">
-                  <span>{t('form.currency')}</span>
-                  <NativeSelect
-                    value={editCurrency}
-                    onChange={(e) => setEditCurrency(e.target.value)}
-                    disabled={!canEdit}
-                  >
-                    <option value="EUR">EUR</option>
-                  </NativeSelect>
-                </label>
-              </div>
-
-              <div className="border-t border-white/[0.06] pt-4">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {t('program.title')}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">{t('program.hint')}</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <label className="block space-y-1 text-sm sm:col-span-2">
-                    <span>{t('program.state')}</span>
-                    <NativeSelect
-                      value={editProgramState}
-                      onChange={(e) =>
-                        setEditProgramState(
-                          e.target.value as 'draft' | 'active' | 'paused' | 'closed',
-                        )
-                      }
-                      disabled={!canEdit}
-                    >
-                      <option value="draft">{t('program.stateDraft')}</option>
-                      <option value="active">{t('program.stateActive')}</option>
-                      <option value="paused">{t('program.statePaused')}</option>
-                      <option value="closed">{t('program.stateClosed')}</option>
-                    </NativeSelect>
-                  </label>
-                  <label className="block space-y-1 text-sm">
-                    <span>{t('program.refundWindow')}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      className={inputClass}
-                      value={editRefundDays}
-                      onChange={(e) => setEditRefundDays(e.target.value)}
-                      disabled={!canEdit}
-                    />
-                  </label>
-                  <label className="block space-y-1 text-sm">
-                    <span>{t('program.tier4')}</span>
-                    <NativeSelect
-                      value={editTier4}
-                      onChange={(e) =>
-                        setEditTier4(
-                          e.target.value as 'auto' | 'requires_confirmation' | 'denied',
-                        )
-                      }
-                      disabled={!canEdit}
-                    >
-                      <option value="requires_confirmation">{t('program.tier4Review')}</option>
-                      <option value="auto">{t('program.tier4Auto')}</option>
-                      <option value="denied">{t('program.tier4Denied')}</option>
-                    </NativeSelect>
-                  </label>
-                </div>
-              </div>
-
-              {formError && <p className="text-sm text-red-400">{formError}</p>}
-              {canEdit && (
-                <Button type="submit" size="sm" disabled={saving}>
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Check className="mr-1.5 h-4 w-4" />
-                      {t('form.save')}
-                    </>
-                  )}
-                </Button>
-              )}
-            </form>
-          )}
-        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {!isActive && canEdit && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-xs"
+                              disabled={activatingId === event.id}
+                              onClick={() => void handleActivate(event.id)}
+                            >
+                              {activatingId === event.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                t('setActive')
+                              )}
+                            </Button>
+                          )}
+                          <Link
+                            href={`${basePath}/festivals/${event.id}`}
+                            className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                          >
+                            {t('table.manage')}
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );
