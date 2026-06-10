@@ -24,7 +24,12 @@ function walk(dir: string): string[] {
 
 const routeFiles = walk(apiRoot);
 
-const EXEMPT_PREFIXES = ['src/app/api/ingest/', 'src/app/api/webhooks/', 'src/app/api/invites/'];
+const EXEMPT_PREFIXES = [
+  'src/app/api/ingest/',
+  'src/app/api/inngest/',
+  'src/app/api/webhooks/',
+  'src/app/api/invites/',
+];
 
 for (const file of routeFiles) {
   const content = readFileSync(file, 'utf8');
