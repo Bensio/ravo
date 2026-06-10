@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { createPerSaleRewardRule } from '@/lib/rewards/create-rule';
+import { resolveCampaignIdForRewards } from '@/lib/rewards/list-org-campaigns';
 import type { RewardType } from '@/lib/rewards/types';
 import { REWARD_TYPES } from '@/lib/rewards/types';
 
@@ -24,8 +25,17 @@ export const POST = requirePermission('reward.rule.create', async ({ ctx, reques
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
 
-  if (!body.campaignId || !body.name?.trim()) {
+  if (!body.name?.trim()) {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 });
+  }
+
+  const campaignId = await resolveCampaignIdForRewards(
+    ctx.org.id,
+    ctx.user.id,
+    body.campaignId,
+  );
+  if (!campaignId) {
+    return NextResponse.json({ error: 'no_campaign' }, { status: 400 });
   }
 
   const rewardType = body.rewardType as RewardType | undefined;
@@ -35,7 +45,7 @@ export const POST = requirePermission('reward.rule.create', async ({ ctx, reques
 
   const result = await createPerSaleRewardRule({
     organizationId: ctx.org.id,
-    campaignId: body.campaignId,
+    campaignId,
     name: body.name.trim(),
     rewardType,
     amountCents: body.amountCents ? BigInt(body.amountCents) : undefined,

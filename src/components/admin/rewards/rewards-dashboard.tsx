@@ -128,10 +128,12 @@ export function RewardsDashboard({
     setSubmitting(true);
 
     const body: Record<string, string> = {
-      campaignId: formCampaignId,
       name: formName,
       rewardType: formRewardType,
     };
+    if (formCampaignId) {
+      body.campaignId = formCampaignId;
+    }
 
     if (formRewardType === 'cash') {
       const euros = Number(formAmount);
@@ -153,7 +155,10 @@ export function RewardsDashboard({
     });
 
     if (!res.ok) {
-      setFormError(t('form.createError'));
+      const err = (await res.json().catch(() => ({}))) as { error?: string };
+      setFormError(
+        err.error === 'no_campaign' ? t('form.noFestival') : t('form.createError'),
+      );
       setSubmitting(false);
       return;
     }
@@ -224,20 +229,30 @@ export function RewardsDashboard({
         >
           <h2 className="font-medium">{t('form.title')}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block space-y-1 text-sm">
-              <span>{t('form.campaign')}</span>
-              <NativeSelect
-                value={formCampaignId}
-                onChange={(e) => setFormCampaignId(e.target.value)}
-                required
-              >
-                {(data?.campaigns ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
+            {(data?.campaigns.length ?? 0) > 1 ? (
+              <label className="block space-y-1 text-sm">
+                <span>{t('form.festival')}</span>
+                <NativeSelect
+                  value={formCampaignId}
+                  onChange={(e) => setFormCampaignId(e.target.value)}
+                  required
+                >
+                  {(data?.campaigns ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </label>
+            ) : (data?.campaigns.length ?? 0) === 1 ? (
+              <div className="space-y-1 text-sm sm:col-span-2">
+                <span className="text-muted-foreground">{t('form.festival')}</span>
+                <p className="font-medium">{data!.campaigns[0]!.name}</p>
+                <p className="text-xs text-muted-foreground">{t('form.festivalHint')}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-red-400 sm:col-span-2">{t('form.noFestival')}</p>
+            )}
             <label className="block space-y-1 text-sm">
               <span>{t('form.name')}</span>
               <input
@@ -298,7 +313,11 @@ export function RewardsDashboard({
           </div>
           {formError && <p className="text-sm text-red-400">{formError}</p>}
           <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={submitting}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={submitting || (data?.campaigns.length ?? 0) === 0}
+            >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t('form.submit')}
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => setShowCreate(false)}>

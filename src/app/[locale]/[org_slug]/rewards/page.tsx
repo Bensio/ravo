@@ -12,7 +12,9 @@ export default async function RewardsPage({ params }: Props) {
 
   const ctx = await requireOrgPageContext(org_slug, 'campaign.read');
   const initialData = ctx
-    ? await fetchOrgRewardsPageData(ctx.org.id).catch(() => null)
+    ? await fetchOrgRewardsPageData(ctx.org.id, {
+        bootstrapUserId: ctx.user.id,
+      }).catch(() => null)
     : null;
 
   const canCreateRule = ctx ? roleHasPermission(ctx.membership.role, 'reward.rule.create') : false;

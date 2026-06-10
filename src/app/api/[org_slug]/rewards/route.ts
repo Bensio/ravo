@@ -5,6 +5,8 @@ import { fetchOrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-da
 export const dynamic = 'force-dynamic';
 
 export const GET = requirePermission('campaign.read', async ({ ctx }) => {
-  const data = await fetchOrgRewardsPageData(ctx.org.id);
+  const data = await fetchOrgRewardsPageData(ctx.org.id, {
+    bootstrapUserId: ctx.user.id,
+  });
   return NextResponse.json(data);
 });

@@ -303,7 +303,7 @@
     },
     "rewards": {
       "title": "Beloningen",
-      "subtitle": "Stel per-verkoop regels in, keur tier-4 cash goed en markeer perks als geleverd.",
+      "subtitle": "Regels gelden voor toegeschreven tracklink-verkopen — dezelfde festival-setup als je links, geen aparte campagne nodig.",
       "empty": "Nog geen beloningen. Voeg een regel toe en attribueer een verkoop om de eerste beloning uit te keren.",
       "emptyHint": "Begin met een per-verkoop regel en simuleer daarna een verkoop op Tracklinks.",
       "actionError": "Actie mislukt. Vernieuw en probeer opnieuw.",
@@ -347,7 +347,9 @@
       },
       "form": {
         "title": "Nieuwe per-verkoop regel",
-        "campaign": "Campagne",
+        "festival": "Festival",
+        "festivalHint": "Gebruikt het standaard festival van je organisatie — hetzelfde als achter je tracklinks.",
+        "noFestival": "Festival kon niet worden ingesteld. Maak eerst een tracklink en probeer opnieuw.",
         "name": "Regelnaam",
         "namePlaceholder": "bijv. €5 per ticketverkoop",
         "rewardType": "Beloningstype",

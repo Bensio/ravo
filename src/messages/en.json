@@ -303,7 +303,7 @@
     },
     "rewards": {
       "title": "Rewards",
-      "subtitle": "Configure per-sale rules, review tier-4 cash, and mark perks delivered.",
+      "subtitle": "Rules apply to attributed tracklink sales — same festival setup as your links, no separate campaign config needed.",
       "empty": "No rewards yet. Add a rule, then attribute a sale to issue the first reward.",
       "emptyHint": "Start with a per-sale rule, then simulate a sale on Tracklinks to see the first reward.",
       "actionError": "That action failed. Refresh and try again.",
@@ -347,7 +347,9 @@
       },
       "form": {
         "title": "New per-sale rule",
-        "campaign": "Campaign",
+        "festival": "Festival",
+        "festivalHint": "Uses your org's default festival — the same one behind your tracklinks.",
+        "noFestival": "Could not set up a festival. Create a tracklink first, then try again.",
         "name": "Rule name",
         "namePlaceholder": "e.g. €5 per ticket sale",
         "rewardType": "Reward type",
