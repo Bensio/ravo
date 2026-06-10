@@ -20,13 +20,11 @@ type EventsData = {
 
 export function FestivalsDashboard({
   orgSlug,
-  locale,
   canCreate,
   canEdit,
   initialData,
 }: {
   orgSlug: string;
-  locale: string;
   canCreate: boolean;
   canEdit: boolean;
   initialData?: EventsData | null;

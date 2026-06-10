@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ACTIVE_EVENT_COOKIE, resolveActiveEvent } from './event-context';
 import type { SerializedCampaignProgram, SerializedEventDetail } from './types';
-import { serverNow } from '@/lib/time';
+import { serverNow, toUtc } from '@/lib/time';
 
 type EventRow = {
   id: string;
@@ -19,8 +19,8 @@ type EventRow = {
 
 function phaseFromRow(row: EventRow) {
   const now = serverNow();
-  const start = new Date(row.start_at);
-  const end = new Date(row.end_at);
+  const start = toUtc(row.start_at);
+  const end = toUtc(row.end_at);
   if (now >= start && now <= end) return 'live' as const;
   if (now > end) return 'past' as const;
   return 'upcoming' as const;

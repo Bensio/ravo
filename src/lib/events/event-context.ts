@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { serverNow } from '@/lib/time';
+import { serverNow, toUtc } from '@/lib/time';
 import type { SerializedEvent } from './types';
 
 export const ACTIVE_EVENT_COOKIE = 'ravo_active_event_id';
@@ -22,8 +22,8 @@ type EventRow = {
 
 function serializeEvent(row: EventRow): SerializedEvent {
   const now = serverNow();
-  const start = new Date(row.start_at);
-  const end = new Date(row.end_at);
+  const start = toUtc(row.start_at);
+  const end = toUtc(row.end_at);
   let phase: SerializedEvent['phase'] = 'upcoming';
   if (now >= start && now <= end) phase = 'live';
   else if (now > end) phase = 'past';
