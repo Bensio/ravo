@@ -5,6 +5,14 @@ export type PurgeTestOrdersResult =
   | { ok: true; removedOrders: number; removedClicks: number }
   | { ok: false; error: 'db_error' };
 
+function linkIdFromTestMetadata(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object') {
+    return null;
+  }
+  const linkId = (metadata as { link_id?: string }).link_id;
+  return typeof linkId === 'string' && linkId.length > 0 ? linkId : null;
+}
+
 export async function purgeTestOrdersForOrg(
   organizationId: string,
   actorUserId: string,
@@ -21,24 +29,37 @@ export async function purgeTestOrdersForOrg(
     return { ok: false, error: 'db_error' };
   }
 
-  const testOrderIds = (orders ?? []).filter(isTestOrder).map((row) => row.id);
+  const testOrders = (orders ?? []).filter(isTestOrder);
+  const testOrderIds = testOrders.map((row) => row.id);
   if (testOrderIds.length === 0) {
     return { ok: true, removedOrders: 0, removedClicks: 0 };
   }
 
+  const linkIdsToClean = new Set<string>();
+  for (const order of testOrders) {
+    const linkId = linkIdFromTestMetadata(order.metadata);
+    if (linkId) {
+      linkIdsToClean.add(linkId);
+    }
+  }
+
   const { data: attributions } = await admin
     .from('attributions')
-    .select('id, click_id')
+    .select('id, click_id, link_id')
     .eq('organization_id', organizationId)
     .in('order_id', testOrderIds);
 
-  const clickIds = [
-    ...new Set(
-      (attributions ?? [])
-        .map((row) => row.click_id as string | null)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
+  const attributedClickIds = new Set<string>();
+  for (const row of attributions ?? []) {
+    const linkId = row.link_id as string | null;
+    if (linkId) {
+      linkIdsToClean.add(linkId);
+    }
+    const clickId = row.click_id as string | null;
+    if (clickId) {
+      attributedClickIds.add(clickId);
+    }
+  }
 
   const { error: attrError } = await admin
     .from('attributions')
@@ -85,18 +106,35 @@ export async function purgeTestOrdersForOrg(
   }
 
   let removedClicks = 0;
-  if (clickIds.length > 0) {
+
+  const linkIdList = [...linkIdsToClean];
+  if (linkIdList.length > 0) {
+    const { error: linkClicksError, count } = await admin
+      .from('clicks')
+      .delete({ count: 'exact' })
+      .eq('organization_id', organizationId)
+      .in('link_id', linkIdList);
+
+    if (linkClicksError) {
+      console.error('purge test orders link clicks failed', { message: linkClicksError.message });
+      return { ok: false, error: 'db_error' };
+    }
+    removedClicks += count ?? 0;
+  }
+
+  const orphanClickIds = [...attributedClickIds];
+  if (orphanClickIds.length > 0) {
     const { error: clicksError, count } = await admin
       .from('clicks')
       .delete({ count: 'exact' })
       .eq('organization_id', organizationId)
-      .in('id', clickIds);
+      .in('id', orphanClickIds);
 
     if (clicksError) {
-      console.error('purge test orders clicks failed', { message: clicksError.message });
-    } else {
-      removedClicks = count ?? clickIds.length;
+      console.error('purge test orders attributed clicks failed', { message: clicksError.message });
+      return { ok: false, error: 'db_error' };
     }
+    removedClicks += count ?? 0;
   }
 
   await admin.from('audit_log').insert({
@@ -107,7 +145,11 @@ export async function purgeTestOrdersForOrg(
     resource_type: 'order',
     resource_id: organizationId,
     before: { order_ids: testOrderIds },
-    after: { removed_orders: testOrderIds.length, removed_clicks: removedClicks },
+    after: {
+      removed_orders: testOrderIds.length,
+      removed_clicks: removedClicks,
+      cleaned_link_ids: linkIdList,
+    },
   });
 
   return { ok: true, removedOrders: testOrderIds.length, removedClicks };

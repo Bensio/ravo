@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SocialLinks } from '@/lib/ambassadors/ambassador-profile';
 import { getAmbassadorMemberUserIds } from '@/lib/ambassadors/ambassador-member-filter';
+import { getCampaignIdsForEvent } from '@/lib/events/event-scope';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { serverNow } from '@/lib/time';
 
@@ -33,6 +34,7 @@ export type AmbassadorsAdminData = {
 export async function listAmbassadorsAdmin(
   _supabase: SupabaseClient,
   organizationId: string,
+  options?: { eventId?: string | null },
 ): Promise<AmbassadorsAdminData> {
   const admin = createAdminClient();
   const { data: campaigns, error: campError } = await admin
@@ -104,17 +106,30 @@ export async function listAmbassadorsAdmin(
   const linkCountByAmbassador = new Map<string, number>();
   const ambassadorIds = rows.map((r) => r.id);
   if (ambassadorIds.length > 0) {
-    const { data: linkRows } = await admin
-      .from('links')
-      .select('ambassador_id')
-      .eq('organization_id', organizationId)
-      .in('ambassador_id', ambassadorIds);
+    let campaignIds: string[] | null = null;
+    if (options?.eventId) {
+      campaignIds = await getCampaignIdsForEvent(organizationId, options.eventId);
+    }
 
-    for (const link of linkRows ?? []) {
-      linkCountByAmbassador.set(
-        link.ambassador_id,
-        (linkCountByAmbassador.get(link.ambassador_id) ?? 0) + 1,
-      );
+    if (!options?.eventId || (campaignIds && campaignIds.length > 0)) {
+      let linkQuery = admin
+        .from('links')
+        .select('ambassador_id')
+        .eq('organization_id', organizationId)
+        .in('ambassador_id', ambassadorIds);
+
+      if (campaignIds) {
+        linkQuery = linkQuery.in('campaign_id', campaignIds);
+      }
+
+      const { data: linkRows } = await linkQuery;
+
+      for (const link of linkRows ?? []) {
+        linkCountByAmbassador.set(
+          link.ambassador_id,
+          (linkCountByAmbassador.get(link.ambassador_id) ?? 0) + 1,
+        );
+      }
     }
   }
 

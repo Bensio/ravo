@@ -121,7 +121,17 @@
         "dates": "Data",
         "phase": "Status",
         "actions": "Acties",
-        "manage": "Beheren"
+        "edit": "Bewerken"
+      },
+      "delete": {
+        "title": "Event verwijderen",
+        "hint": "Alleen lege edities zonder tracklinks, beloningen of orders kunnen worden verwijderd. Je laatste event kun je niet verwijderen.",
+        "confirm": "“{name}” verwijderen? Dit kan niet ongedaan worden gemaakt.",
+        "submit": "Event verwijderen",
+        "deleting": "Verwijderen…",
+        "errorLastEvent": "Je moet minstens één event in deze organisatie houden.",
+        "errorDependencies": "Dit event heeft tracklinks, beloningen of orders en kan niet worden verwijderd.",
+        "errorGeneric": "Event verwijderen mislukt."
       },
       "detail": {
         "back": "Alle events"
@@ -145,6 +155,8 @@
       },
       "form": {
         "createTitle": "Nieuwe event-editie",
+        "createHint": "Stel eerst data en tijdzone in — dashboards en ambassadeur-weergaven gebruiken festivaltijd.",
+        "cancel": "Annuleren",
         "name": "Eventnaam",
         "namePlaceholder": "bijv. Sun Splash 2026",
         "slug": "URL-slug",
@@ -279,7 +291,7 @@
       "reactivateConfirm": "{name} heractiveren? Ze kunnen weer deelnemen aan de campagne.",
       "suspendError": "Status bijwerken mislukt. Probeer opnieuw.",
       "joinedOn": "Lid sinds {date}",
-      "linkCount": "{count, plural, one {# tracklink} other {# tracklinks}}",
+      "linkCount": "{count, plural, one {# tracklink dit event} other {# tracklinks dit event}}",
       "showDetails": "Details",
       "hideDetails": "Verbergen",
       "profileDetails": "Profiel (alleen-lezen)",
@@ -370,8 +382,9 @@
       "refresh": "Verversen",
       "purgeTest": "Testverkopen wissen",
       "purgingTest": "Wissen…",
-      "purgeTestConfirm": "Alle gesimuleerde en Manual UTM-testverkopen voor dit festival verwijderen? Echte provider-orders blijven staan.",
+      "purgeTestConfirm": "Alle gesimuleerde en Manual UTM-testverkopen voor het actieve event verwijderen? Click-geschiedenis op die test-tracklinks wordt ook gewist. Echte provider-orders blijven staan.",
       "purgeTestSuccess": "{count} test{count, plural, one {verkoop} other {verkopen}} verwijderd.",
+      "purgeTestSuccessWithClicks": "{count} test{count, plural, one {verkoop} other {verkopen}} en {clicks} bijbehorende {clicks, plural, one {click} other {clicks}} verwijderd.",
       "purgeTestEmpty": "Geen testverkopen om te verwijderen.",
       "purgeTestError": "Testverkopen wissen mislukt. Probeer opnieuw.",
       "simulatedBadge": "Test",

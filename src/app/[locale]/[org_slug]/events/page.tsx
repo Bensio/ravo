@@ -20,6 +20,7 @@ export default async function EventsPage({ params }: Props) {
 
   const canCreate = ctx ? roleHasPermission(ctx.membership.role, 'event.create') : false;
   const canEdit = ctx ? roleHasPermission(ctx.membership.role, 'event.update') : false;
+  const canDelete = ctx ? roleHasPermission(ctx.membership.role, 'event.delete') : false;
 
   return (
     <EventsDashboard
@@ -27,6 +28,7 @@ export default async function EventsPage({ params }: Props) {
       orgSlug={org_slug}
       canCreate={canCreate}
       canEdit={canEdit}
+      canDelete={canDelete}
       initialData={initialData}
     />
   );

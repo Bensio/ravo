@@ -15,12 +15,14 @@ export function AdminEventSwitcher({
   events,
   activeEvent,
   canManage,
+  canCreate,
 }: {
   locale: string;
   orgSlug: string;
   events: SerializedEvent[];
   activeEvent: SerializedEvent | null;
   canManage: boolean;
+  canCreate: boolean;
 }) {
   const t = useTranslations('admin.eventSwitcher');
   const router = useRouter();
@@ -56,7 +58,7 @@ export function AdminEventSwitcher({
   if (events.length === 0) {
     return (
       <Link
-        href={`${basePath}/events`}
+        href={canCreate ? `${basePath}/events/new` : `${basePath}/events`}
         className="block rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]"
       >
         <div className="flex items-start gap-2.5">
@@ -147,24 +149,28 @@ export function AdminEventSwitcher({
               );
             })}
           </ul>
-          {canManage && (
+          {(canManage || canCreate) && (
             <div className="border-t border-white/[0.06] p-1.5">
-              <Link
-                href={`${basePath}/events`}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-                {t('manageCta')}
-              </Link>
-              <Link
-                href={`${basePath}/events`}
-                onClick={() => setOpen(false)}
-                className="mt-0.5 flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                {t('newEvent')}
-              </Link>
+              {canManage && (
+                <Link
+                  href={`${basePath}/events`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                >
+                  <Settings2 className="h-3.5 w-3.5" />
+                  {t('manageCta')}
+                </Link>
+              )}
+              {canCreate && (
+                <Link
+                  href={`${basePath}/events/new`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {t('newEvent')}
+                </Link>
+              )}
             </div>
           )}
         </div>

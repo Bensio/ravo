@@ -20,6 +20,9 @@ export const GET = requirePermission('ambassador.read', async ({ request, ctx })
     return NextResponse.json({ ambassadors });
   }
 
-  const data = await listAmbassadorsAdmin(supabase, ctx.org.id);
+  const scope = await resolveEventScope(ctx.org.id);
+  const data = await listAmbassadorsAdmin(supabase, ctx.org.id, {
+    eventId: scope.eventId,
+  });
   return NextResponse.json(data);
 });

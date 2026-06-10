@@ -18,6 +18,7 @@ export default async function EventDetailPage({ params }: Props) {
   if (!event) notFound();
 
   const canEdit = roleHasPermission(ctx.membership.role, 'event.update');
+  const canDelete = roleHasPermission(ctx.membership.role, 'event.delete');
 
   return (
     <EventDetailDashboard
@@ -25,6 +26,7 @@ export default async function EventDetailPage({ params }: Props) {
       orgSlug={org_slug}
       eventId={id}
       canEdit={canEdit}
+      canDelete={canDelete}
       initialEvent={event}
     />
   );

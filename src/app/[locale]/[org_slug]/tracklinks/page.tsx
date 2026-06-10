@@ -1,6 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import { listOrgAmbassadors } from '@/lib/ambassadors/list-org-ambassadors';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
+import { resolveEventScope } from '@/lib/events/event-scope';
 import { listLinksForOrg } from '@/lib/links/list-links';
 import { TracklinksDashboard } from '@/components/admin/tracklinks/tracklinks-dashboard';
 
@@ -11,10 +12,13 @@ export default async function TracklinksPage({ params }: Props) {
   setRequestLocale(locale);
 
   const ctx = await requireOrgPageContext(org_slug, 'link.read');
+  const scope = ctx ? await resolveEventScope(ctx.org.id) : null;
+  const eventId = scope?.eventId ?? null;
+
   const [initialLinks, initialAmbassadors] = ctx
     ? await Promise.all([
-        listLinksForOrg(ctx.supabase, ctx.org.id).catch(() => []),
-        listOrgAmbassadors(ctx.supabase, ctx.org.id).catch(() => []),
+        listLinksForOrg(ctx.supabase, ctx.org.id, { eventId }).catch(() => []),
+        listOrgAmbassadors(ctx.supabase, ctx.org.id, { eventId }).catch(() => []),
       ])
     : [[], []];
 

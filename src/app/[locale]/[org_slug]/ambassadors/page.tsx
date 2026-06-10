@@ -4,6 +4,7 @@ import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { roleHasPermission } from '@/lib/auth/permissions';
 import { listAmbassadorsAdmin } from '@/lib/ambassadors/list-ambassadors-admin';
 import { resolveActiveEvent } from '@/lib/events/event-context';
+import { resolveEventScope } from '@/lib/events/event-scope';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
@@ -12,8 +13,11 @@ export default async function AmbassadorsPage({ params }: Props) {
   setRequestLocale(locale);
 
   const ctx = await requireOrgPageContext(org_slug, 'ambassador.read');
+  const eventScope = ctx ? await resolveEventScope(ctx.org.id) : null;
   const initialData = ctx
-    ? await listAmbassadorsAdmin(ctx.supabase, ctx.org.id).catch(() => null)
+    ? await listAmbassadorsAdmin(ctx.supabase, ctx.org.id, {
+        eventId: eventScope?.eventId ?? null,
+      }).catch(() => null)
     : null;
   const canInvite = ctx ? roleHasPermission(ctx.membership.role, 'ambassador.invite') : false;
   const canSuspend = ctx ? roleHasPermission(ctx.membership.role, 'ambassador.suspend') : false;

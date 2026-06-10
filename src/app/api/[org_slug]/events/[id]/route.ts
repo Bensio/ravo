@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { fetchEventDetail } from '@/lib/events/fetch-event-detail';
+import { deleteEvent } from '@/lib/events/delete-event';
 import { updateEvent } from '@/lib/events/update-event';
 
 export const dynamic = 'force-dynamic';
@@ -70,4 +71,21 @@ export const PATCH = requirePermission('event.update', async ({ ctx, params, req
   }
 
   return NextResponse.json({ event: result.event });
+});
+
+export const DELETE = requirePermission('event.delete', async ({ ctx, params }) => {
+  const { id } = await params;
+  const result = await deleteEvent(ctx.org.id, id, ctx.user.id);
+
+  if (!result.ok) {
+    const status =
+      result.error === 'not_found'
+        ? 404
+        : result.error === 'has_dependencies' || result.error === 'last_event'
+          ? 409
+          : 500;
+    return NextResponse.json({ error: result.error }, { status });
+  }
+
+  return NextResponse.json({ ok: true });
 });

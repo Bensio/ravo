@@ -1,26 +1,14 @@
 'use client';
 
-import { addDays } from 'date-fns';
-import { CalendarDays, ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { CalendarDays, Loader2, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
-import { NativeSelect } from '@/components/ui/native-select';
-import { datetimeLocalToUtcIso, toDatetimeLocalInput } from '@/lib/events/form-dates';
-import { slugifyEventName } from '@/lib/events/slug';
-import type { SerializedEvent, SerializedEventDetail } from '@/lib/events/types';
-import {
-  ORG_COUNTRIES,
-  ORG_CURRENCIES,
-  ORG_TIMEZONES,
-} from '@/lib/org/org-settings';
-import { clientNow, formatInFestivalTz } from '@/lib/time';
+import { Button, buttonVariants } from '@/components/ui/button';
+import type { SerializedEvent } from '@/lib/events/types';
+import { formatInFestivalTz } from '@/lib/time';
 import { cn } from '@/lib/utils';
-
-const inputClass =
-  'w-full rounded-lg border border-white/[0.08] bg-muted/40 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
 type EventsData = {
   events: SerializedEvent[];
@@ -32,38 +20,23 @@ export function EventsDashboard({
   orgSlug,
   canCreate,
   canEdit,
+  canDelete,
   initialData,
 }: {
   locale: string;
   orgSlug: string;
   canCreate: boolean;
   canEdit: boolean;
+  canDelete: boolean;
   initialData?: EventsData | null;
 }) {
   const t = useTranslations('admin.events');
   const router = useRouter();
   const [data, setData] = useState<EventsData | null>(initialData ?? null);
   const [loading, setLoading] = useState(initialData === undefined);
-  const [showCreate, setShowCreate] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  const defaultTz = 'Europe/Amsterdam';
-
-  const [createName, setCreateName] = useState('');
-  const [createSlug, setCreateSlug] = useState('');
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [createTimezone, setCreateTimezone] = useState(defaultTz);
-  const [createCurrency, setCreateCurrency] = useState('EUR');
-  const [createCountry, setCreateCountry] = useState('');
-  const [createVenue, setCreateVenue] = useState('');
-  const [createStartLocal, setCreateStartLocal] = useState(() =>
-    toDatetimeLocalInput(clientNow().toISOString(), defaultTz),
-  );
-  const [createEndLocal, setCreateEndLocal] = useState(() =>
-    toDatetimeLocalInput(addDays(clientNow(), 90).toISOString(), defaultTz),
-  );
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,49 +51,6 @@ export function EventsDashboard({
     if (initialData === undefined) void load();
   }, [initialData, load]);
 
-  useEffect(() => {
-    const now = clientNow();
-    setCreateStartLocal(toDatetimeLocalInput(now.toISOString(), createTimezone));
-    setCreateEndLocal(
-      toDatetimeLocalInput(addDays(now, 90).toISOString(), createTimezone),
-    );
-  }, [createTimezone]);
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError(null);
-    setCreating(true);
-    const res = await fetch(`/api/${orgSlug}/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: createName,
-        slug: createSlug || undefined,
-        timezone: createTimezone,
-        currency: createCurrency,
-        country: createCountry || undefined,
-        venue: createVenue || undefined,
-        startAt: datetimeLocalToUtcIso(createStartLocal, createTimezone),
-        endAt: datetimeLocalToUtcIso(createEndLocal, createTimezone),
-      }),
-    });
-    setCreating(false);
-    if (!res.ok) {
-      const payload = (await res.json().catch(() => ({}))) as { error?: string };
-      setFormError(
-        payload.error === 'slug_taken' ? t('form.slugTaken') : t('form.createError'),
-      );
-      return;
-    }
-    const payload = (await res.json()) as { event: SerializedEventDetail };
-    setShowCreate(false);
-    setCreateName('');
-    setCreateSlug('');
-    setSlugTouched(false);
-    router.push(`/${locale}/${orgSlug}/events/${payload.event.id}`);
-    router.refresh();
-  }
-
   async function handleActivate(eventId: string) {
     setActivatingId(eventId);
     const res = await fetch(`/api/${orgSlug}/events/${eventId}/activate`, { method: 'POST' });
@@ -129,6 +59,30 @@ export function EventsDashboard({
       router.refresh();
     }
     setActivatingId(null);
+  }
+
+  async function handleDelete(event: SerializedEvent) {
+    if (!window.confirm(t('delete.confirm', { name: event.name }))) return;
+
+    setDeleteError(null);
+    setDeletingId(event.id);
+    const res = await fetch(`/api/${orgSlug}/events/${event.id}`, { method: 'DELETE' });
+    setDeletingId(null);
+
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      setDeleteError(
+        payload.error === 'last_event'
+          ? t('delete.errorLastEvent')
+          : payload.error === 'has_dependencies'
+            ? t('delete.errorDependencies')
+            : t('delete.errorGeneric'),
+      );
+      return;
+    }
+
+    await load();
+    router.refresh();
   }
 
   if (loading && !data) {
@@ -153,10 +107,10 @@ export function EventsDashboard({
             {t('refresh')}
           </Button>
           {canCreate && (
-            <Button type="button" size="sm" onClick={() => setShowCreate((v) => !v)}>
+            <Link href={`${basePath}/events/new`} className={buttonVariants({ size: 'sm' })}>
               <Plus className="mr-1.5 h-4 w-4" />
               {t('create')}
-            </Button>
+            </Link>
           )}
         </div>
       </div>
@@ -176,129 +130,23 @@ export function EventsDashboard({
         ))}
       </section>
 
-      {showCreate && canCreate && (
-        <form onSubmit={(e) => void handleCreate(e)} className="ravo-glass-panel space-y-4 p-6">
-          <h2 className="font-medium">{t('form.createTitle')}</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-1 text-sm md:col-span-2">
-              <span className="text-xs text-muted-foreground">{t('form.name')}</span>
-              <input
-                className={inputClass}
-                value={createName}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setCreateName(name);
-                  if (!slugTouched) setCreateSlug(slugifyEventName(name));
-                }}
-                placeholder={t('form.namePlaceholder')}
-                required
-              />
-            </label>
-            <label className="block space-y-1 text-sm md:col-span-2">
-              <span className="text-xs text-muted-foreground">{t('form.slug')}</span>
-              <input
-                className={inputClass}
-                value={createSlug}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  setCreateSlug(slugifyEventName(e.target.value));
-                }}
-                required
-              />
-              <p className="text-[11px] text-muted-foreground">{t('form.slugHint')}</p>
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">{t('form.startAt')}</span>
-              <input
-                type="datetime-local"
-                className={inputClass}
-                value={createStartLocal}
-                onChange={(e) => setCreateStartLocal(e.target.value)}
-                required
-              />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">{t('form.endAt')}</span>
-              <input
-                type="datetime-local"
-                className={inputClass}
-                value={createEndLocal}
-                onChange={(e) => setCreateEndLocal(e.target.value)}
-                required
-              />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">{t('form.timezone')}</span>
-              <NativeSelect
-                value={createTimezone}
-                onChange={(e) => setCreateTimezone(e.target.value)}
-                className="w-full"
-              >
-                {ORG_TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">{t('form.country')}</span>
-              <NativeSelect
-                value={createCountry}
-                onChange={(e) => setCreateCountry(e.target.value)}
-                className="w-full"
-              >
-                <option value="">{t('form.countryUnset')}</option>
-                {ORG_COUNTRIES.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">{t('form.venue')}</span>
-              <input
-                className={inputClass}
-                value={createVenue}
-                onChange={(e) => setCreateVenue(e.target.value)}
-                placeholder={t('form.venuePlaceholder')}
-              />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">{t('form.currency')}</span>
-              <NativeSelect
-                value={createCurrency}
-                onChange={(e) => setCreateCurrency(e.target.value)}
-                className="w-full"
-              >
-                {ORG_CURRENCIES.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-          </div>
-          {formError && <p className="text-sm text-red-400">{formError}</p>}
-          <div className="flex justify-end">
-            <Button type="submit" size="sm" disabled={creating}>
-              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('form.createSubmit')}
-            </Button>
-          </div>
-        </form>
-      )}
+      {deleteError && <p className="text-sm text-red-400">{deleteError}</p>}
 
       {events.length === 0 ? (
         <section className="ravo-glass-panel space-y-3 p-6 text-center">
           <CalendarDays className="mx-auto h-8 w-8 text-primary" aria-hidden />
           <p className="text-sm text-muted-foreground">{t('empty')}</p>
           <p className="text-xs text-muted-foreground">{t('emptyHint')}</p>
+          {canCreate && (
+            <Link href={`${basePath}/events/new`} className={cn(buttonVariants({ size: 'sm' }), 'mt-2')}>
+              {t('create')}
+            </Link>
+          )}
         </section>
       ) : (
         <section className="ravo-glass-panel overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/[0.06] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   <th className="px-5 py-3">{t('table.name')}</th>
@@ -310,8 +158,13 @@ export function EventsDashboard({
               <tbody className="divide-y divide-white/[0.04]">
                 {events.map((event) => {
                   const isActive = event.id === activeId;
+                  const detailHref = `${basePath}/events/${event.id}`;
                   return (
-                    <tr key={event.id} className="group hover:bg-white/[0.02]">
+                    <tr
+                      key={event.id}
+                      className="group cursor-pointer hover:bg-white/[0.02]"
+                      onClick={() => router.push(detailHref)}
+                    >
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{event.name}</span>
@@ -339,14 +192,17 @@ export function EventsDashboard({
                           {t(`phase.${event.phase}`)}
                         </span>
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-5 py-4 text-right">
+                        <div
+                          className="inline-flex items-center justify-end gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {!isActive && canEdit && (
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-8 text-xs"
+                              className="h-8"
                               disabled={activatingId === event.id}
                               onClick={() => void handleActivate(event.id)}
                             >
@@ -358,12 +214,28 @@ export function EventsDashboard({
                             </Button>
                           )}
                           <Link
-                            href={`${basePath}/events/${event.id}`}
-                            className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                            href={detailHref}
+                            className={buttonVariants({ variant: 'outline', size: 'sm', className: 'h-8' })}
                           >
-                            {t('table.manage')}
-                            <ChevronRight className="h-3.5 w-3.5" />
+                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                            {t('table.edit')}
                           </Link>
+                          {canDelete && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-red-400 hover:text-red-300"
+                              disabled={deletingId === event.id}
+                              onClick={() => void handleDelete(event)}
+                            >
+                              {deletingId === event.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

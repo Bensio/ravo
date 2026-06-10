@@ -38,6 +38,7 @@ export default async function AdminOrgLayout({ children, params }: Props) {
     listEventsForOrg(membership.org.id),
   ]);
   const canManageEvents = roleHasPermission(membership.role, 'event.update');
+  const canCreateEvents = roleHasPermission(membership.role, 'event.create');
 
   return (
     <div className="ravo-shell-bg flex h-screen overflow-hidden">
@@ -49,6 +50,7 @@ export default async function AdminOrgLayout({ children, params }: Props) {
         events={events}
         activeEvent={activeEvent}
         canManageEvents={canManageEvents}
+        canCreateEvents={canCreateEvents}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AdminHeader

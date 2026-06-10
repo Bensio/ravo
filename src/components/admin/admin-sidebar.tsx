@@ -16,6 +16,7 @@ export function AdminSidebar({
   events,
   activeEvent,
   canManageEvents,
+  canCreateEvents,
 }: {
   locale: string;
   orgSlug: string;
@@ -24,6 +25,7 @@ export function AdminSidebar({
   events: SerializedEvent[];
   activeEvent: SerializedEvent | null;
   canManageEvents: boolean;
+  canCreateEvents: boolean;
 }) {
   const t = useTranslations('admin.nav');
 
@@ -49,6 +51,7 @@ export function AdminSidebar({
           events={events}
           activeEvent={activeEvent}
           canManage={canManageEvents}
+          canCreate={canCreateEvents}
         />
         <AdminSidebarUser email={userEmail} role={userRole} locale={locale} />
       </div>

@@ -121,7 +121,17 @@
         "dates": "Dates",
         "phase": "Status",
         "actions": "Actions",
-        "manage": "Manage"
+        "edit": "Edit"
+      },
+      "delete": {
+        "title": "Delete event",
+        "hint": "Only empty editions with no tracklinks, rewards, or orders can be removed. You cannot delete your last event.",
+        "confirm": "Delete “{name}”? This cannot be undone.",
+        "submit": "Delete event",
+        "deleting": "Deleting…",
+        "errorLastEvent": "You must keep at least one event in this organization.",
+        "errorDependencies": "This event has tracklinks, rewards, or orders and cannot be deleted.",
+        "errorGeneric": "Could not delete event."
       },
       "detail": {
         "back": "All events"
@@ -145,6 +155,8 @@
       },
       "form": {
         "createTitle": "New event edition",
+        "createHint": "Set dates and timezone first — dashboards and ambassador views use festival time.",
+        "cancel": "Cancel",
         "name": "Event name",
         "namePlaceholder": "e.g. Sun Splash 2026",
         "slug": "URL slug",
@@ -279,7 +291,7 @@
       "reactivateConfirm": "Reactivate {name}? They can participate in the campaign again.",
       "suspendError": "Could not update ambassador status. Try again.",
       "joinedOn": "Joined {date}",
-      "linkCount": "{count, plural, one {# tracklink} other {# tracklinks}}",
+      "linkCount": "{count, plural, one {# tracklink this event} other {# tracklinks this event}}",
       "showDetails": "Details",
       "hideDetails": "Hide",
       "profileDetails": "Profile (read-only)",
@@ -370,8 +382,9 @@
       "refresh": "Refresh",
       "purgeTest": "Clear test sales",
       "purgingTest": "Clearing…",
-      "purgeTestConfirm": "Remove all simulated and Manual UTM test sales from this festival? Real provider orders are not affected.",
+      "purgeTestConfirm": "Remove all simulated and Manual UTM test sales for the active event? Click history on those test tracklinks is cleared too. Real provider orders are not affected.",
       "purgeTestSuccess": "Removed {count} test {count, plural, one {sale} other {sales}}.",
+      "purgeTestSuccessWithClicks": "Removed {count} test {count, plural, one {sale} other {sales}} and {clicks} related {clicks, plural, one {click} other {clicks}}.",
       "purgeTestEmpty": "No test sales to remove.",
       "purgeTestError": "Could not clear test sales. Try again.",
       "simulatedBadge": "Test",

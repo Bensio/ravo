@@ -1,24 +1,12 @@
 'use client';
 
-import {
-  ArrowLeft,
-  Check,
-  ExternalLink,
-  Gift,
-  Link2,
-  Loader2,
-  Users,
-} from 'lucide-react';
+import { ArrowLeft, Check, Loader2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
-import {
-  EventSectionNav,
-  type EventSection,
-} from '@/components/admin/events/event-section-nav';
 import { datetimeLocalToUtcIso, toDatetimeLocalInput } from '@/lib/events/form-dates';
 import type { SerializedEventDetail } from '@/lib/events/types';
 import { slugifyEventName } from '@/lib/events/slug';
@@ -41,21 +29,24 @@ export function EventDetailDashboard({
   orgSlug,
   eventId,
   canEdit,
+  canDelete,
   initialEvent,
 }: {
   locale: string;
   orgSlug: string;
   eventId: string;
   canEdit: boolean;
+  canDelete: boolean;
   initialEvent: SerializedEventDetail;
 }) {
   const t = useTranslations('admin.events');
   const router = useRouter();
-  const [section, setSection] = useState<EventSection>('edition');
   const [detail, setDetail] = useState(initialEvent);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activating, setActivating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [editName, setEditName] = useState(initialEvent.name);
   const [editSlug, setEditSlug] = useState(initialEvent.slug);
@@ -202,6 +193,30 @@ export function EventDetailDashboard({
     router.refresh();
   }
 
+  async function handleDelete() {
+    if (!window.confirm(t('delete.confirm', { name: detail.name }))) return;
+
+    setDeleteError(null);
+    setDeleting(true);
+    const res = await fetch(`/api/${orgSlug}/events/${eventId}`, { method: 'DELETE' });
+    setDeleting(false);
+
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setDeleteError(
+        data.error === 'last_event'
+          ? t('delete.errorLastEvent')
+          : data.error === 'has_dependencies'
+            ? t('delete.errorDependencies')
+            : t('delete.errorGeneric'),
+      );
+      return;
+    }
+
+    router.push(`/${locale}/${orgSlug}/events`);
+    router.refresh();
+  }
+
   const ticketSourceLabel =
     detail.ticketSource === 'weeztix'
       ? t('program.ticketSourceWeeztix')
@@ -258,274 +273,224 @@ export function EventDetailDashboard({
         </div>
       </div>
 
-      <EventSectionNav active={section} onChange={setSection} />
-
       <form onSubmit={(e) => void handleSave(e)} className="space-y-6">
-        {section === 'edition' && (
-          <section className="ravo-glass-panel space-y-4 p-6">
-            <div>
-              <h2 className="font-medium">{t('nav.edition')}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">{t('edition.hint')}</p>
-            </div>
-            {!canEdit && (
-              <p className="text-xs text-muted-foreground">{t('readOnly')}</p>
-            )}
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-1 text-sm md:col-span-2">
-                <span className="text-xs text-muted-foreground">{t('form.name')}</span>
-                <input
-                  className={inputClass}
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  disabled={!canEdit}
-                  required
-                />
-              </label>
-              <label className="block space-y-1 text-sm md:col-span-2">
-                <span className="text-xs text-muted-foreground">{t('form.slug')}</span>
-                <input
-                  className={inputClass}
-                  value={editSlug}
-                  onChange={(e) => setEditSlug(slugifyEventName(e.target.value))}
-                  disabled={!canEdit}
-                  required
-                />
-                <p className="text-[11px] text-muted-foreground">{t('form.slugHint')}</p>
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('form.startAt')}</span>
-                <input
-                  type="datetime-local"
-                  className={inputClass}
-                  value={editStartLocal}
-                  onChange={(e) => setEditStartLocal(e.target.value)}
-                  disabled={!canEdit}
-                  required
-                />
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('form.endAt')}</span>
-                <input
-                  type="datetime-local"
-                  className={inputClass}
-                  value={editEndLocal}
-                  onChange={(e) => setEditEndLocal(e.target.value)}
-                  disabled={!canEdit}
-                  required
-                />
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('form.timezone')}</span>
-                <NativeSelect
-                  value={editTimezone}
-                  onChange={(e) => setEditTimezone(e.target.value)}
-                  disabled={!canEdit}
-                  className="w-full"
-                >
-                  {ORG_TIMEZONES.map((tz) => (
-                    <option key={tz} value={tz}>
-                      {tz}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('form.country')}</span>
-                <NativeSelect
-                  value={editCountry}
-                  onChange={(e) => setEditCountry(e.target.value)}
-                  disabled={!canEdit}
-                  className="w-full"
-                >
-                  <option value="">{t('form.countryUnset')}</option>
-                  {ORG_COUNTRIES.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('form.venue')}</span>
-                <input
-                  className={inputClass}
-                  value={editVenue}
-                  onChange={(e) => setEditVenue(e.target.value)}
-                  disabled={!canEdit}
-                  placeholder={t('form.venuePlaceholder')}
-                />
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('form.currency')}</span>
-                <NativeSelect
-                  value={editCurrency}
-                  onChange={(e) => setEditCurrency(e.target.value)}
-                  disabled={!canEdit}
-                  className="w-full"
-                >
-                  {ORG_CURRENCIES.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </label>
-              <label className="block space-y-1 text-sm md:col-span-2">
-                <span className="text-xs text-muted-foreground">{t('form.coverImage')}</span>
-                <input
-                  type="url"
-                  className={inputClass}
-                  value={editCoverUrl}
-                  onChange={(e) => setEditCoverUrl(e.target.value)}
-                  disabled={!canEdit}
-                  placeholder="https://..."
-                />
-              </label>
-            </div>
-          </section>
-        )}
+        <section className="ravo-glass-panel space-y-4 p-6">
+          <div>
+            <h2 className="font-medium">{t('nav.edition')}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">{t('edition.hint')}</p>
+          </div>
+          {!canEdit && (
+            <p className="text-xs text-muted-foreground">{t('readOnly')}</p>
+          )}
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block space-y-1 text-sm md:col-span-2">
+              <span className="text-xs text-muted-foreground">{t('form.name')}</span>
+              <input
+                className={inputClass}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                disabled={!canEdit}
+                required
+              />
+            </label>
+            <label className="block space-y-1 text-sm md:col-span-2">
+              <span className="text-xs text-muted-foreground">{t('form.slug')}</span>
+              <input
+                className={inputClass}
+                value={editSlug}
+                onChange={(e) => setEditSlug(slugifyEventName(e.target.value))}
+                disabled={!canEdit}
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">{t('form.slugHint')}</p>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.startAt')}</span>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={editStartLocal}
+                onChange={(e) => setEditStartLocal(e.target.value)}
+                disabled={!canEdit}
+                required
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.endAt')}</span>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={editEndLocal}
+                onChange={(e) => setEditEndLocal(e.target.value)}
+                disabled={!canEdit}
+                required
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.timezone')}</span>
+              <NativeSelect
+                value={editTimezone}
+                onChange={(e) => setEditTimezone(e.target.value)}
+                disabled={!canEdit}
+                className="w-full"
+              >
+                {ORG_TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.country')}</span>
+              <NativeSelect
+                value={editCountry}
+                onChange={(e) => setEditCountry(e.target.value)}
+                disabled={!canEdit}
+                className="w-full"
+              >
+                <option value="">{t('form.countryUnset')}</option>
+                {ORG_COUNTRIES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.venue')}</span>
+              <input
+                className={inputClass}
+                value={editVenue}
+                onChange={(e) => setEditVenue(e.target.value)}
+                disabled={!canEdit}
+                placeholder={t('form.venuePlaceholder')}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('form.currency')}</span>
+              <NativeSelect
+                value={editCurrency}
+                onChange={(e) => setEditCurrency(e.target.value)}
+                disabled={!canEdit}
+                className="w-full"
+              >
+                {ORG_CURRENCIES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+            <label className="block space-y-1 text-sm md:col-span-2">
+              <span className="text-xs text-muted-foreground">{t('form.coverImage')}</span>
+              <input
+                type="url"
+                className={inputClass}
+                value={editCoverUrl}
+                onChange={(e) => setEditCoverUrl(e.target.value)}
+                disabled={!canEdit}
+                placeholder="https://..."
+              />
+            </label>
+          </div>
+        </section>
 
-        {section === 'program' && (
-          <section className="ravo-glass-panel space-y-4 p-6">
-            <div>
-              <h2 className="font-medium">{t('program.title')}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">{t('program.hint')}</p>
-            </div>
-            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                {t('program.ticketSource')}
-              </p>
-              <p className="mt-1 font-medium">{ticketSourceLabel}</p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-1 text-sm md:col-span-2">
-                <span className="text-xs text-muted-foreground">{t('program.name')}</span>
-                <input
-                  className={inputClass}
-                  value={programName}
-                  onChange={(e) => setProgramName(e.target.value)}
-                  disabled={!canEdit}
-                  required
-                />
-              </label>
-              <label className="block space-y-1 text-sm md:col-span-2">
-                <span className="text-xs text-muted-foreground">{t('program.state')}</span>
-                <NativeSelect
-                  value={editProgramState}
-                  onChange={(e) =>
-                    setEditProgramState(
-                      e.target.value as 'draft' | 'active' | 'paused' | 'closed',
-                    )
-                  }
-                  disabled={!canEdit}
-                  className="w-full"
-                >
-                  <option value="draft">{t('program.stateDraft')}</option>
-                  <option value="active">{t('program.stateActive')}</option>
-                  <option value="paused">{t('program.statePaused')}</option>
-                  <option value="closed">{t('program.stateClosed')}</option>
-                </NativeSelect>
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('program.startsAt')}</span>
-                <input
-                  type="datetime-local"
-                  className={inputClass}
-                  value={programStartsLocal}
-                  onChange={(e) => setProgramStartsLocal(e.target.value)}
-                  disabled={!canEdit}
-                />
-                <p className="text-[11px] text-muted-foreground">{t('program.datesOptional')}</p>
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('program.endsAt')}</span>
-                <input
-                  type="datetime-local"
-                  className={inputClass}
-                  value={programEndsLocal}
-                  onChange={(e) => setProgramEndsLocal(e.target.value)}
-                  disabled={!canEdit}
-                />
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('program.refundWindow')}</span>
-                <input
-                  type="number"
-                  min="0"
-                  className={inputClass}
-                  value={editRefundDays}
-                  onChange={(e) => setEditRefundDays(e.target.value)}
-                  disabled={!canEdit}
-                />
-              </label>
-              <label className="block space-y-1 text-sm">
-                <span className="text-xs text-muted-foreground">{t('program.tier4')}</span>
-                <NativeSelect
-                  value={editTier4}
-                  onChange={(e) =>
-                    setEditTier4(
-                      e.target.value as 'auto' | 'requires_confirmation' | 'denied',
-                    )
-                  }
-                  disabled={!canEdit}
-                  className="w-full"
-                >
-                  <option value="requires_confirmation">{t('program.tier4Review')}</option>
-                  <option value="auto">{t('program.tier4Auto')}</option>
-                  <option value="denied">{t('program.tier4Denied')}</option>
-                </NativeSelect>
-              </label>
-            </div>
-          </section>
-        )}
-
-        {section === 'shortcuts' && (
-          <section className="ravo-glass-panel space-y-4 p-6">
-            <div>
-              <h2 className="font-medium">{t('shortcuts.title')}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">{t('shortcuts.hint')}</p>
-            </div>
-            <ul className="divide-y divide-white/[0.06] rounded-lg border border-white/[0.06]">
-              {[
-                {
-                  href: `${basePath}/tracklinks`,
-                  icon: Link2,
-                  label: t('shortcuts.tracklinks'),
-                },
-                {
-                  href: `${basePath}/rewards`,
-                  icon: Gift,
-                  label: t('shortcuts.rewards'),
-                },
-                {
-                  href: `${basePath}/ambassadors`,
-                  icon: Users,
-                  label: t('shortcuts.ambassadors'),
-                },
-              ].map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/[0.03]"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <item.icon className="h-4 w-4 text-primary" aria-hidden />
-                      {item.label}
-                    </span>
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {!detail.isActive && (
-              <p className="text-xs text-amber-400/90">{t('shortcuts.inactiveWarning')}</p>
-            )}
-          </section>
-        )}
+        <section className="ravo-glass-panel space-y-4 p-6">
+          <div>
+            <h2 className="font-medium">{t('program.title')}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">{t('program.hint')}</p>
+          </div>
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {t('program.ticketSource')}
+            </p>
+            <p className="mt-1 font-medium">{ticketSourceLabel}</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block space-y-1 text-sm md:col-span-2">
+              <span className="text-xs text-muted-foreground">{t('program.name')}</span>
+              <input
+                className={inputClass}
+                value={programName}
+                onChange={(e) => setProgramName(e.target.value)}
+                disabled={!canEdit}
+                required
+              />
+            </label>
+            <label className="block space-y-1 text-sm md:col-span-2">
+              <span className="text-xs text-muted-foreground">{t('program.state')}</span>
+              <NativeSelect
+                value={editProgramState}
+                onChange={(e) =>
+                  setEditProgramState(
+                    e.target.value as 'draft' | 'active' | 'paused' | 'closed',
+                  )
+                }
+                disabled={!canEdit}
+                className="w-full"
+              >
+                <option value="draft">{t('program.stateDraft')}</option>
+                <option value="active">{t('program.stateActive')}</option>
+                <option value="paused">{t('program.statePaused')}</option>
+                <option value="closed">{t('program.stateClosed')}</option>
+              </NativeSelect>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('program.startsAt')}</span>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={programStartsLocal}
+                onChange={(e) => setProgramStartsLocal(e.target.value)}
+                disabled={!canEdit}
+              />
+              <p className="text-[11px] text-muted-foreground">{t('program.datesOptional')}</p>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('program.endsAt')}</span>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={programEndsLocal}
+                onChange={(e) => setProgramEndsLocal(e.target.value)}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('program.refundWindow')}</span>
+              <input
+                type="number"
+                min="0"
+                className={inputClass}
+                value={editRefundDays}
+                onChange={(e) => setEditRefundDays(e.target.value)}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-xs text-muted-foreground">{t('program.tier4')}</span>
+              <NativeSelect
+                value={editTier4}
+                onChange={(e) =>
+                  setEditTier4(
+                    e.target.value as 'auto' | 'requires_confirmation' | 'denied',
+                  )
+                }
+                disabled={!canEdit}
+                className="w-full"
+              >
+                <option value="requires_confirmation">{t('program.tier4Review')}</option>
+                <option value="auto">{t('program.tier4Auto')}</option>
+                <option value="denied">{t('program.tier4Denied')}</option>
+              </NativeSelect>
+            </label>
+          </div>
+        </section>
 
         {formError && <p className="text-sm text-red-400">{formError}</p>}
 
-        {canEdit && section !== 'shortcuts' && (
+        {canEdit && (
           <div className="flex justify-end">
             <Button type="submit" size="sm" disabled={saving} className="gap-1.5">
               {saving ? (
@@ -540,6 +505,31 @@ export function EventDetailDashboard({
           </div>
         )}
       </form>
+
+      {canDelete && (
+        <section className="ravo-glass-panel space-y-3 border border-red-500/20 p-6">
+          <div>
+            <h2 className="font-medium text-red-400">{t('delete.title')}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">{t('delete.hint')}</p>
+          </div>
+          {deleteError && <p className="text-sm text-red-400">{deleteError}</p>}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-red-400 hover:text-red-300"
+            disabled={deleting}
+            onClick={() => void handleDelete()}
+          >
+            {deleting ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-1.5 h-4 w-4" />
+            )}
+            {deleting ? t('delete.deleting') : t('delete.submit')}
+          </Button>
+        </section>
+      )}
     </div>
   );
 }

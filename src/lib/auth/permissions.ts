@@ -8,6 +8,7 @@ export const PERMISSIONS = {
   'event.read': ['owner', 'admin', 'manager', 'analyst'],
   'event.create': ['owner', 'admin', 'manager'],
   'event.update': ['owner', 'admin', 'manager'],
+  'event.delete': ['owner', 'admin'],
   'campaign.read': ['owner', 'admin', 'manager', 'analyst'],
   'campaign.create': ['owner', 'admin', 'manager'],
   'campaign.update': ['owner', 'admin', 'manager'],

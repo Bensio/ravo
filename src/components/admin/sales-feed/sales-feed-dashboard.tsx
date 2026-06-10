@@ -82,11 +82,18 @@ export function SalesFeedDashboard({
     const res = await fetch(`/api/${orgSlug}/orders/purge-test`, { method: 'POST' });
     setPurging(false);
     if (res.ok) {
-      const body = (await res.json()) as { removedOrders?: number };
+      const body = (await res.json()) as { removedOrders?: number; removedClicks?: number };
       const count = body.removedOrders ?? 0;
-      setPurgeMessage(
-        count > 0 ? t('purgeTestSuccess', { count }) : t('purgeTestEmpty'),
-      );
+      const clicks = body.removedClicks ?? 0;
+      if (count > 0) {
+        setPurgeMessage(
+          clicks > 0
+            ? t('purgeTestSuccessWithClicks', { count, clicks })
+            : t('purgeTestSuccess', { count }),
+        );
+      } else {
+        setPurgeMessage(t('purgeTestEmpty'));
+      }
       void load();
       return;
     }
