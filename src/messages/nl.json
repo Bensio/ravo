@@ -537,18 +537,28 @@
     },
     "rewards": {
       "title": "Beloningen",
-      "subtitle": "Alles wat je hebt verdiend — met duidelijke status en vervolgstappen.",
+      "subtitle": "Cash en perks van toegeschreven verkopen — stap voor stap gevolgd.",
       "empty": "Nog geen beloningen.",
-      "emptyHint": "Deel je tracklink. Bij een aan jou toegeschreven verkoop verschijnen festivalbeloningen hier.",
+      "emptyHint": "Koopt iemand via jouw tracklink, dan verschijnen festivalbeloningen hier automatisch.",
+      "emptyCta": "Deel je link",
       "loading": "Beloningen laden…",
       "loadError": "Beloningen laden mislukt.",
       "retry": "Opnieuw",
       "refresh": "Vernieuwen",
-      "sections": {
-        "active": "Onderweg",
-        "activeEmpty": "",
+      "earnTitle": "Wat je kunt verdienen",
+      "earnHint": "Actieve beloningen voor festivals die je promoot — per toegeschreven verkoop.",
+      "earnedOn": "Verdiend op {date}",
+      "tier": "Tier {tier} attributie",
+      "kpi": {
+        "onTheWay": "Onderweg",
+        "onTheWayDetail": "{count, plural, one {# beloning} other {# beloningen}} in behandeling",
         "received": "Ontvangen",
-        "receivedEmpty": "",
+        "receivedDetail": "{count, plural, one {# geleverd} other {# geleverd}}"
+      },
+      "sections": {
+        "pending": "Terugbetalingsperiode",
+        "confirmed": "Bevestigd — levering volgt",
+        "received": "Ontvangen",
         "reversed": "Teruggedraaid"
       },
       "state": {
@@ -559,12 +569,17 @@
       },
       "status": {
         "pending": "Wacht op terugbetalingsperiode",
-        "pendingUntil": "Verwacht bevestigd na {date}",
-        "confirmed": "Bevestigd — het festival levert dit binnenkort",
+        "pendingUntil": "Bevestigt na {date} als de verkoop niet wordt terugbetaald",
+        "confirmed": "Festival levert dit — je krijgt bericht wanneer het verstuurd is",
         "fulfilled": "Geleverd",
+        "fulfilledOn": "Geleverd op {date}",
         "reversed": "Teruggedraaid",
-        "awaitingFestivalReview": "Wacht op goedkeuring festival (UTM-attributie)",
+        "awaitingFestivalReview": "Festival beoordeelt deze UTM-verkoop voordat deze bevestigd wordt",
         "reversedReason": "Reden: {reason}"
+      },
+      "timeline": {
+        "label": "Voortgang beloning",
+        "reversed": "Deze beloning is teruggedraaid — meestal door terugbetaling van de verkoop."
       }
     },
     "community": {

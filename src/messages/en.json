@@ -537,18 +537,28 @@
     },
     "rewards": {
       "title": "Rewards",
-      "subtitle": "Everything you have earned — with clear status and next steps.",
+      "subtitle": "Cash and perks you earn from attributed sales — tracked step by step.",
       "empty": "No rewards yet.",
-      "emptyHint": "Share your tracklink. When a sale is attributed to you, rewards from the festival appear here.",
+      "emptyHint": "When someone buys through your tracklink, festival rewards show up here automatically.",
+      "emptyCta": "Share your link",
       "loading": "Loading rewards…",
       "loadError": "Could not load rewards.",
       "retry": "Try again",
       "refresh": "Refresh",
-      "sections": {
-        "active": "On the way",
-        "activeEmpty": "",
+      "earnTitle": "What you can earn",
+      "earnHint": "Active rewards for festivals you promote — issued on each attributed sale.",
+      "earnedOn": "Earned {date}",
+      "tier": "Tier {tier} attribution",
+      "kpi": {
+        "onTheWay": "On the way",
+        "onTheWayDetail": "{count, plural, one {# reward} other {# rewards}} in progress",
         "received": "Received",
-        "receivedEmpty": "",
+        "receivedDetail": "{count, plural, one {# delivered} other {# delivered}}"
+      },
+      "sections": {
+        "pending": "Refund window",
+        "confirmed": "Confirmed — awaiting delivery",
+        "received": "Received",
         "reversed": "Reversed"
       },
       "state": {
@@ -559,12 +569,17 @@
       },
       "status": {
         "pending": "Waiting out the refund window",
-        "pendingUntil": "Expected to confirm after {date}",
-        "confirmed": "Confirmed — the festival will deliver this soon",
+        "pendingUntil": "Confirms after {date} if the sale is not refunded",
+        "confirmed": "Festival will deliver this — you'll be notified when it's sent",
         "fulfilled": "Delivered",
+        "fulfilledOn": "Delivered on {date}",
         "reversed": "Reversed",
-        "awaitingFestivalReview": "Waiting for festival approval (UTM attribution)",
+        "awaitingFestivalReview": "Festival is reviewing this UTM-attributed sale before confirming",
         "reversedReason": "Reason: {reason}"
+      },
+      "timeline": {
+        "label": "Reward progress",
+        "reversed": "This reward was reversed — usually because the sale was refunded."
       }
     },
     "community": {

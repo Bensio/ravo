@@ -95,10 +95,20 @@ export type RewardRow = {
   created_at: string;
 };
 
+export type SerializedEarnRule = {
+  id: string;
+  name: string;
+  festivalName: string | null;
+  rewardType: RewardType;
+  summary: string;
+  triggerType: RuleTriggerType;
+};
+
 export type SerializedReward = {
   id: string;
   campaignId: string;
   campaignName: string | null;
+  festivalName: string | null;
   ambassadorId: string;
   ambassadorHandle: string | null;
   ruleName: string;
