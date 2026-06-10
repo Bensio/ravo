@@ -17,6 +17,14 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const legacyFestivals = pathname.match(/^\/(en|nl)\/([^/]+)\/festivals(\/.*)?$/);
+  if (legacyFestivals) {
+    const [, locale, orgSlug, rest = ''] = legacyFestivals;
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}/${orgSlug}/events${rest}`;
+    return NextResponse.redirect(url, 308);
+  }
+
   if (pathname.startsWith('/auth/callback')) {
     return updateSession(request, NextResponse.next({ request }));
   }

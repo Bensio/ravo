@@ -157,7 +157,7 @@ export function RewardsDashboard({
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as { error?: string };
       setFormError(
-        err.error === 'no_campaign' ? t('form.noFestival') : t('form.createError'),
+        err.error === 'no_campaign' ? t('form.noEvent') : t('form.createError'),
       );
       setSubmitting(false);
       return;
@@ -231,7 +231,7 @@ export function RewardsDashboard({
           <div className="grid gap-3 sm:grid-cols-2">
             {(data?.campaigns.length ?? 0) > 1 ? (
               <label className="block space-y-1 text-sm">
-                <span>{t('form.festival')}</span>
+                <span>{t('form.event')}</span>
                 <NativeSelect
                   value={formCampaignId}
                   onChange={(e) => setFormCampaignId(e.target.value)}
@@ -246,12 +246,12 @@ export function RewardsDashboard({
               </label>
             ) : (data?.campaigns.length ?? 0) === 1 ? (
               <div className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-muted-foreground">{t('form.festival')}</span>
+                <span className="text-muted-foreground">{t('form.event')}</span>
                 <p className="font-medium">{data!.campaigns[0]!.name}</p>
-                <p className="text-xs text-muted-foreground">{t('form.festivalHint')}</p>
+                <p className="text-xs text-muted-foreground">{t('form.eventHint')}</p>
               </div>
             ) : (
-              <p className="text-sm text-red-400 sm:col-span-2">{t('form.noFestival')}</p>
+              <p className="text-sm text-red-400 sm:col-span-2">{t('form.noEvent')}</p>
             )}
             <label className="block space-y-1 text-sm">
               <span>{t('form.name')}</span>

@@ -1,6 +1,6 @@
 export type AdminNavKey =
   | 'overview'
-  | 'festivals'
+  | 'events'
   | 'leaderboard'
   | 'analytics'
   | 'ambassadors'

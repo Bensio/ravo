@@ -46,7 +46,7 @@
       "analytics": "Analytics",
       "ambassadors": "Ambassadors",
       "content": "Content",
-      "festivals": "Festivals",
+      "events": "Events",
       "tracklinks": "Tracklinks",
       "salesFeed": "Sales feed",
       "rewards": "Rewards",
@@ -78,19 +78,19 @@
       "cta": "Go to Tracklinks"
     },
     "eventCard": {
-      "label": "Active festival",
-      "noEventTitle": "No festival yet",
-      "noEventHint": "Create a festival edition to scope tracklinks, rewards, and reporting.",
-      "createCta": "Create festival →",
-      "manageCta": "Manage festivals →"
+      "label": "Active event",
+      "noEventTitle": "No event yet",
+      "noEventHint": "Create an event edition to scope tracklinks, rewards, and reporting.",
+      "createCta": "Create event →",
+      "manageCta": "Manage events →"
     },
-    "festivals": {
-      "title": "Festivals",
-      "subtitle": "Each festival edition has its own ambassador program, tracklinks, and rewards.",
-      "loading": "Loading festivals…",
+    "events": {
+      "title": "Events",
+      "subtitle": "Each event edition has its own ambassador program, tracklinks, and rewards.",
+      "loading": "Loading events…",
       "refresh": "Refresh",
-      "create": "New festival",
-      "empty": "No festivals yet.",
+      "create": "New event",
+      "empty": "No events yet.",
       "emptyHint": "Create your first edition to replace the auto-generated default and name your event properly.",
       "activeBadge": "Active",
       "setActive": "Set active",
@@ -104,35 +104,35 @@
         "past": "Past"
       },
       "table": {
-        "name": "Festival",
+        "name": "Event",
         "dates": "Dates",
         "phase": "Status",
         "actions": "Actions",
         "manage": "Manage"
       },
       "detail": {
-        "back": "All festivals"
+        "back": "All events"
       },
       "nav": {
         "edition": "Edition",
         "program": "Ambassador program",
         "shortcuts": "Shortcuts",
-        "ariaLabel": "Festival sections"
+        "ariaLabel": "Event sections"
       },
       "edition": {
         "hint": "Dates, location, and currency for this edition. Shown in dashboards and ambassador views."
       },
       "shortcuts": {
         "title": "Quick links",
-        "hint": "Tracklinks, rewards, and ambassadors use the active festival context from the sidebar.",
+        "hint": "Tracklinks, rewards, and ambassadors use the active event context from the sidebar.",
         "tracklinks": "Tracklinks",
         "rewards": "Rewards",
         "ambassadors": "Ambassadors",
-        "inactiveWarning": "This edition is not the active context. Set it active so tracklinks and rewards target this festival."
+        "inactiveWarning": "This edition is not the active context. Set it active so tracklinks and rewards target this event."
       },
       "form": {
-        "createTitle": "New festival edition",
-        "name": "Festival name",
+        "createTitle": "New event edition",
+        "name": "Event name",
         "namePlaceholder": "e.g. Sun Splash 2026",
         "slug": "URL slug",
         "slugHint": "Used in UTM campaign parameters and internal links. Lowercase letters, numbers, and hyphens only.",
@@ -146,8 +146,8 @@
         "coverImage": "Cover image URL",
         "timezone": "Timezone",
         "currency": "Currency",
-        "createSubmit": "Create festival",
-        "createError": "Could not create festival. Check the name and try again.",
+        "createSubmit": "Create event",
+        "createError": "Could not create event. Check the name and try again.",
         "save": "Save changes",
         "saveError": "Could not save changes.",
         "invalidDates": "End date must be after start date."
@@ -315,7 +315,7 @@
       "createError": "Could not create link. Try again or contact support.",
       "createErrorInvalidUrl": "Enter a valid ticket shop URL (https://…).",
       "createErrorBootstrap": "Could not set up your first campaign. Try again in a moment.",
-      "createErrorNoFestival": "Create or activate a festival first (Festivals in the sidebar).",
+      "createErrorNoEvent": "Create or activate an event first (Events in the sidebar).",
       "createErrorServiceRole": "Server configuration is incomplete (missing Supabase service role key on Vercel).",
       "createErrorSchema": "Database migration for links is missing. Run migrations 20260522000001 and 20260523000001 in Supabase SQL Editor.",
       "createErrorForbidden": "You do not have permission to create links in this organization.",
@@ -442,9 +442,9 @@
       },
       "form": {
         "title": "New per-sale rule",
-        "festival": "Festival",
-        "festivalHint": "Uses your org's default festival — the same one behind your tracklinks.",
-        "noFestival": "Could not set up a festival. Create a tracklink first, then try again.",
+        "event": "Event",
+        "eventHint": "Uses your org's active event — the same one behind your tracklinks.",
+        "noEvent": "Could not resolve an active event. Create a tracklink first, then try again.",
         "name": "Rule name",
         "namePlaceholder": "e.g. €5 per ticket sale",
         "rewardType": "Reward type",

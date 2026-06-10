@@ -20,7 +20,7 @@ export function AdminEventCard({
   if (!activeEvent) {
     return (
       <Link
-        href={`/${locale}/${orgSlug}/festivals`}
+        href={`/${locale}/${orgSlug}/events`}
         className="block rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]"
       >
         <div className="flex items-start gap-2.5">
@@ -42,7 +42,7 @@ export function AdminEventCard({
 
   return (
     <Link
-      href={`/${locale}/${orgSlug}/festivals/${activeEvent.id}`}
+      href={`/${locale}/${orgSlug}/events/${activeEvent.id}`}
       className="block rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]"
     >
       <div className="flex items-start gap-2.5">

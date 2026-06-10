@@ -27,7 +27,7 @@ type EventsData = {
   activeEventId: string | null;
 };
 
-export function FestivalsDashboard({
+export function EventsDashboard({
   locale,
   orgSlug,
   canCreate,
@@ -40,7 +40,7 @@ export function FestivalsDashboard({
   canEdit: boolean;
   initialData?: EventsData | null;
 }) {
-  const t = useTranslations('admin.festivals');
+  const t = useTranslations('admin.events');
   const router = useRouter();
   const [data, setData] = useState<EventsData | null>(initialData ?? null);
   const [loading, setLoading] = useState(initialData === undefined);
@@ -117,7 +117,7 @@ export function FestivalsDashboard({
     setCreateName('');
     setCreateSlug('');
     setSlugTouched(false);
-    router.push(`/${locale}/${orgSlug}/festivals/${payload.event.id}`);
+    router.push(`/${locale}/${orgSlug}/events/${payload.event.id}`);
     router.refresh();
   }
 
@@ -358,7 +358,7 @@ export function FestivalsDashboard({
                             </Button>
                           )}
                           <Link
-                            href={`${basePath}/festivals/${event.id}`}
+                            href={`${basePath}/events/${event.id}`}
                             className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
                           >
                             {t('table.manage')}

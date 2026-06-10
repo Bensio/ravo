@@ -3,18 +3,18 @@
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
-export type FestivalSection = 'edition' | 'program' | 'shortcuts';
+export type EventSection = 'edition' | 'program' | 'shortcuts';
 
-export function FestivalSectionNav({
+export function EventSectionNav({
   active,
   onChange,
 }: {
-  active: FestivalSection;
-  onChange: (section: FestivalSection) => void;
+  active: EventSection;
+  onChange: (section: EventSection) => void;
 }) {
-  const t = useTranslations('admin.festivals.nav');
+  const t = useTranslations('admin.events.nav');
 
-  const items: Array<{ id: FestivalSection; label: string }> = [
+  const items: Array<{ id: EventSection; label: string }> = [
     { id: 'edition', label: t('edition') },
     { id: 'program', label: t('program') },
     { id: 'shortcuts', label: t('shortcuts') },

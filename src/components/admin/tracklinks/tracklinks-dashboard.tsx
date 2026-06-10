@@ -114,7 +114,7 @@ export function TracklinksDashboard({
         data.error === 'invalid_url'
           ? 'createErrorInvalidUrl'
           : data.error === 'no_active_festival'
-            ? 'createErrorNoFestival'
+            ? 'createErrorNoEvent'
             : data.error === 'bootstrap_failed'
             ? 'createErrorBootstrap'
             : data.error === 'no_ambassador'

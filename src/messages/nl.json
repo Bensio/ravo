@@ -46,7 +46,7 @@
       "analytics": "Analytics",
       "ambassadors": "Ambassadeurs",
       "content": "Content",
-      "festivals": "Festivals",
+      "events": "Events",
       "tracklinks": "Tracklinks",
       "salesFeed": "Verkoopfeed",
       "rewards": "Beloningen",
@@ -78,19 +78,19 @@
       "cta": "Naar Tracklinks"
     },
     "eventCard": {
-      "label": "Actief festival",
-      "noEventTitle": "Nog geen festival",
-      "noEventHint": "Maak een festival-editie aan voor tracklinks, beloningen en rapportage.",
-      "createCta": "Festival aanmaken →",
-      "manageCta": "Festivals beheren →"
+      "label": "Actief event",
+      "noEventTitle": "Nog geen event",
+      "noEventHint": "Maak een event-editie aan voor tracklinks, beloningen en rapportage.",
+      "createCta": "Event aanmaken →",
+      "manageCta": "Events beheren →"
     },
-    "festivals": {
-      "title": "Festivals",
-      "subtitle": "Elke festival-editie heeft een eigen ambassadeursprogramma, tracklinks en beloningen.",
-      "loading": "Festivals laden…",
+    "events": {
+      "title": "Events",
+      "subtitle": "Elke event-editie heeft een eigen ambassadeursprogramma, tracklinks en beloningen.",
+      "loading": "Events laden…",
       "refresh": "Vernieuwen",
-      "create": "Nieuw festival",
-      "empty": "Nog geen festivals.",
+      "create": "Nieuw event",
+      "empty": "Nog geen events.",
       "emptyHint": "Maak je eerste editie aan om de automatische default te vervangen.",
       "activeBadge": "Actief",
       "setActive": "Actief maken",
@@ -104,35 +104,35 @@
         "past": "Afgelopen"
       },
       "table": {
-        "name": "Festival",
+        "name": "Event",
         "dates": "Data",
         "phase": "Status",
         "actions": "Acties",
         "manage": "Beheren"
       },
       "detail": {
-        "back": "Alle festivals"
+        "back": "Alle events"
       },
       "nav": {
         "edition": "Editie",
         "program": "Ambassadeursprogramma",
         "shortcuts": "Snelkoppelingen",
-        "ariaLabel": "Festivalsecties"
+        "ariaLabel": "Eventsecties"
       },
       "edition": {
         "hint": "Data, locatie en valuta voor deze editie. Zichtbaar in dashboards en ambassadeur-weergaven."
       },
       "shortcuts": {
         "title": "Snelkoppelingen",
-        "hint": "Tracklinks, beloningen en ambassadeurs gebruiken de actieve festivalcontext uit de zijbalk.",
+        "hint": "Tracklinks, beloningen en ambassadeurs gebruiken de actieve eventcontext uit de zijbalk.",
         "tracklinks": "Tracklinks",
         "rewards": "Beloningen",
         "ambassadors": "Ambassadeurs",
-        "inactiveWarning": "Deze editie is niet de actieve context. Maak hem actief zodat tracklinks en beloningen op dit festival richten."
+        "inactiveWarning": "Deze editie is niet de actieve context. Maak hem actief zodat tracklinks en beloningen op dit event richten."
       },
       "form": {
-        "createTitle": "Nieuwe festival-editie",
-        "name": "Festivalnaam",
+        "createTitle": "Nieuwe event-editie",
+        "name": "Eventnaam",
         "namePlaceholder": "bijv. Sun Splash 2026",
         "slug": "URL-slug",
         "slugHint": "Gebruikt in UTM-campagneparameters en interne links. Alleen kleine letters, cijfers en koppeltekens.",
@@ -146,8 +146,8 @@
         "coverImage": "Coverafbeelding-URL",
         "timezone": "Tijdzone",
         "currency": "Valuta",
-        "createSubmit": "Festival aanmaken",
-        "createError": "Festival aanmaken mislukt. Controleer de naam.",
+        "createSubmit": "Event aanmaken",
+        "createError": "Event aanmaken mislukt. Controleer de naam.",
         "save": "Wijzigingen opslaan",
         "saveError": "Opslaan mislukt.",
         "invalidDates": "Einddatum moet na de startdatum liggen."
@@ -315,7 +315,7 @@
       "createError": "Link aanmaken mislukt. Probeer opnieuw of neem contact op.",
       "createErrorInvalidUrl": "Voer een geldige ticketshop-URL in (https://…).",
       "createErrorBootstrap": "Eerste campagne kon niet worden aangemaakt. Probeer het zo meteen opnieuw.",
-      "createErrorNoFestival": "Maak eerst een festival aan of zet er een op actief (Festivals in de zijbalk).",
+      "createErrorNoEvent": "Maak eerst een event aan of zet er een op actief (Events in de zijbalk).",
       "createErrorServiceRole": "Serverconfiguratie incompleet (Supabase service role key ontbreekt op Vercel).",
       "createErrorSchema": "Database-migratie voor links ontbreekt. Voer migraties 20260522000001 en 20260523000001 uit in de Supabase SQL Editor.",
       "createErrorForbidden": "Je hebt geen rechten om links aan te maken in deze organisatie.",
@@ -442,9 +442,9 @@
       },
       "form": {
         "title": "Nieuwe per-verkoop regel",
-        "festival": "Festival",
-        "festivalHint": "Gebruikt het standaard festival van je organisatie — hetzelfde als achter je tracklinks.",
-        "noFestival": "Festival kon niet worden ingesteld. Maak eerst een tracklink en probeer opnieuw.",
+        "event": "Event",
+        "eventHint": "Gebruikt het actieve event van je organisatie — hetzelfde als achter je tracklinks.",
+        "noEvent": "Actief event kon niet worden bepaald. Maak eerst een tracklink en probeer opnieuw.",
         "name": "Regelnaam",
         "namePlaceholder": "bijv. €5 per ticketverkoop",
         "rewardType": "Beloningstype",

@@ -19,7 +19,7 @@ import type { AdminNavKey } from './admin-nav-types';
 
 export const ADMIN_NAV_ICONS: Record<AdminNavKey, LucideIcon> = {
   overview: LayoutDashboard,
-  festivals: CalendarDays,
+  events: CalendarDays,
   leaderboard: Trophy,
   analytics: BarChart3,
   ambassadors: Users,

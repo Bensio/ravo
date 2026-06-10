@@ -16,9 +16,9 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
-  FestivalSectionNav,
-  type FestivalSection,
-} from '@/components/admin/festivals/festival-section-nav';
+  EventSectionNav,
+  type EventSection,
+} from '@/components/admin/events/event-section-nav';
 import { datetimeLocalToUtcIso, toDatetimeLocalInput } from '@/lib/events/form-dates';
 import type { SerializedEventDetail } from '@/lib/events/types';
 import { slugifyEventName } from '@/lib/events/slug';
@@ -36,7 +36,7 @@ function emptyProgramDatetime(): string {
   return '';
 }
 
-export function FestivalDetailDashboard({
+export function EventDetailDashboard({
   locale,
   orgSlug,
   eventId,
@@ -49,9 +49,9 @@ export function FestivalDetailDashboard({
   canEdit: boolean;
   initialEvent: SerializedEventDetail;
 }) {
-  const t = useTranslations('admin.festivals');
+  const t = useTranslations('admin.events');
   const router = useRouter();
-  const [section, setSection] = useState<FestivalSection>('edition');
+  const [section, setSection] = useState<EventSection>('edition');
   const [detail, setDetail] = useState(initialEvent);
   const [saving, setSaving] = useState(false);
   const [activating, setActivating] = useState(false);
@@ -216,7 +216,7 @@ export function FestivalDetailDashboard({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <Link
-            href={`${basePath}/festivals`}
+            href={`${basePath}/events`}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -258,7 +258,7 @@ export function FestivalDetailDashboard({
         </div>
       </div>
 
-      <FestivalSectionNav active={section} onChange={setSection} />
+      <EventSectionNav active={section} onChange={setSection} />
 
       <form onSubmit={(e) => void handleSave(e)} className="space-y-6">
         {section === 'edition' && (

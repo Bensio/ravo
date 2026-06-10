@@ -1,12 +1,12 @@
 import { setRequestLocale } from 'next-intl/server';
-import { FestivalsDashboard } from '@/components/admin/festivals/festivals-dashboard';
+import { EventsDashboard } from '@/components/admin/events/events-dashboard';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { roleHasPermission } from '@/lib/auth/permissions';
 import { listEventsForOrg, resolveActiveEvent } from '@/lib/events/event-context';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
-export default async function FestivalsPage({ params }: Props) {
+export default async function EventsPage({ params }: Props) {
   const { locale, org_slug } = await params;
   setRequestLocale(locale);
 
@@ -22,7 +22,7 @@ export default async function FestivalsPage({ params }: Props) {
   const canEdit = ctx ? roleHasPermission(ctx.membership.role, 'event.update') : false;
 
   return (
-    <FestivalsDashboard
+    <EventsDashboard
       locale={locale}
       orgSlug={org_slug}
       canCreate={canCreate}
