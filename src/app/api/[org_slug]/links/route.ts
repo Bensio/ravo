@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { createClient } from '@/lib/supabase/server';
+import { resolveActiveCampaignForOrg } from '@/lib/events/resolve-active-campaign';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
 import { buildPublicLinkUrl } from '@/lib/links/code';
 import { createTracklink } from '@/lib/links/create-link';
@@ -69,17 +70,24 @@ export const POST = requirePermission('link.create', async ({ ctx, request }) =>
   let campaignId = parsed.data.campaign_id;
   const ambassadorId = parsed.data.ambassador_id;
 
-  if (parsed.data.bootstrap || !campaignId) {
-    try {
-      const boot = await bootstrapCampaignForOrg(ctx.org.id, ctx.user.id);
-      campaignId = campaignId ?? boot.campaignId;
-    } catch (err) {
-      return bootstrapErrorResponse(err);
+  if (!campaignId) {
+    const active = await resolveActiveCampaignForOrg(ctx.org.id);
+    if (active?.campaign.state === 'active' || active?.campaign.state === 'paused') {
+      campaignId = active.campaign.id;
+    } else if (parsed.data.bootstrap) {
+      try {
+        const boot = await bootstrapCampaignForOrg(ctx.org.id, ctx.user.id);
+        campaignId = boot.campaignId;
+      } catch (err) {
+        return bootstrapErrorResponse(err);
+      }
+    } else if (active) {
+      campaignId = active.campaign.id;
     }
   }
 
   if (!campaignId) {
-    return NextResponse.json({ error: 'bootstrap_failed' }, { status: 500 });
+    return NextResponse.json({ error: 'no_active_festival' }, { status: 400 });
   }
 
   if (!ambassadorId) {

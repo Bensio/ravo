@@ -3,6 +3,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
+  CalendarDays,
   CircleHelp,
   FileText,
   Gift,
@@ -18,6 +19,7 @@ import type { AdminNavKey } from './admin-nav-types';
 
 export const ADMIN_NAV_ICONS: Record<AdminNavKey, LucideIcon> = {
   overview: LayoutDashboard,
+  festivals: CalendarDays,
   leaderboard: Trophy,
   analytics: BarChart3,
   ambassadors: Users,

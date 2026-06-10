@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { createPerSaleRewardRule } from '@/lib/rewards/create-rule';
+import { resolveActiveEvent } from '@/lib/events/event-context';
 import { resolveCampaignIdForRewards } from '@/lib/rewards/list-org-campaigns';
 import type { RewardType } from '@/lib/rewards/types';
 import { REWARD_TYPES } from '@/lib/rewards/types';
@@ -29,10 +30,12 @@ export const POST = requirePermission('reward.rule.create', async ({ ctx, reques
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 });
   }
 
+  const activeEvent = await resolveActiveEvent(ctx.org.id);
   const campaignId = await resolveCampaignIdForRewards(
     ctx.org.id,
     ctx.user.id,
     body.campaignId,
+    activeEvent?.id ?? null,
   );
   if (!campaignId) {
     return NextResponse.json({ error: 'no_campaign' }, { status: 400 });

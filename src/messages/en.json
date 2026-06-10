@@ -46,6 +46,7 @@
       "analytics": "Analytics",
       "ambassadors": "Ambassadors",
       "content": "Content",
+      "festivals": "Festivals",
       "tracklinks": "Tracklinks",
       "salesFeed": "Sales feed",
       "rewards": "Rewards",
@@ -77,9 +78,56 @@
       "cta": "Go to Tracklinks"
     },
     "eventCard": {
-      "label": "Active event",
-      "noEventTitle": "No event yet",
-      "noEventHint": "Create an event and campaign to see festival dates here."
+      "label": "Active festival",
+      "noEventTitle": "No festival yet",
+      "noEventHint": "Create a festival edition to scope tracklinks, rewards, and reporting.",
+      "createCta": "Create festival →",
+      "manageCta": "Manage festivals →"
+    },
+    "festivals": {
+      "title": "Festivals",
+      "subtitle": "Each festival edition has its own ambassador program, tracklinks, and rewards.",
+      "loading": "Loading festivals…",
+      "refresh": "Refresh",
+      "create": "New festival",
+      "empty": "No festivals yet.",
+      "emptyHint": "Create your first edition to replace the auto-generated default and name your event properly.",
+      "activeBadge": "Active",
+      "setActive": "Set active",
+      "editTitle": "Festival details",
+      "readOnly": "You can view settings but not edit them.",
+      "phase": {
+        "upcoming": "Upcoming",
+        "live": "Live",
+        "past": "Past"
+      },
+      "form": {
+        "createTitle": "New festival edition",
+        "name": "Festival name",
+        "namePlaceholder": "e.g. Sun Splash 2026",
+        "venue": "Venue",
+        "venuePlaceholder": "e.g. Amsterdamse Bos",
+        "timezone": "Timezone",
+        "currency": "Currency",
+        "createSubmit": "Create festival",
+        "createError": "Could not create festival. Check the name and try again.",
+        "save": "Save changes",
+        "saveError": "Could not save changes."
+      },
+      "program": {
+        "title": "Ambassador program",
+        "hint": "Controls refund window, UTM cash review, and whether ambassadors can earn on this edition.",
+        "state": "Program status",
+        "stateDraft": "Draft",
+        "stateActive": "Active",
+        "statePaused": "Paused",
+        "stateClosed": "Closed",
+        "refundWindow": "Refund window (days)",
+        "tier4": "Tier-4 cash (UTM-only sales)",
+        "tier4Review": "Require admin review",
+        "tier4Auto": "Auto-confirm like tier 1–3",
+        "tier4Denied": "No cash on tier 4"
+      }
     },
     "overview": {
       "title": "Overview",
@@ -221,6 +269,7 @@
       "createError": "Could not create link. Try again or contact support.",
       "createErrorInvalidUrl": "Enter a valid ticket shop URL (https://…).",
       "createErrorBootstrap": "Could not set up your first campaign. Try again in a moment.",
+      "createErrorNoFestival": "Create or activate a festival first (Festivals in the sidebar).",
       "createErrorServiceRole": "Server configuration is incomplete (missing Supabase service role key on Vercel).",
       "createErrorSchema": "Database migration for links is missing. Run migrations 20260522000001 and 20260523000001 in Supabase SQL Editor.",
       "createErrorForbidden": "You do not have permission to create links in this organization.",

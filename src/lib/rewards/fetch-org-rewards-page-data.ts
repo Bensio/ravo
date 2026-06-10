@@ -1,3 +1,4 @@
+import { resolveActiveEvent } from '@/lib/events/event-context';
 import { fetchOrgRewardRules, fetchOrgRewards } from './fetch-rewards';
 import { listOrgCampaignsForRewards, type OrgCampaignOption } from './list-org-campaigns';
 import type { SerializedReward, SerializedRewardRule } from './types';
@@ -17,10 +18,14 @@ export async function fetchOrgRewardsPageData(
   organizationId: string,
   options?: { bootstrapUserId?: string },
 ): Promise<OrgRewardsPageData> {
+  const activeEvent = await resolveActiveEvent(organizationId);
   const [rewards, rules, campaigns] = await Promise.all([
     fetchOrgRewards(organizationId),
     fetchOrgRewardRules(organizationId),
-    listOrgCampaignsForRewards(organizationId, options),
+    listOrgCampaignsForRewards(organizationId, {
+      ...options,
+      eventId: activeEvent?.id ?? null,
+    }),
   ]);
 
   const needsReview = rewards.filter(

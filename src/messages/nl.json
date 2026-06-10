@@ -46,6 +46,7 @@
       "analytics": "Analytics",
       "ambassadors": "Ambassadeurs",
       "content": "Content",
+      "festivals": "Festivals",
       "tracklinks": "Tracklinks",
       "salesFeed": "Verkoopfeed",
       "rewards": "Beloningen",
@@ -77,9 +78,56 @@
       "cta": "Naar Tracklinks"
     },
     "eventCard": {
-      "label": "Actief event",
-      "noEventTitle": "Nog geen event",
-      "noEventHint": "Maak een event en campagne aan om festivaldata hier te zien."
+      "label": "Actief festival",
+      "noEventTitle": "Nog geen festival",
+      "noEventHint": "Maak een festival-editie aan voor tracklinks, beloningen en rapportage.",
+      "createCta": "Festival aanmaken →",
+      "manageCta": "Festivals beheren →"
+    },
+    "festivals": {
+      "title": "Festivals",
+      "subtitle": "Elke festival-editie heeft een eigen ambassadeursprogramma, tracklinks en beloningen.",
+      "loading": "Festivals laden…",
+      "refresh": "Vernieuwen",
+      "create": "Nieuw festival",
+      "empty": "Nog geen festivals.",
+      "emptyHint": "Maak je eerste editie aan om de automatische default te vervangen.",
+      "activeBadge": "Actief",
+      "setActive": "Actief maken",
+      "editTitle": "Festivaldetails",
+      "readOnly": "Je kunt instellingen bekijken maar niet bewerken.",
+      "phase": {
+        "upcoming": "Komend",
+        "live": "Live",
+        "past": "Afgelopen"
+      },
+      "form": {
+        "createTitle": "Nieuwe festival-editie",
+        "name": "Festivalnaam",
+        "namePlaceholder": "bijv. Sun Splash 2026",
+        "venue": "Locatie",
+        "venuePlaceholder": "bijv. Amsterdamse Bos",
+        "timezone": "Tijdzone",
+        "currency": "Valuta",
+        "createSubmit": "Festival aanmaken",
+        "createError": "Festival aanmaken mislukt. Controleer de naam.",
+        "save": "Wijzigingen opslaan",
+        "saveError": "Opslaan mislukt."
+      },
+      "program": {
+        "title": "Ambassadeursprogramma",
+        "hint": "Bepaalt terugbetalingsperiode, UTM-cash review en of ambassadeurs kunnen verdienen.",
+        "state": "Programmastatus",
+        "stateDraft": "Concept",
+        "stateActive": "Actief",
+        "statePaused": "Gepauzeerd",
+        "stateClosed": "Gesloten",
+        "refundWindow": "Terugbetalingsperiode (dagen)",
+        "tier4": "Tier-4 cash (alleen UTM)",
+        "tier4Review": "Admin-review vereist",
+        "tier4Auto": "Auto-bevestigen zoals tier 1–3",
+        "tier4Denied": "Geen cash op tier 4"
+      }
     },
     "overview": {
       "title": "Overzicht",
@@ -221,6 +269,7 @@
       "createError": "Link aanmaken mislukt. Probeer opnieuw of neem contact op.",
       "createErrorInvalidUrl": "Voer een geldige ticketshop-URL in (https://…).",
       "createErrorBootstrap": "Eerste campagne kon niet worden aangemaakt. Probeer het zo meteen opnieuw.",
+      "createErrorNoFestival": "Maak eerst een festival aan of zet er een op actief (Festivals in de zijbalk).",
       "createErrorServiceRole": "Serverconfiguratie incompleet (Supabase service role key ontbreekt op Vercel).",
       "createErrorSchema": "Database-migratie voor links ontbreekt. Voer migraties 20260522000001 en 20260523000001 uit in de Supabase SQL Editor.",
       "createErrorForbidden": "Je hebt geen rechten om links aan te maken in deze organisatie.",
