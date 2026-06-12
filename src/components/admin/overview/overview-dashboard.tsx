@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Euro, MousePointerClick, Percent, RefreshCw, Ticket } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { ClicksSalesChart } from '@/components/admin/dashboard/clicks-sales-chart';
@@ -45,13 +45,10 @@ export function OverviewDashboard({
     [orgSlug],
   );
 
-  useEffect(() => {
-    if (range === initialDays) {
-      setData(initialData);
-      return;
-    }
-    void load(range);
-  }, [range, initialDays, initialData, load]);
+  function handleRangeChange(next: DashboardDays) {
+    setRange(next);
+    void load(next);
+  }
 
   if (!data && loadError) {
     return (
@@ -86,7 +83,7 @@ export function OverviewDashboard({
             className="w-auto min-w-[8.5rem] py-1.5 text-xs"
             value={String(range)}
             disabled={loading}
-            onChange={(e) => setRange(Number(e.target.value) as DashboardDays)}
+            onChange={(e) => handleRangeChange(Number(e.target.value) as DashboardDays)}
           >
             <option value="7">{t('range7d')}</option>
             <option value="14">{t('range14d')}</option>
@@ -101,12 +98,6 @@ export function OverviewDashboard({
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <Link
-            href={`/${locale}/${orgSlug}/leaderboard`}
-            className="text-xs text-primary hover:underline"
-          >
-            {t('viewLeaderboard')}
-          </Link>
         </div>
       </div>
 
@@ -162,6 +153,7 @@ export function OverviewDashboard({
 
       <section className="grid auto-rows-fr gap-3 lg:grid-cols-2">
         <ClicksSalesChart
+          key={data.days}
           data={data.series}
           title={t('chartTitle')}
           clicksLabel={t('kpiClicks')}

@@ -434,6 +434,9 @@
       "loading": "Loading rewards…",
       "refresh": "Refresh",
       "addRule": "Add rule",
+      "removeRule": "Remove rule",
+      "removeRuleConfirm": "Remove “{name}”? Rules with issued rewards are archived; unused rules are deleted.",
+      "removeRuleError": "Could not remove rule. Try again.",
       "tier": "Tier {tier}",
       "pendingUntil": "Confirms after {date}",
       "kpi": {
@@ -452,6 +455,13 @@
         "confirmed": "Confirmed",
         "fulfilled": "Fulfilled",
         "reversed": "Reversed"
+      },
+      "ruleState": {
+        "draft": "Draft",
+        "active": "Active",
+        "paused": "Paused",
+        "closed": "Closed",
+        "archived": "Archived"
       },
       "rewardType": {
         "cash": "Cash",

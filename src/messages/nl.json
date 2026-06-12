@@ -434,6 +434,9 @@
       "loading": "Beloningen laden…",
       "refresh": "Vernieuwen",
       "addRule": "Regel toevoegen",
+      "removeRule": "Regel verwijderen",
+      "removeRuleConfirm": "“{name}” verwijderen? Regels met uitgegeven beloningen worden gearchiveerd; ongebruikte regels worden verwijderd.",
+      "removeRuleError": "Regel verwijderen mislukt. Probeer opnieuw.",
       "tier": "Tier {tier}",
       "pendingUntil": "Bevestigt na {date}",
       "kpi": {
@@ -446,6 +449,13 @@
         "fulfill": "Leveren",
         "all": "Alle beloningen",
         "rules": "Regels"
+      },
+      "ruleState": {
+        "draft": "Concept",
+        "active": "Actief",
+        "paused": "Gepauzeerd",
+        "closed": "Gesloten",
+        "archived": "Gearchiveerd"
       },
       "state": {
         "pending": "In afwachting",

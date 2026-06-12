@@ -18,6 +18,7 @@ export default async function RewardsPage({ params }: Props) {
     : null;
 
   const canCreateRule = ctx ? roleHasPermission(ctx.membership.role, 'reward.rule.create') : false;
+  const canArchiveRule = ctx ? roleHasPermission(ctx.membership.role, 'reward.rule.archive') : false;
   const canFulfill = ctx ? roleHasPermission(ctx.membership.role, 'reward.fulfill') : false;
   const canConfirm = ctx ? roleHasPermission(ctx.membership.role, 'reward.confirm') : false;
 
@@ -26,6 +27,7 @@ export default async function RewardsPage({ params }: Props) {
       orgSlug={org_slug}
       locale={locale}
       canCreateRule={canCreateRule}
+      canArchiveRule={canArchiveRule}
       canFulfill={canFulfill}
       canConfirm={canConfirm}
       initialData={initialData}

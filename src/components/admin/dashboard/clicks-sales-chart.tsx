@@ -41,7 +41,7 @@ export function ClicksSalesChart({
   className?: string;
 }) {
   const rows = useMemo<ChartRow[]>(() => {
-    return data.slice(-14).map((point) => ({
+    return data.map((point) => ({
       day: point.day,
       label: formatInFestivalTz(`${point.day}T12:00:00.000Z`, { timezone }, 'MMM d'),
       clicks: point.clicks,
@@ -62,7 +62,7 @@ export function ClicksSalesChart({
       ) : (
         <div className="mt-4 h-56 w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <BarChart key={rows.map((r) => r.day).join(',')} data={rows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
               <XAxis
                 dataKey="label"

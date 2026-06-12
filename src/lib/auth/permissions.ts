@@ -17,6 +17,7 @@ export const PERMISSIONS = {
   'ambassador.invite': ['owner', 'admin', 'manager'],
   'ambassador.suspend': ['owner', 'admin', 'manager'],
   'reward.rule.create': ['owner', 'admin', 'manager'],
+  'reward.rule.archive': ['owner', 'admin', 'manager'],
   'reward.fulfill': ['owner', 'admin', 'manager'],
   'reward.confirm': ['owner', 'admin', 'manager'],
   'reward.reverse': ['owner', 'admin'],
