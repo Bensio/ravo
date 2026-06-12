@@ -9,7 +9,10 @@ import {
   readDashboardCache,
 } from '@/lib/admin/client-data-cache';
 
-/** Suspense fallback: cached dashboard instantly, otherwise KPI-shaped skeleton. */
+/**
+ * Suspense fallback: show cached dashboard instantly, otherwise layout-matched skeleton.
+ * Prefetch runs in parallel — no second full dashboard mount when cache is cold.
+ */
 export function OverviewPageSkeleton({
   orgSlug,
   locale,

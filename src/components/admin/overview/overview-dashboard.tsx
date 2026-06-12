@@ -1,14 +1,17 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Euro, MousePointerClick, Percent, RefreshCw, Ticket } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Euro, MousePointerClick, Percent, Ticket } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
-import { ClicksSalesChart } from '@/components/admin/dashboard/clicks-sales-chart';
 import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-card';
-import { OverviewSkeleton } from '@/components/admin/overview/overview-skeleton';
-import { NativeSelect } from '@/components/ui/native-select';
+import {
+  OverviewChartSkeleton,
+  OverviewContentSkeleton,
+} from '@/components/admin/overview/overview-content-skeleton';
+import { OverviewPageChrome } from '@/components/admin/overview/overview-page-chrome';
 import {
   dashboardCacheKey,
   readDashboardCache,
@@ -19,6 +22,16 @@ import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
 import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
+
+const ClicksSalesChart = dynamic(
+  () =>
+    import('@/components/admin/dashboard/clicks-sales-chart').then((m) => ({
+      default: m.ClicksSalesChart,
+    })),
+  { ssr: false, loading: () => <OverviewChartSkeleton /> },
+);
+
+const INSTANT_REVALIDATE_DELAY_MS = 10_000;
 
 export function OverviewDashboard({
   orgSlug,
@@ -31,6 +44,9 @@ export function OverviewDashboard({
 }) {
   const t = useTranslations('admin.overview');
   const initialDays = initialData?.days ?? 30;
+  const hadInstantPaint = useRef(
+    Boolean(initialData ?? readDashboardCache(dashboardCacheKey(orgSlug, initialDays))),
+  );
   const [range, setRange] = useState<DashboardDays>(initialDays);
   const [data, setData] = useState<SerializedOrgDashboard | null>(
     () => initialData ?? readDashboardCache(dashboardCacheKey(orgSlug, initialDays)) ?? null,
@@ -43,6 +59,7 @@ export function OverviewDashboard({
     setData(initialData);
     setRange(initialData.days);
     writeDashboardCache(orgSlug, initialData);
+    hadInstantPaint.current = true;
   }, [initialData, orgSlug]);
 
   const load = useCallback(
@@ -65,63 +82,45 @@ export function OverviewDashboard({
     [orgSlug],
   );
 
-  useAdminPageRefresh(orgSlug, (silent) => load(range, { silent }));
+  useAdminPageRefresh(orgSlug, (silent) => load(range, { silent }), {
+    revalidateDelayMs: hadInstantPaint.current ? INSTANT_REVALIDATE_DELAY_MS : 0,
+  });
 
   function handleRangeChange(next: DashboardDays) {
     setRange(next);
+    hadInstantPaint.current = false;
     void load(next);
   }
 
-  if (!data && loadError) {
+  if (loadError && !data) {
     return (
-      <div>
-        <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-red-400">{t('loadError')}</p>
+      <div className="space-y-4">
+        <OverviewPageChrome range={range} onRefresh={() => void load(range)} />
+        <p className="text-sm text-red-400">{t('loadError')}</p>
       </div>
     );
   }
 
   if (!data) {
-    return <OverviewSkeleton />;
+    return (
+      <div className="space-y-4">
+        <OverviewPageChrome range={range} loading controlsDisabled />
+        <OverviewContentSkeleton />
+      </div>
+    );
   }
 
   const hasActivity = data.totals.clicks > 0 || data.totals.sales > 0;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
-          <p className="text-xs text-muted-foreground">
-            {data.eventName ? t('subtitleScoped', { event: data.eventName }) : t('subtitle')}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="sr-only" htmlFor="overview-range">
-            {t('rangeLabel')}
-          </label>
-          <NativeSelect
-            id="overview-range"
-            className="w-auto min-w-[8.5rem] py-1.5 text-xs"
-            value={String(range)}
-            disabled={loading}
-            onChange={(e) => handleRangeChange(Number(e.target.value) as DashboardDays)}
-          >
-            <option value="7">{t('range7d')}</option>
-            <option value="14">{t('range14d')}</option>
-            <option value="30">{t('range30d')}</option>
-          </NativeSelect>
-          <button
-            type="button"
-            onClick={() => void load(range)}
-            disabled={loading}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-white/[0.08] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-            aria-label={t('refresh')}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
+      <OverviewPageChrome
+        range={range}
+        eventName={data.eventName}
+        loading={loading}
+        onRangeChange={handleRangeChange}
+        onRefresh={() => void load(range)}
+      />
 
       {!hasActivity && (
         <section className="ravo-glass-panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">

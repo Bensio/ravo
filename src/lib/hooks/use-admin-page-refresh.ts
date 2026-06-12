@@ -12,35 +12,41 @@ export function dispatchOrgContextRefresh() {
   }
 }
 
-function scheduleIdle(task: () => void): () => void {
-  if (typeof requestIdleCallback !== 'undefined') {
-    const id = requestIdleCallback(task, { timeout: 2500 });
-    return () => cancelIdleCallback(id);
+function scheduleDelayed(task: () => void, delayMs: number): () => void {
+  if (delayMs <= 0) {
+    if (typeof requestIdleCallback !== 'undefined') {
+      const id = requestIdleCallback(task, { timeout: 2500 });
+      return () => cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(task, 0);
+    return () => window.clearTimeout(id);
   }
-  const id = window.setTimeout(task, 0);
+
+  const id = window.setTimeout(task, delayMs);
   return () => window.clearTimeout(id);
 }
 
 /**
- * Revalidate admin page data after paint (idle) on navigation, and immediately on
- * org-context refresh. Never blocks the first paint — SSR / client cache show first.
+ * Revalidate admin page data after paint on navigation, and immediately on org-context
+ * refresh. Use `revalidateDelayMs` when the page already painted cached/SSR data.
  */
 export function useAdminPageRefresh(
   orgSlug: string,
   refresh: (silent: boolean) => void | Promise<void>,
-  options?: { revalidateOnVisit?: boolean },
+  options?: { revalidateOnVisit?: boolean; revalidateDelayMs?: number },
 ) {
   const pathname = usePathname();
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
   const revalidateOnVisit = options?.revalidateOnVisit ?? true;
+  const revalidateDelayMs = options?.revalidateDelayMs ?? 0;
 
   useEffect(() => {
     if (!revalidateOnVisit) return;
-    return scheduleIdle(() => {
+    return scheduleDelayed(() => {
       void refreshRef.current(true);
-    });
-  }, [pathname, orgSlug, revalidateOnVisit]);
+    }, revalidateDelayMs);
+  }, [pathname, orgSlug, revalidateOnVisit, revalidateDelayMs]);
 
   useEffect(() => {
     const onContextRefresh = () => {
