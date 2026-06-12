@@ -2,12 +2,18 @@
 
 import Link from 'next/link';
 import { Euro, MousePointerClick, Percent, RefreshCw, Ticket } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { ClicksSalesChart } from '@/components/admin/dashboard/clicks-sales-chart';
 import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-card';
+import { OverviewSkeleton } from '@/components/admin/overview/overview-skeleton';
 import { NativeSelect } from '@/components/ui/native-select';
+import {
+  dashboardCacheKey,
+  readDashboardCache,
+  writeDashboardCache,
+} from '@/lib/admin/client-data-cache';
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
 import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
@@ -26,9 +32,18 @@ export function OverviewDashboard({
   const t = useTranslations('admin.overview');
   const initialDays = initialData?.days ?? 30;
   const [range, setRange] = useState<DashboardDays>(initialDays);
-  const [data, setData] = useState<SerializedOrgDashboard | null>(initialData);
+  const [data, setData] = useState<SerializedOrgDashboard | null>(
+    () => initialData ?? readDashboardCache(dashboardCacheKey(orgSlug, initialDays)) ?? null,
+  );
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    if (!initialData) return;
+    setData(initialData);
+    setRange(initialData.days);
+    writeDashboardCache(orgSlug, initialData);
+  }, [initialData, orgSlug]);
 
   const load = useCallback(
     async (days: DashboardDays, options?: { silent?: boolean }) => {
@@ -39,7 +54,9 @@ export function OverviewDashboard({
       const res = await fetch(`/api/${orgSlug}/dashboard?days=${days}`, { cache: 'no-store' });
       if (res.ok) {
         const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
-        setData(body.dashboard ?? null);
+        const next = body.dashboard ?? null;
+        setData(next);
+        if (next) writeDashboardCache(orgSlug, next);
       } else {
         setLoadError(true);
       }
@@ -65,7 +82,7 @@ export function OverviewDashboard({
   }
 
   if (!data) {
-    return <p className="text-sm text-muted-foreground">{t('loading')}</p>;
+    return <OverviewSkeleton />;
   }
 
   const hasActivity = data.totals.clicks > 0 || data.totals.sales > 0;

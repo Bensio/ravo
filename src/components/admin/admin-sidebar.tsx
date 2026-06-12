@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { prefetchDashboard } from '@/lib/admin/client-data-cache';
 import { RavoLogo } from '@/components/shared/ravo-logo';
 import { AdminNavLink } from './admin-nav-link';
 import { ADMIN_NAV_ITEMS } from './admin-nav-config';
@@ -29,6 +31,10 @@ export function AdminSidebar({
 }) {
   const t = useTranslations('admin.nav');
 
+  useEffect(() => {
+    void prefetchDashboard(orgSlug, 30);
+  }, [orgSlug]);
+
   return (
     <aside className="ravo-sidebar flex h-full w-[15.5rem] shrink-0 flex-col border-r border-white/[0.06]">
       <div className="flex h-14 shrink-0 items-center border-b border-white/[0.06] px-4">
@@ -41,6 +47,8 @@ export function AdminSidebar({
             href={`/${locale}/${orgSlug}/${item.href}`}
             label={t(item.key)}
             iconName={item.iconName}
+            orgSlug={orgSlug}
+            prefetchDashboardOnHover={item.key === 'overview' || item.key === 'leaderboard'}
           />
         ))}
       </nav>

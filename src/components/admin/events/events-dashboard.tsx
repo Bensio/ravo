@@ -7,6 +7,7 @@ import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { SerializedEvent } from '@/lib/events/types';
+import { clearDashboardCacheForOrg } from '@/lib/admin/client-data-cache';
 import { dispatchOrgContextRefresh, useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { formatInFestivalTz } from '@/lib/time';
 import { cn } from '@/lib/utils';
@@ -56,6 +57,7 @@ export function EventsDashboard({
     setActivatingId(eventId);
     const res = await fetch(`/api/${orgSlug}/events/${eventId}/activate`, { method: 'POST' });
     if (res.ok) {
+      clearDashboardCacheForOrg(orgSlug);
       dispatchOrgContextRefresh();
       await load(true);
       router.refresh();

@@ -12,21 +12,35 @@ export function dispatchOrgContextRefresh() {
   }
 }
 
+function scheduleIdle(task: () => void): () => void {
+  if (typeof requestIdleCallback !== 'undefined') {
+    const id = requestIdleCallback(task, { timeout: 2500 });
+    return () => cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(task, 0);
+  return () => window.clearTimeout(id);
+}
+
 /**
- * Background-refetch admin page data on navigation, org change, and org-context refresh
- * (e.g. active event switch). SSR initialData is a fast placeholder; API is source of truth.
+ * Revalidate admin page data after paint (idle) on navigation, and immediately on
+ * org-context refresh. Never blocks the first paint — SSR / client cache show first.
  */
 export function useAdminPageRefresh(
   orgSlug: string,
   refresh: (silent: boolean) => void | Promise<void>,
+  options?: { revalidateOnVisit?: boolean },
 ) {
   const pathname = usePathname();
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
+  const revalidateOnVisit = options?.revalidateOnVisit ?? true;
 
   useEffect(() => {
-    void refreshRef.current(true);
-  }, [pathname, orgSlug]);
+    if (!revalidateOnVisit) return;
+    return scheduleIdle(() => {
+      void refreshRef.current(true);
+    });
+  }, [pathname, orgSlug, revalidateOnVisit]);
 
   useEffect(() => {
     const onContextRefresh = () => {

@@ -8,8 +8,6 @@ import { AdminHeader } from '@/components/admin/admin-header';
 import { isStaffRole, roleHasPermission } from '@/lib/auth/permissions';
 import { listEventsForOrg, resolveActiveEvent } from '@/lib/events/event-context';
 
-export const dynamic = 'force-dynamic';
-
 type Props = {
   children: React.ReactNode;
   params: Promise<{ locale: string; org_slug: string }>;
