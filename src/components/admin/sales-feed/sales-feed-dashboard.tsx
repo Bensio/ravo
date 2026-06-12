@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { RefreshCw, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { SalesFeedOrderRow } from '@/components/admin/sales-feed/sales-feed-order-row';
 import { Button } from '@/components/ui/button';
+import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
 export type SalesFeedRow = {
@@ -50,10 +51,14 @@ export function SalesFeedDashboard({
   const [purging, setPurging] = useState(false);
   const [purgeMessage, setPurgeMessage] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     setLoadError(null);
-    setPurgeMessage(null);
+    if (!silent) {
+      setPurgeMessage(null);
+    }
     const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
@@ -65,10 +70,7 @@ export function SalesFeedDashboard({
     setLoading(false);
   }, [orgSlug, t]);
 
-  useEffect(() => {
-    if (initialOrders !== undefined) return;
-    void load();
-  }, [initialOrders, load]);
+  useAdminPageRefresh(orgSlug, (silent) => load(silent));
 
   const testOrderCount = orders.filter((o) => o.is_simulated).length;
 

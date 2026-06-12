@@ -1,11 +1,12 @@
 'use client';
 
 import { Check, Copy, Link2, Plus, Trash2, Zap } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import type { OrgAmbassadorOption } from '@/lib/ambassadors/list-org-ambassadors';
+import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { cn } from '@/lib/utils';
 
 export type TracklinkRow = {
@@ -75,15 +76,10 @@ export function TracklinksDashboard({
     setAmbassadorsReady(true);
   }, [orgSlug]);
 
-  useEffect(() => {
-    if (initialLinks !== undefined) return;
-    void load();
-  }, [initialLinks, load]);
-
-  useEffect(() => {
-    if (initialAmbassadors !== undefined) return;
+  useAdminPageRefresh(orgSlug, (silent) => {
+    void load({ silent });
     void loadAmbassadors();
-  }, [initialAmbassadors, loadAmbassadors]);
+  });
 
   const filtered = links.filter((l) => (filter === 'active' ? !l.disabled : true));
   const totalClicks = filtered.reduce((sum, l) => sum + l.click_count, 0);

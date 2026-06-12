@@ -25,5 +25,5 @@ export default async function LeaderboardPage({ params }: Props) {
       })))
     : null;
 
-  return <LeaderboardDashboard initialData={initialData} locale={locale} />;
+  return <LeaderboardDashboard orgSlug={org_slug} initialData={initialData} locale={locale} />;
 }

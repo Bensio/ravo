@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
+import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import type { OrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
 import type { SerializedReward, SerializedRewardRule } from '@/lib/rewards/types';
 import { rewardSummary } from '@/lib/rewards/format-reward';
@@ -73,18 +74,11 @@ export function RewardsDashboard({
     if (res.ok) {
       setData((await res.json()) as OrgRewardsPageData);
     }
-    if (background) {
-      setReloading(false);
-    } else {
-      setLoading(false);
-    }
+    setReloading(false);
+    setLoading(false);
   }, [orgSlug]);
 
-  useEffect(() => {
-    if (initialData === undefined) {
-      void load();
-    }
-  }, [initialData, load]);
+  useAdminPageRefresh(orgSlug, (silent) => load(silent));
 
   useEffect(() => {
     if (data?.campaigns.length && !formCampaignId) {

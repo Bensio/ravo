@@ -231,6 +231,7 @@
       "subtitle": "Full ranking of every ambassador by clicks, sales, and revenue.",
       "empty": "No ambassadors match your search.",
       "loadError": "Could not load leaderboard.",
+      "loading": "Loading leaderboard…",
       "searchPlaceholder": "Search ambassador…",
       "podiumTitle": "Top ambassadors",
       "snapshotTitle": "Season snapshot",

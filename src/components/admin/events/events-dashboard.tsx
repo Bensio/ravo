@@ -3,10 +3,11 @@
 import { CalendarDays, Loader2, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { SerializedEvent } from '@/lib/events/types';
+import { dispatchOrgContextRefresh, useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { formatInFestivalTz } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
@@ -38,8 +39,10 @@ export function EventsDashboard({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
     if (res.ok) {
       setData((await res.json()) as EventsData);
@@ -47,15 +50,14 @@ export function EventsDashboard({
     setLoading(false);
   }, [orgSlug]);
 
-  useEffect(() => {
-    if (initialData === undefined) void load();
-  }, [initialData, load]);
+  useAdminPageRefresh(orgSlug, (silent) => load(silent));
 
   async function handleActivate(eventId: string) {
     setActivatingId(eventId);
     const res = await fetch(`/api/${orgSlug}/events/${eventId}/activate`, { method: 'POST' });
     if (res.ok) {
-      await load();
+      dispatchOrgContextRefresh();
+      await load(true);
       router.refresh();
     }
     setActivatingId(null);

@@ -231,6 +231,7 @@
       "subtitle": "Volledige ranglijst op clicks, verkopen en omzet.",
       "empty": "Geen ambassadeurs gevonden voor je zoekopdracht.",
       "loadError": "Leaderboard laden mislukt.",
+      "loading": "Leaderboard laden…",
       "searchPlaceholder": "Zoek ambassadeur…",
       "podiumTitle": "Top-ambassadeurs",
       "snapshotTitle": "Seizoensnapshot",

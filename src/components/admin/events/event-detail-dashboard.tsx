@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import { datetimeLocalToUtcIso, toDatetimeLocalInput } from '@/lib/events/form-dates';
 import type { SerializedEventDetail } from '@/lib/events/types';
+import { dispatchOrgContextRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { slugifyEventName } from '@/lib/events/slug';
 import {
   ORG_COUNTRIES,
@@ -133,6 +134,7 @@ export function EventDetailDashboard({
     setActivating(true);
     const res = await fetch(`/api/${orgSlug}/events/${eventId}/activate`, { method: 'POST' });
     if (res.ok) {
+      dispatchOrgContextRefresh();
       await loadDetail();
       router.refresh();
     }

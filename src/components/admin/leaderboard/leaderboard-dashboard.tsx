@@ -1,11 +1,12 @@
 'use client';
 
 import { Crown, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
+import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
@@ -71,17 +72,34 @@ function LeaderboardRow({ row, rank, locale, currency }: { row: Row; rank: numbe
 }
 
 export function LeaderboardDashboard({
+  orgSlug,
   initialData,
   locale,
 }: {
+  orgSlug: string;
   initialData: SerializedOrgDashboard | null;
   locale: string;
 }) {
   const t = useTranslations('admin.leaderboard');
   const [query, setQuery] = useState('');
+  const [data, setData] = useState<SerializedOrgDashboard | null>(initialData);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoadError(false);
+    const res = await fetch(`/api/${orgSlug}/dashboard?days=30`, { cache: 'no-store' });
+    if (res.ok) {
+      const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
+      setData(body.dashboard ?? null);
+    } else {
+      setLoadError(true);
+    }
+  }, [orgSlug]);
+
+  useAdminPageRefresh(orgSlug, () => load());
 
   const rows = useMemo(() => {
-    const base = initialData?.rows ?? [];
+    const base = data?.rows ?? [];
     const sorted = [...base].sort((a, b) => b.sales - a.sales || b.clicks - a.clicks);
     if (!query.trim()) return sorted;
     const q = query.toLowerCase();
@@ -90,9 +108,9 @@ export function LeaderboardDashboard({
         r.name.toLowerCase().includes(q) ||
         (r.handle ?? '').toLowerCase().includes(q),
     );
-  }, [initialData?.rows, query]);
+  }, [data?.rows, query]);
 
-  if (!initialData) {
+  if (!data && loadError) {
     return (
       <div className="space-y-6">
         <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
@@ -101,10 +119,19 @@ export function LeaderboardDashboard({
     );
   }
 
-  const totalRevenue = initialData.rows.reduce((s, r) => s + BigInt(r.revenueCents), 0n);
+  if (!data) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('loading')}</p>
+      </div>
+    );
+  }
+
+  const totalRevenue = data.rows.reduce((s, r) => s + BigInt(r.revenueCents), 0n);
   const avgConv =
-    initialData.rows.length > 0
-      ? initialData.rows.reduce((s, r) => s + r.conversion, 0) / initialData.rows.length
+    data.rows.length > 0
+      ? data.rows.reduce((s, r) => s + r.conversion, 0) / data.rows.length
       : 0;
 
   return (
@@ -129,7 +156,7 @@ export function LeaderboardDashboard({
 
       <section className="grid auto-rows-fr gap-3 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <AmbassadorPodium rows={initialData.rows} title={t('podiumTitle')} />
+          <AmbassadorPodium rows={data.rows} title={t('podiumTitle')} />
         </div>
         <DashboardPanel className="lg:col-span-4">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -139,14 +166,14 @@ export function LeaderboardDashboard({
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted-foreground">{t('snapshotAmbassadors')}</span>
               <span className="text-2xl font-bold tabular-nums text-primary">
-                {formatNumber(initialData.rows.length, locale)}
+                {formatNumber(data.rows.length, locale)}
               </span>
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted-foreground">{t('snapshotRevenue')}</span>
               <span className="text-2xl font-bold tabular-nums">
                 {formatMoney(
-                  moneyFromCents(totalRevenue, initialData.currency),
+                  moneyFromCents(totalRevenue, data.currency),
                   locale,
                 )}
               </span>
@@ -179,7 +206,7 @@ export function LeaderboardDashboard({
               row={row}
               rank={i + 1}
               locale={locale}
-              currency={initialData.currency}
+              currency={data.currency}
             />
           ))
         )}

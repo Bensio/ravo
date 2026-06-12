@@ -10,6 +10,7 @@ import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-car
 import { NativeSelect } from '@/components/ui/native-select';
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
+import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
@@ -30,8 +31,10 @@ export function OverviewDashboard({
   const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(
-    async (days: DashboardDays) => {
-      setLoading(true);
+    async (days: DashboardDays, options?: { silent?: boolean }) => {
+      if (!options?.silent) {
+        setLoading(true);
+      }
       setLoadError(false);
       const res = await fetch(`/api/${orgSlug}/dashboard?days=${days}`, { cache: 'no-store' });
       if (res.ok) {
@@ -44,6 +47,8 @@ export function OverviewDashboard({
     },
     [orgSlug],
   );
+
+  useAdminPageRefresh(orgSlug, (silent) => load(range, { silent }));
 
   function handleRangeChange(next: DashboardDays) {
     setRange(next);

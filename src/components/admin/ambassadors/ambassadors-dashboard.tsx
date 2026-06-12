@@ -14,13 +14,14 @@ import {
   UserRoundCheck,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import type {
   AmbassadorListRow,
   PendingInviteRow,
 } from '@/lib/ambassadors/list-ambassadors-admin';
+import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { formatUtc } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
@@ -74,17 +75,11 @@ export function AmbassadorsDashboard({
     if (res.ok) {
       setData(await res.json());
     }
-    if (background) {
-      setReloading(false);
-    } else {
-      setLoading(false);
-    }
+    setReloading(false);
+    setLoading(false);
   }, [orgSlug]);
 
-  useEffect(() => {
-    if (initialData !== undefined) return;
-    void load();
-  }, [initialData, load]);
+  useAdminPageRefresh(orgSlug, (silent) => load(silent));
 
   async function onCreateInvite(e: React.FormEvent) {
     e.preventDefault();
