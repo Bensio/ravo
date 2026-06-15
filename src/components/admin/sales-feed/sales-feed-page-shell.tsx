@@ -6,7 +6,7 @@ import { useAdminCan } from '@/components/admin/admin-staff-context';
 import { SalesFeedDashboard } from '@/components/admin/sales-feed/sales-feed-dashboard';
 import { SalesFeedSkeleton } from '@/components/admin/sales-feed/sales-feed-content-skeleton';
 import { prefetchOrders, readOrdersCache } from '@/lib/admin/client-data-cache';
-import type { AdminOrgPageProps } from '@/lib/admin/create-admin-client-page';
+import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
 
 export function SalesFeedPageShell({ orgSlug, locale }: AdminOrgPageProps) {
   const canReassign = useAdminCan('attribution.reassign');

@@ -1,7 +1,10 @@
-import { createAdminClientPage } from '@/lib/admin/create-admin-client-page';
+import { setRequestLocale } from 'next-intl/server';
 
-export default createAdminClientPage(() =>
-  import('@/components/admin/overview/overview-page-shell').then((m) => ({
-    default: m.OverviewPageShell,
-  })),
-);
+type Props = { params: Promise<{ locale: string; org_slug: string }> };
+
+/** Content renders in AdminMainOutlet; keep this stub minimal for fast RSC navigation. */
+export default async function OverviewPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  return null;
+}

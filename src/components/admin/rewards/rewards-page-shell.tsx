@@ -6,7 +6,7 @@ import { useAdminCan } from '@/components/admin/admin-staff-context';
 import { RewardsDashboard } from '@/components/admin/rewards/rewards-dashboard';
 import { RewardsSkeleton } from '@/components/admin/rewards/rewards-content-skeleton';
 import { prefetchRewards, readRewardsCache } from '@/lib/admin/client-data-cache';
-import type { AdminOrgPageProps } from '@/lib/admin/create-admin-client-page';
+import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
 
 export function RewardsPageShell({ orgSlug, locale }: AdminOrgPageProps) {
   const canCreateRule = useAdminCan('reward.rule.create');

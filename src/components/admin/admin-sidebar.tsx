@@ -10,6 +10,10 @@ import {
   prefetchRewards,
   prefetchTracklinks,
 } from '@/lib/admin/client-data-cache';
+import {
+  preloadAdminCachedRouteShell,
+  type AdminCachedRouteSegment,
+} from '@/lib/admin/admin-cached-routes';
 import { RavoLogo } from '@/components/shared/ravo-logo';
 import { AdminNavLink } from './admin-nav-link';
 import { ADMIN_NAV_ITEMS } from './admin-nav-config';
@@ -18,13 +22,24 @@ import type { SerializedEvent } from '@/lib/events/types';
 import { AdminEventSwitcher } from './admin-event-switcher';
 import { AdminSidebarUser } from './admin-sidebar-user';
 
+const NAV_KEY_TO_ROUTE_SEGMENT: Partial<Record<AdminNavKey, AdminCachedRouteSegment>> = {
+  overview: 'overview',
+  events: 'events',
+  leaderboard: 'leaderboard',
+  ambassadors: 'ambassadors',
+  tracklinks: 'tracklinks',
+  salesFeed: 'sales-feed',
+  rewards: 'rewards',
+};
+
 function prefetchForNavKey(orgSlug: string, key: AdminNavKey): (() => void) | undefined {
+  const segment = NAV_KEY_TO_ROUTE_SEGMENT[key];
+  if (segment) {
+    preloadAdminCachedRouteShell(segment);
+  }
+
   switch (key) {
     case 'overview':
-      return () => {
-        void prefetchDashboard(orgSlug, 30);
-        void import('@/components/admin/dashboard/clicks-sales-chart');
-      };
     case 'leaderboard':
       return () => {
         void prefetchDashboard(orgSlug, 30);
@@ -82,6 +97,7 @@ export function AdminSidebar({
     void prefetchAmbassadors(orgSlug);
     void prefetchRewards(orgSlug);
     void prefetchEvents(orgSlug);
+    preloadAdminCachedRouteShell('overview');
   }, [orgSlug]);
 
   const hoverPrefetch = useCallback(

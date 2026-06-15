@@ -1,7 +1,9 @@
-import { createAdminClientPage } from '@/lib/admin/create-admin-client-page';
+import { setRequestLocale } from 'next-intl/server';
 
-export default createAdminClientPage(() =>
-  import('@/components/admin/rewards/rewards-page-shell').then((m) => ({
-    default: m.RewardsPageShell,
-  })),
-);
+type Props = { params: Promise<{ locale: string; org_slug: string }> };
+
+export default async function RewardsPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  return null;
+}

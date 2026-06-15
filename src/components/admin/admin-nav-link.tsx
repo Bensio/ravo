@@ -4,6 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  segmentFromAdminHref,
+  useAdminNavigation,
+} from '@/components/admin/admin-navigation-context';
+import { isAdminCachedRouteSegment } from '@/lib/admin/admin-cached-routes';
 import type { AdminNavKey } from './admin-nav-types';
 import { ADMIN_NAV_ICONS } from './admin-nav-icons';
 
@@ -19,6 +24,7 @@ export function AdminNavLink({
   onPrefetchHover?: () => void;
 }) {
   const pathname = usePathname();
+  const { beginNavigation } = useAdminNavigation();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const active = pathname === href || pathname.startsWith(`${href}/`);
   const pending = pendingHref === href && !active;
@@ -33,7 +39,13 @@ export function AdminNavLink({
       href={href}
       prefetch
       onMouseEnter={() => onPrefetchHover?.()}
-      onClick={() => setPendingHref(href)}
+      onClick={() => {
+        setPendingHref(href);
+        const segment = segmentFromAdminHref(href);
+        if (isAdminCachedRouteSegment(segment)) {
+          beginNavigation(segment);
+        }
+      }}
       className={cn(
         'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-150',
         active

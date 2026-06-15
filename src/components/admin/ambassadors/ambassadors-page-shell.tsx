@@ -6,7 +6,7 @@ import { useAdminCan, useAdminStaff } from '@/components/admin/admin-staff-conte
 import { AmbassadorsDashboard } from '@/components/admin/ambassadors/ambassadors-dashboard';
 import { AmbassadorsSkeleton } from '@/components/admin/ambassadors/ambassadors-content-skeleton';
 import { prefetchAmbassadors, readAmbassadorsCache } from '@/lib/admin/client-data-cache';
-import type { AdminOrgPageProps } from '@/lib/admin/create-admin-client-page';
+import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
 
 export function AmbassadorsPageShell({ orgSlug, locale }: AdminOrgPageProps) {
   const { activeEventName } = useAdminStaff();

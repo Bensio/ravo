@@ -6,7 +6,7 @@ import { useAdminCan } from '@/components/admin/admin-staff-context';
 import { EventsDashboard } from '@/components/admin/events/events-dashboard';
 import { EventsSkeleton } from '@/components/admin/events/events-content-skeleton';
 import { prefetchEvents, readEventsCache } from '@/lib/admin/client-data-cache';
-import type { AdminOrgPageProps } from '@/lib/admin/create-admin-client-page';
+import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
 
 export function EventsPageShell({ orgSlug, locale }: AdminOrgPageProps) {
   const canCreate = useAdminCan('event.create');

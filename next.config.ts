@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns', 'date-fns-tz'],
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
 };
 

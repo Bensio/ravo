@@ -1,7 +1,9 @@
-import { createAdminClientPage } from '@/lib/admin/create-admin-client-page';
+import { setRequestLocale } from 'next-intl/server';
 
-export default createAdminClientPage(() =>
-  import('@/components/admin/events/events-page-shell').then((m) => ({
-    default: m.EventsPageShell,
-  })),
-);
+type Props = { params: Promise<{ locale: string; org_slug: string }> };
+
+export default async function EventsPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  return null;
+}

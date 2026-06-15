@@ -8,7 +8,7 @@ import {
   prefetchDashboard,
   readDashboardCacheForOrg,
 } from '@/lib/admin/client-data-cache';
-import type { AdminOrgPageProps } from '@/lib/admin/create-admin-client-page';
+import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
 
 export function LeaderboardPageShell({ orgSlug, locale }: AdminOrgPageProps) {
   const readCache = useCallback(() => readDashboardCacheForOrg(orgSlug, 30), [orgSlug]);

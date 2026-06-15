@@ -5,7 +5,7 @@ import { AdminCachedPageShell } from '@/components/admin/admin-cached-page-shell
 import { TracklinksDashboard } from '@/components/admin/tracklinks/tracklinks-dashboard';
 import { TracklinksSkeleton } from '@/components/admin/tracklinks/tracklinks-content-skeleton';
 import { prefetchTracklinks, readTracklinksCache } from '@/lib/admin/client-data-cache';
-import type { AdminOrgPageProps } from '@/lib/admin/create-admin-client-page';
+import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
 
 export function TracklinksPageShell({ orgSlug, locale }: AdminOrgPageProps) {
   const readCache = useCallback(() => readTracklinksCache(orgSlug), [orgSlug]);
