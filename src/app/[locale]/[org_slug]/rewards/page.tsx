@@ -1,8 +1,9 @@
+import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
-import { RewardsDashboard } from '@/components/admin/rewards/rewards-dashboard';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { roleHasPermission } from '@/lib/auth/permissions';
-import { fetchOrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
+import { RewardsPageData } from '@/components/admin/rewards/rewards-page-data';
+import { RewardsPageSkeleton } from '@/components/admin/rewards/rewards-page-skeleton';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
@@ -11,26 +12,38 @@ export default async function RewardsPage({ params }: Props) {
   setRequestLocale(locale);
 
   const ctx = await requireOrgPageContext(org_slug, 'campaign.read');
-  const initialData = ctx
-    ? await fetchOrgRewardsPageData(ctx.org.id, {
-        bootstrapUserId: ctx.user.id,
-      }).catch(() => null)
-    : null;
-
   const canCreateRule = ctx ? roleHasPermission(ctx.membership.role, 'reward.rule.create') : false;
   const canArchiveRule = ctx ? roleHasPermission(ctx.membership.role, 'reward.rule.archive') : false;
   const canFulfill = ctx ? roleHasPermission(ctx.membership.role, 'reward.fulfill') : false;
   const canConfirm = ctx ? roleHasPermission(ctx.membership.role, 'reward.confirm') : false;
 
-  return (
-    <RewardsDashboard
+  const skeleton = (
+    <RewardsPageSkeleton
       orgSlug={org_slug}
       locale={locale}
       canCreateRule={canCreateRule}
       canArchiveRule={canArchiveRule}
       canFulfill={canFulfill}
       canConfirm={canConfirm}
-      initialData={initialData}
     />
+  );
+
+  if (!ctx) {
+    return skeleton;
+  }
+
+  return (
+    <Suspense fallback={skeleton}>
+      <RewardsPageData
+        orgSlug={org_slug}
+        locale={locale}
+        orgId={ctx.org.id}
+        userId={ctx.user.id}
+        canCreateRule={canCreateRule}
+        canArchiveRule={canArchiveRule}
+        canFulfill={canFulfill}
+        canConfirm={canConfirm}
+      />
+    </Suspense>
   );
 }

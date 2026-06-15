@@ -21,14 +21,21 @@ import type {
   AmbassadorListRow,
   PendingInviteRow,
 } from '@/lib/ambassadors/list-ambassadors-admin';
+import { readAmbassadorsCache, writeAmbassadorsCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatUtc } from '@/lib/time';
 import { cn } from '@/lib/utils';
+import {
+  AmbassadorsContentSkeleton,
+  AmbassadorsPageChrome,
+} from '@/components/admin/ambassadors/ambassadors-content-skeleton';
 
-type AdminData = {
+export type OrgAmbassadorsPageData = {
   ambassadors: AmbassadorListRow[];
   pendingInvites: PendingInviteRow[];
 };
+
+type AdminData = OrgAmbassadorsPageData;
 
 type LinkReady = {
   email: string;
@@ -54,13 +61,14 @@ export function AmbassadorsDashboard({
   const t = useTranslations('admin.ambassadors');
   const {
     data,
-    setData,
     loading,
     reloading,
     load,
   } = useAdminLiveData({
     orgSlug,
     initialData,
+    readCache: () => readAmbassadorsCache(orgSlug),
+    writeCache: (next) => writeAmbassadorsCache(orgSlug, next),
     fetchData: async () => {
       const res = await fetch(`/api/${orgSlug}/ambassadors`, { cache: 'no-store' });
       if (!res.ok) return { data: null, error: true };
@@ -196,6 +204,7 @@ export function AmbassadorsDashboard({
   const suspendedAmbassadors = ambassadors.filter((a) => a.state !== 'active');
   const pending = data?.pendingInvites ?? [];
   const canNativeShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
+  const showContentSkeleton = loading && !data;
 
   async function onToggleSuspend(ambassadorId: string, suspend: boolean, label: string) {
     const confirmKey = suspend ? 'suspendConfirm' : 'reactivateConfirm';
@@ -223,16 +232,28 @@ export function AmbassadorsDashboard({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
-        {activeEventName && (
-          <p className="mt-1 text-xs text-primary/90">
-            {t('activeEventHint', { event: activeEventName })}
-          </p>
-        )}
-      </div>
+      <AmbassadorsPageChrome
+        loading={reloading}
+        controlsDisabled={showContentSkeleton}
+        onRefresh={() => void load(true)}
+        activeEventName={activeEventName}
+      />
 
+      {showContentSkeleton ? (
+        <>
+          {canInvite && (
+            <section className="ravo-glass-panel space-y-4 p-5" aria-hidden>
+              <div className="h-4 w-28 animate-pulse rounded bg-white/[0.06]" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
+                <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
+              </div>
+            </section>
+          )}
+          <AmbassadorsContentSkeleton />
+        </>
+      ) : (
+        <>
       {canInvite && (
         <section className="ravo-glass-panel space-y-4 p-5">
           <div className="flex items-center gap-2 text-sm font-medium">
@@ -363,10 +384,13 @@ export function AmbassadorsDashboard({
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {t('loadingPending')}
-          </div>
+          <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.06]">
+            {[0, 1].map((i) => (
+              <li key={i} className="px-4 py-3">
+                <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
+              </li>
+            ))}
+          </ul>
         ) : pending.length === 0 ? (
           <p className="py-6 text-sm text-muted-foreground">{t('emptyPending')}</p>
         ) : (
@@ -395,9 +419,9 @@ export function AmbassadorsDashboard({
           )}
         </p>
         {loading && activeAmbassadors.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {t('loading')}
+          <div className="space-y-2" aria-hidden>
+            <div className="h-14 animate-pulse rounded-xl bg-white/[0.04]" />
+            <div className="h-14 animate-pulse rounded-xl bg-white/[0.04]" />
           </div>
         ) : activeAmbassadors.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{t('emptyActive')}</p>
@@ -447,6 +471,8 @@ export function AmbassadorsDashboard({
             ))}
           </div>
         </section>
+      )}
+        </>
       )}
     </div>
   );

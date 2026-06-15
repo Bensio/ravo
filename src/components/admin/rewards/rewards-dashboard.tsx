@@ -1,10 +1,15 @@
 'use client';
 
-import { Check, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Check, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
+import {
+  RewardsContentSkeleton,
+  RewardsPageChrome,
+} from '@/components/admin/rewards/rewards-content-skeleton';
+import { readRewardsCache, writeRewardsCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import type { OrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
 import type { SerializedReward, SerializedRewardRule } from '@/lib/rewards/types';
@@ -54,6 +59,8 @@ export function RewardsDashboard({
   } = useAdminLiveData({
     orgSlug,
     initialData,
+    readCache: () => readRewardsCache(orgSlug),
+    writeCache: (next) => writeRewardsCache(orgSlug, next),
     fetchData: async () => {
       const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
       if (!res.ok) return { data: null, error: true };
@@ -192,31 +199,40 @@ export function RewardsDashboard({
     await load(true);
   }
 
-  if (loading && !data) {
-    return <p className="text-sm text-muted-foreground">{t('loading')}</p>;
-  }
-
+  const showContentSkeleton = loading && !data;
   const summary = data?.summary;
+
+  const createButton =
+    canCreateRule ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={showContentSkeleton}
+        className="gap-1.5"
+        onClick={() => {
+          setTab('rules');
+          setShowCreate(true);
+        }}
+      >
+        <Plus className="h-4 w-4" />
+        {t('addRule')}
+      </Button>
+    ) : null;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={reloading}
-          onClick={() => void load(true)}
-        >
-          <RefreshCw className={cn('mr-1.5 h-4 w-4', reloading && 'animate-spin')} />
-          {t('refresh')}
-        </Button>
-      </div>
+      <RewardsPageChrome
+        loading={reloading}
+        controlsDisabled={showContentSkeleton}
+        onRefresh={() => void load(true)}
+        createSlot={createButton}
+      />
 
+      {showContentSkeleton ? (
+        <RewardsContentSkeleton />
+      ) : (
+        <>
       {actionError && <p className="text-sm text-red-400">{actionError}</p>}
 
       {summary && (summary.needsReview > 0 || summary.pendingFulfillment > 0) && (
@@ -430,6 +446,8 @@ export function RewardsDashboard({
             />
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

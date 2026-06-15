@@ -48,7 +48,8 @@ Dynamic-import heavy client widgets (Recharts, large tables) with a layout-match
 
 - Overview — `overview-page-chrome`, `overview-content-skeleton`, `overview-page-data`
 - Leaderboard — shares dashboard cache/API
-- Sales feed — orders cache pilot for non-dashboard resources
+- Sales feed — orders cache
+- Tracklinks, Ambassadors, Rewards, Events — resource-specific cache in `client-data-cache.ts`
 
 ## Never
 

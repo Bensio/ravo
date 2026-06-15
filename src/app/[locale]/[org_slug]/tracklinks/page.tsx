@@ -1,9 +1,8 @@
+import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
-import { listOrgAmbassadors } from '@/lib/ambassadors/list-org-ambassadors';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
-import { resolveEventScope } from '@/lib/events/event-scope';
-import { listLinksForOrg } from '@/lib/links/list-links';
-import { TracklinksDashboard } from '@/components/admin/tracklinks/tracklinks-dashboard';
+import { TracklinksPageData } from '@/components/admin/tracklinks/tracklinks-page-data';
+import { TracklinksPageSkeleton } from '@/components/admin/tracklinks/tracklinks-page-skeleton';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
@@ -12,22 +11,19 @@ export default async function TracklinksPage({ params }: Props) {
   setRequestLocale(locale);
 
   const ctx = await requireOrgPageContext(org_slug, 'link.read');
-  const scope = ctx ? await resolveEventScope(ctx.org.id) : null;
-  const eventId = scope?.eventId ?? null;
 
-  const [initialLinks, initialAmbassadors] = ctx
-    ? await Promise.all([
-        listLinksForOrg(ctx.supabase, ctx.org.id, { eventId }).catch(() => []),
-        listOrgAmbassadors(ctx.supabase, ctx.org.id, { eventId }).catch(() => []),
-      ])
-    : [[], []];
+  if (!ctx) {
+    return <TracklinksPageSkeleton orgSlug={org_slug} locale={locale} />;
+  }
 
   return (
-    <TracklinksDashboard
-      orgSlug={org_slug}
-      locale={locale}
-      initialLinks={initialLinks}
-      initialAmbassadors={initialAmbassadors}
-    />
+    <Suspense fallback={<TracklinksPageSkeleton orgSlug={org_slug} locale={locale} />}>
+      <TracklinksPageData
+        orgSlug={org_slug}
+        locale={locale}
+        orgId={ctx.org.id}
+        supabase={ctx.supabase}
+      />
+    </Suspense>
   );
 }

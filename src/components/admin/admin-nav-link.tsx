@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { prefetchDashboard, prefetchOrders } from '@/lib/admin/client-data-cache';
 import { cn } from '@/lib/utils';
 import type { AdminNavKey } from './admin-nav-types';
 import { ADMIN_NAV_ICONS } from './admin-nav-icons';
@@ -13,16 +12,12 @@ export function AdminNavLink({
   href,
   label,
   iconName,
-  orgSlug,
-  prefetchDashboardOnHover = false,
-  prefetchOrdersOnHover = false,
+  onPrefetchHover,
 }: {
   href: string;
   label: string;
   iconName: AdminNavKey;
-  orgSlug?: string;
-  prefetchDashboardOnHover?: boolean;
-  prefetchOrdersOnHover?: boolean;
+  onPrefetchHover?: () => void;
 }) {
   const pathname = usePathname();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -38,14 +33,7 @@ export function AdminNavLink({
     <Link
       href={href}
       prefetch
-      onMouseEnter={() => {
-        if (prefetchDashboardOnHover && orgSlug) {
-          void prefetchDashboard(orgSlug, 30);
-        }
-        if (prefetchOrdersOnHover && orgSlug) {
-          void prefetchOrders(orgSlug);
-        }
-      }}
+      onMouseEnter={() => onPrefetchHover?.()}
       onClick={() => setPendingHref(href)}
       className={cn(
         'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-150',

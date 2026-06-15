@@ -1,13 +1,21 @@
 'use client';
 
-import { CalendarDays, Loader2, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { CalendarDays, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { SerializedEvent } from '@/lib/events/types';
-import { clearAdminCacheForOrg } from '@/lib/admin/client-data-cache';
+import {
+  EventsContentSkeleton,
+  EventsPageChrome,
+} from '@/components/admin/events/events-content-skeleton';
+import {
+  clearAdminCacheForOrg,
+  readEventsCache,
+  writeEventsCache,
+} from '@/lib/admin/client-data-cache';
 import { dispatchOrgContextRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatInFestivalTz } from '@/lib/time';
@@ -17,6 +25,8 @@ type EventsData = {
   events: SerializedEvent[];
   activeEventId: string | null;
 };
+
+export type OrgEventsPageData = EventsData;
 
 export function EventsDashboard({
   locale,
@@ -38,10 +48,13 @@ export function EventsDashboard({
   const {
     data,
     loading,
+    reloading,
     load,
   } = useAdminLiveData({
     orgSlug,
     initialData,
+    readCache: () => readEventsCache(orgSlug),
+    writeCache: (next) => writeEventsCache(orgSlug, next),
     fetchData: async () => {
       const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
       if (!res.ok) return { data: null, error: true };
@@ -85,39 +98,37 @@ export function EventsDashboard({
     }
 
     await load();
+    clearAdminCacheForOrg(orgSlug);
     router.refresh();
   }
 
-  if (loading && !data) {
-    return <p className="text-sm text-muted-foreground">{t('loading')}</p>;
-  }
-
+  const showContentSkeleton = loading && !data;
   const events = data?.events ?? [];
   const activeId = data?.activeEventId ?? null;
   const liveCount = events.filter((e) => e.phase === 'live').length;
   const basePath = `/${locale}/${orgSlug}`;
 
+  const createButton =
+    canCreate ? (
+      <Link href={`${basePath}/events/new`} className={buttonVariants({ size: 'sm' })}>
+        <Plus className="mr-1.5 h-4 w-4" />
+        {t('create')}
+      </Link>
+    ) : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
-            <RefreshCw className="mr-1.5 h-4 w-4" />
-            {t('refresh')}
-          </Button>
-          {canCreate && (
-            <Link href={`${basePath}/events/new`} className={buttonVariants({ size: 'sm' })}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              {t('create')}
-            </Link>
-          )}
-        </div>
-      </div>
+      <EventsPageChrome
+        loading={reloading}
+        controlsDisabled={showContentSkeleton}
+        onRefresh={() => void load()}
+        createSlot={createButton}
+      />
 
+      {showContentSkeleton ? (
+        <EventsContentSkeleton />
+      ) : (
+        <>
       <section className="grid gap-4 sm:grid-cols-3">
         {[
           { label: t('kpiTotal'), value: String(events.length) },
@@ -248,6 +259,8 @@ export function EventsDashboard({
             </table>
           </div>
         </section>
+      )}
+        </>
       )}
     </div>
   );

@@ -1,8 +1,9 @@
+import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
-import { EventsDashboard } from '@/components/admin/events/events-dashboard';
 import { requireOrgPageContext } from '@/lib/auth/org-page-context';
 import { roleHasPermission } from '@/lib/auth/permissions';
-import { listEventsForOrg, resolveActiveEvent } from '@/lib/events/event-context';
+import { EventsPageData } from '@/components/admin/events/events-page-data';
+import { EventsPageSkeleton } from '@/components/admin/events/events-page-skeleton';
 
 type Props = { params: Promise<{ locale: string; org_slug: string }> };
 
@@ -11,25 +12,34 @@ export default async function EventsPage({ params }: Props) {
   setRequestLocale(locale);
 
   const ctx = await requireOrgPageContext(org_slug, 'event.read');
-  const initialData = ctx
-    ? {
-        events: await listEventsForOrg(ctx.org.id),
-        activeEventId: (await resolveActiveEvent(ctx.org.id))?.id ?? null,
-      }
-    : null;
-
   const canCreate = ctx ? roleHasPermission(ctx.membership.role, 'event.create') : false;
   const canEdit = ctx ? roleHasPermission(ctx.membership.role, 'event.update') : false;
   const canDelete = ctx ? roleHasPermission(ctx.membership.role, 'event.delete') : false;
 
-  return (
-    <EventsDashboard
+  const skeleton = (
+    <EventsPageSkeleton
       locale={locale}
       orgSlug={org_slug}
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
-      initialData={initialData}
     />
+  );
+
+  if (!ctx) {
+    return skeleton;
+  }
+
+  return (
+    <Suspense fallback={skeleton}>
+      <EventsPageData
+        locale={locale}
+        orgSlug={org_slug}
+        orgId={ctx.org.id}
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    </Suspense>
   );
 }

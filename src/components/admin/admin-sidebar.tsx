@@ -1,14 +1,54 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { prefetchDashboard, prefetchOrders } from '@/lib/admin/client-data-cache';
+import {
+  prefetchAmbassadors,
+  prefetchDashboard,
+  prefetchEvents,
+  prefetchOrders,
+  prefetchRewards,
+  prefetchTracklinks,
+} from '@/lib/admin/client-data-cache';
 import { RavoLogo } from '@/components/shared/ravo-logo';
 import { AdminNavLink } from './admin-nav-link';
 import { ADMIN_NAV_ITEMS } from './admin-nav-config';
+import type { AdminNavKey } from './admin-nav-types';
 import type { SerializedEvent } from '@/lib/events/types';
 import { AdminEventSwitcher } from './admin-event-switcher';
 import { AdminSidebarUser } from './admin-sidebar-user';
+
+function prefetchForNavKey(orgSlug: string, key: AdminNavKey): (() => void) | undefined {
+  switch (key) {
+    case 'overview':
+    case 'leaderboard':
+      return () => {
+        void prefetchDashboard(orgSlug, 30);
+      };
+    case 'salesFeed':
+      return () => {
+        void prefetchOrders(orgSlug);
+      };
+    case 'tracklinks':
+      return () => {
+        void prefetchTracklinks(orgSlug);
+      };
+    case 'ambassadors':
+      return () => {
+        void prefetchAmbassadors(orgSlug);
+      };
+    case 'rewards':
+      return () => {
+        void prefetchRewards(orgSlug);
+      };
+    case 'events':
+      return () => {
+        void prefetchEvents(orgSlug);
+      };
+    default:
+      return undefined;
+  }
+}
 
 export function AdminSidebar({
   locale,
@@ -34,7 +74,16 @@ export function AdminSidebar({
   useEffect(() => {
     void prefetchDashboard(orgSlug, 30);
     void prefetchOrders(orgSlug);
+    void prefetchTracklinks(orgSlug);
+    void prefetchAmbassadors(orgSlug);
+    void prefetchRewards(orgSlug);
+    void prefetchEvents(orgSlug);
   }, [orgSlug]);
+
+  const hoverPrefetch = useCallback(
+    (key: AdminNavKey) => prefetchForNavKey(orgSlug, key),
+    [orgSlug],
+  );
 
   return (
     <aside className="ravo-sidebar flex h-full w-[15.5rem] shrink-0 flex-col border-r border-white/[0.06]">
@@ -48,9 +97,7 @@ export function AdminSidebar({
             href={`/${locale}/${orgSlug}/${item.href}`}
             label={t(item.key)}
             iconName={item.iconName}
-            orgSlug={orgSlug}
-            prefetchDashboardOnHover={item.key === 'overview' || item.key === 'leaderboard'}
-            prefetchOrdersOnHover={item.key === 'salesFeed'}
+            onPrefetchHover={hoverPrefetch(item.key)}
           />
         ))}
       </nav>
