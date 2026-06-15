@@ -8,8 +8,7 @@ import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 import { LeaderboardContentSkeleton } from '@/components/admin/leaderboard/leaderboard-content-skeleton';
 import { LeaderboardPageChrome } from '@/components/admin/leaderboard/leaderboard-page-chrome';
 import {
-  dashboardCacheKey,
-  readDashboardCache,
+  readDashboardCacheForOrg,
   writeDashboardCache,
 } from '@/lib/admin/client-data-cache';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
@@ -108,10 +107,10 @@ export function LeaderboardDashboard({
     return body.dashboard ?? null;
   }, [orgSlug]);
 
-  const { data, loadError, load } = useAdminLiveData({
+  const { data, loading, loadError, load } = useAdminLiveData({
     orgSlug,
     initialData,
-    readCache: () => readDashboardCache(dashboardCacheKey(orgSlug, 30)),
+    readCache: () => readDashboardCacheForOrg(orgSlug, 30),
     writeCache: (next) => writeDashboardCache(orgSlug, next),
     fetchData: async () => {
       const next = await fetchDashboard();
@@ -147,13 +146,17 @@ export function LeaderboardDashboard({
     );
   }
 
-  if (!data) {
+  if (loading && !data) {
     return (
       <div className="space-y-4">
         <LeaderboardPageChrome disabled />
         <LeaderboardContentSkeleton />
       </div>
     );
+  }
+
+  if (!data) {
+    return null;
   }
 
   const totalRevenue = data.rows.reduce((s, r) => s + BigInt(r.revenueCents), 0n);

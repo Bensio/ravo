@@ -54,7 +54,8 @@ Dynamic-import heavy client widgets (Recharts, large tables) with a layout-match
 ## Never
 
 - Block first paint on client fetch when SSR or cache can seed UI
-- Mount an interactive dashboard inside a Suspense fallback — use a static skeleton only; prefetch cache in the background instead
+- Mount an interactive dashboard inside a Suspense fallback — static skeleton only; prefetch warms cache in the background
+- Use `load(true)` / silent refresh when data is already painted — never flash the full content skeleton on revisit
 - Skip `initialData` prop sync after `router.refresh()`
 - Use generic `AdminPageSkeleton` as the only loading state on data-heavy pages
 - Clear only dashboard cache on event switch — use `clearAdminCacheForOrg`

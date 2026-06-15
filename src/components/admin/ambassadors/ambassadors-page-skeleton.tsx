@@ -1,15 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { AmbassadorsDashboard } from '@/components/admin/ambassadors/ambassadors-dashboard';
+import { useEffect } from 'react';
 import { AmbassadorsSkeleton } from '@/components/admin/ambassadors/ambassadors-content-skeleton';
-import { prefetchAmbassadors, readAmbassadorsCache } from '@/lib/admin/client-data-cache';
+import { prefetchAmbassadors } from '@/lib/admin/client-data-cache';
 
 export function AmbassadorsPageSkeleton({
   orgSlug,
-  locale,
   canInvite = false,
-  canSuspend = false,
   activeEventName,
 }: {
   orgSlug: string;
@@ -18,31 +15,9 @@ export function AmbassadorsPageSkeleton({
   canSuspend?: boolean;
   activeEventName?: string | null;
 }) {
-  const [cached, setCached] = useState(() => readAmbassadorsCache(orgSlug));
-
   useEffect(() => {
-    if (cached) return;
-    let cancelled = false;
-    void prefetchAmbassadors(orgSlug).then((data) => {
-      if (!cancelled && data) setCached(data);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [orgSlug, cached]);
-
-  if (cached) {
-    return (
-      <AmbassadorsDashboard
-        orgSlug={orgSlug}
-        locale={locale}
-        canInvite={canInvite}
-        canSuspend={canSuspend}
-        initialData={cached}
-        activeEventName={activeEventName}
-      />
-    );
-  }
+    void prefetchAmbassadors(orgSlug);
+  }, [orgSlug]);
 
   return <AmbassadorsSkeleton canInvite={canInvite} activeEventName={activeEventName} />;
 }

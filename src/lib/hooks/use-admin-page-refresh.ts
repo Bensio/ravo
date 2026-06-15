@@ -28,25 +28,32 @@ function scheduleDelayed(task: () => void, delayMs: number): () => void {
 
 /**
  * Revalidate admin page data after paint on navigation, and immediately on org-context
- * refresh. Use `revalidateDelayMs` when the page already painted cached/SSR data.
+ * refresh. Use `getRevalidateDelayMs` when the page already painted cached/SSR data.
  */
 export function useAdminPageRefresh(
   orgSlug: string,
   refresh: (silent: boolean) => void | Promise<void>,
-  options?: { revalidateOnVisit?: boolean; revalidateDelayMs?: number },
+  options?: {
+    revalidateOnVisit?: boolean;
+    revalidateDelayMs?: number;
+    getRevalidateDelayMs?: () => number;
+  },
 ) {
   const pathname = usePathname();
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
+  const getDelayRef = useRef(options?.getRevalidateDelayMs);
+  getDelayRef.current = options?.getRevalidateDelayMs;
   const revalidateOnVisit = options?.revalidateOnVisit ?? true;
-  const revalidateDelayMs = options?.revalidateDelayMs ?? 0;
+  const staticDelay = options?.revalidateDelayMs ?? 0;
 
   useEffect(() => {
     if (!revalidateOnVisit) return;
+    const delay = getDelayRef.current?.() ?? staticDelay;
     return scheduleDelayed(() => {
       void refreshRef.current(true);
-    }, revalidateDelayMs);
-  }, [pathname, orgSlug, revalidateOnVisit, revalidateDelayMs]);
+    }, delay);
+  }, [pathname, orgSlug, revalidateOnVisit, staticDelay]);
 
   useEffect(() => {
     const onContextRefresh = () => {

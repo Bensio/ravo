@@ -13,8 +13,7 @@ import {
 } from '@/components/admin/overview/overview-content-skeleton';
 import { OverviewPageChrome } from '@/components/admin/overview/overview-page-chrome';
 import {
-  dashboardCacheKey,
-  readDashboardCache,
+  readDashboardCacheForOrg,
   writeDashboardCache,
 } from '@/lib/admin/client-data-cache';
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
@@ -59,7 +58,7 @@ export function OverviewDashboard({
   const { data, loading, loadError, load, invalidateInstantPaint } = useAdminLiveData({
     orgSlug,
     initialData,
-    readCache: () => readDashboardCache(dashboardCacheKey(orgSlug, range)),
+    readCache: () => readDashboardCacheForOrg(orgSlug, range),
     writeCache: (next) => writeDashboardCache(orgSlug, next),
     fetchData: async () => {
       const next = await fetchDashboard(rangeRef.current);

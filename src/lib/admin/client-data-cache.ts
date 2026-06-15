@@ -49,7 +49,22 @@ export function eventsCacheKey(orgSlug: string) {
 }
 
 export function readDashboardCache(key: string): SerializedOrgDashboard | null {
-  return readAdminCache<SerializedOrgDashboard>(key);
+  const value = readAdminCache<SerializedOrgDashboard | { dashboard?: SerializedOrgDashboard }>(key);
+  if (!value) return null;
+  if ('rows' in value && Array.isArray(value.rows)) {
+    return value;
+  }
+  if ('dashboard' in value && value.dashboard) {
+    return value.dashboard;
+  }
+  return null;
+}
+
+export function readDashboardCacheForOrg(
+  orgSlug: string,
+  days: DashboardDays = 30,
+): SerializedOrgDashboard | null {
+  return readDashboardCache(dashboardCacheKey(orgSlug, days));
 }
 
 export function writeDashboardCache(orgSlug: string, data: SerializedOrgDashboard) {
@@ -102,19 +117,19 @@ export async function prefetchDashboard(
   orgSlug: string,
   days: DashboardDays = 30,
 ): Promise<SerializedOrgDashboard | null> {
-  const key = dashboardCacheKey(orgSlug, days);
-  const cached = readDashboardCache(key);
+  const cached = readDashboardCacheForOrg(orgSlug, days);
   if (cached) return cached;
 
-  const body = await prefetchAdminJson<{ dashboard?: SerializedOrgDashboard }>(
-    key,
-    `/api/${orgSlug}/dashboard?days=${days}`,
-  );
-  if (body?.dashboard) {
+  try {
+    const res = await fetch(`/api/${orgSlug}/dashboard?days=${days}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
+    if (!body.dashboard) return null;
     writeDashboardCache(orgSlug, body.dashboard);
     return body.dashboard;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 export async function prefetchOrders(orgSlug: string): Promise<SalesFeedRow[] | null> {

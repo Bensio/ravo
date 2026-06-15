@@ -28,15 +28,29 @@ export function useAdminLiveData<T>({
   fetchData,
   onInitialDataSync,
 }: UseAdminLiveDataOptions<T>) {
-  const seed = initialData !== undefined ? initialData : (readCache?.() ?? null);
-  const hadInstantPaint = useRef(seed !== null);
+  const cacheSeed = readCache?.() ?? null;
+  const seed =
+    initialData !== undefined && initialData !== null
+      ? initialData
+      : initialData === null
+        ? null
+        : cacheSeed;
+
+  const dataRef = useRef<T | null>(seed);
+  const hadInstantPaintRef = useRef(seed !== null);
+  const skipInitialSyncRef = useRef(false);
 
   const [data, setData] = useState<T | null>(seed);
-  const [loading, setLoading] = useState(initialData === undefined && seed === null);
+  const [loading, setLoading] = useState(() => seed === null);
   const [reloading, setReloading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  const skipInitialSyncRef = useRef(false);
+  useEffect(() => {
+    dataRef.current = data;
+    if (data !== null) {
+      hadInstantPaintRef.current = true;
+    }
+  }, [data]);
 
   useEffect(() => {
     if (initialData === undefined) return;
@@ -45,7 +59,7 @@ export function useAdminLiveData<T>({
     setLoading(false);
     if (initialData !== null) {
       writeCache?.(initialData);
-      hadInstantPaint.current = true;
+      hadInstantPaintRef.current = true;
     }
     if (initialData != null) {
       onInitialDataSync?.(initialData);
@@ -58,14 +72,16 @@ export function useAdminLiveData<T>({
 
   const load = useCallback(
     async (silent = false) => {
-      if (silent) {
+      const hasData = dataRef.current !== null;
+      const useSilent = silent || hasData;
+      if (useSilent) {
         setReloading(true);
       } else {
         setLoading(true);
       }
       setLoadError(false);
       try {
-        const result = await fetchData(silent);
+        const result = await fetchData(useSilent);
         if (result.data !== null) {
           setData(result.data);
           writeCache?.(result.data);
@@ -86,11 +102,12 @@ export function useAdminLiveData<T>({
   );
 
   const invalidateInstantPaint = useCallback(() => {
-    hadInstantPaint.current = false;
+    hadInstantPaintRef.current = false;
   }, []);
 
   useAdminPageRefresh(orgSlug, (silent) => load(silent), {
-    revalidateDelayMs: hadInstantPaint.current ? ADMIN_INSTANT_REVALIDATE_DELAY_MS : 0,
+    getRevalidateDelayMs: () =>
+      hadInstantPaintRef.current ? ADMIN_INSTANT_REVALIDATE_DELAY_MS : 0,
   });
 
   return {

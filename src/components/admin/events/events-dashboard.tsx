@@ -121,7 +121,7 @@ export function EventsDashboard({
       <EventsPageChrome
         loading={reloading}
         controlsDisabled={showContentSkeleton}
-        onRefresh={() => void load()}
+        onRefresh={() => void load(true)}
         createSlot={createButton}
       />
 
@@ -174,22 +174,21 @@ export function EventsDashboard({
                   const isActive = event.id === activeId;
                   const detailHref = `${basePath}/events/${event.id}`;
                   return (
-                    <tr key={event.id} className="group hover:bg-white/[0.02]">
+                    <tr
+                      key={event.id}
+                      className="group cursor-pointer hover:bg-white/[0.02]"
+                      onClick={() => router.push(detailHref)}
+                    >
                       <td className="px-5 py-4">
-                        <Link
-                          href={detailHref}
-                          className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-medium group-hover:text-primary">{event.name}</span>
-                            {isActive && (
-                              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                                {t('activeBadge')}
-                              </span>
-                            )}
-                          </div>
-                          <p className="mt-0.5 font-mono text-xs text-muted-foreground">{event.slug}</p>
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium group-hover:text-primary">{event.name}</span>
+                          {isActive && (
+                            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              {t('activeBadge')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{event.slug}</p>
                       </td>
                       <td className="px-5 py-4 text-muted-foreground">
                         {formatInFestivalTz(event.startAt, event, 'PP')} –{' '}

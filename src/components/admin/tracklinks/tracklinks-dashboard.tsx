@@ -89,13 +89,30 @@ export function TracklinksDashboard({
   const links = data?.links ?? [];
   const ambassadors = data?.ambassadors;
   const ambassadorsFetchedRef = useRef(false);
-  const [ambassadorsLoading, setAmbassadorsLoading] = useState(false);
+  const [ambassadorsLoading, setAmbassadorsLoading] = useState(
+    () => (initialData?.ambassadors?.length ?? 0) === 0,
+  );
 
   useEffect(() => {
     if (ambassadorsFetchedRef.current) return;
     ambassadorsFetchedRef.current = true;
+
+    const cached = readTracklinksCache(orgSlug);
+    if (cached?.ambassadors.length) {
+      setData((prev) => {
+        if (!prev || prev.ambassadors.length > 0) return prev;
+        const next = { ...prev, ambassadors: cached.ambassadors };
+        writeTracklinksCache(orgSlug, next);
+        return next;
+      });
+      if (cached.ambassadors[0]?.id) {
+        setAmbassadorId((current) => current || cached.ambassadors[0]!.id);
+      }
+      setAmbassadorsLoading(false);
+      return;
+    }
+
     let cancelled = false;
-    setAmbassadorsLoading(true);
     void fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' })
       .then(async (res) => {
         if (!res.ok || cancelled) return;
