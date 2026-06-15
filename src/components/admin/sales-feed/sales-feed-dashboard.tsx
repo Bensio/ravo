@@ -1,12 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { SalesFeedOrderRow } from '@/components/admin/sales-feed/sales-feed-order-row';
+import {
+  SalesFeedContentSkeleton,
+  SalesFeedPageChrome,
+} from '@/components/admin/sales-feed/sales-feed-content-skeleton';
 import { Button } from '@/components/ui/button';
-import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
+import { readOrdersCache, writeOrdersCache } from '@/lib/admin/client-data-cache';
+import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
 export type SalesFeedRow = {
@@ -45,34 +50,38 @@ export function SalesFeedDashboard({
   canPurgeTest?: boolean;
 }) {
   const t = useTranslations('admin.salesFeed');
-  const [orders, setOrders] = useState<SalesFeedRow[]>(initialOrders ?? []);
-  const [loading, setLoading] = useState(initialOrders === undefined);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [purging, setPurging] = useState(false);
+  const tc = useTranslations('common');
   const [purgeMessage, setPurgeMessage] = useState<string | null>(null);
+  const [purging, setPurging] = useState(false);
+  const [loadErrorDetail, setLoadErrorDetail] = useState<string | null>(null);
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) {
-      setLoading(true);
-    }
-    setLoadError(null);
-    if (!silent) {
-      setPurgeMessage(null);
-    }
+  const fetchOrders = useCallback(async (): Promise<SalesFeedRow[] | null> => {
     const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      setOrders(data.orders ?? []);
-    } else {
+    if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setLoadError(data.error === 'schema_missing' ? t('loadErrorSchema') : t('loadError'));
+      setLoadErrorDetail(
+        data.error === 'schema_missing' ? t('loadErrorSchema') : t('loadError'),
+      );
+      return null;
     }
-    setLoading(false);
+    setLoadErrorDetail(null);
+    const data = await res.json();
+    return (data.orders ?? []) as SalesFeedRow[];
   }, [orgSlug, t]);
 
-  useAdminPageRefresh(orgSlug, (silent) => load(silent));
+  const { data: orders, loading, loadError, load } = useAdminLiveData({
+    orgSlug,
+    initialData: initialOrders,
+    readCache: () => readOrdersCache(orgSlug),
+    writeCache: (next) => writeOrdersCache(orgSlug, next),
+    fetchData: async () => {
+      const next = await fetchOrders();
+      return { data: next, error: next === null };
+    },
+  });
 
-  const testOrderCount = orders.filter((o) => o.is_simulated).length;
+  const orderList = orders ?? [];
+  const testOrderCount = orderList.filter((o) => o.is_simulated).length;
 
   async function onPurgeTest() {
     if (!window.confirm(t('purgeTestConfirm'))) {
@@ -80,7 +89,6 @@ export function SalesFeedDashboard({
     }
     setPurging(true);
     setPurgeMessage(null);
-    setLoadError(null);
     const res = await fetch(`/api/${orgSlug}/orders/purge-test`, { method: 'POST' });
     setPurging(false);
     if (res.ok) {
@@ -96,42 +104,65 @@ export function SalesFeedDashboard({
       } else {
         setPurgeMessage(t('purgeTestEmpty'));
       }
-      void load();
+      void load(false);
       return;
     }
-    setLoadError(t('purgeTestError'));
+    setLoadErrorDetail(t('purgeTestError'));
   }
 
-  const totalCents = orders.reduce((sum, o) => sum + BigInt(o.gross_amount_cents), 0n);
-  const displayCurrency = orders[0]?.currency ?? 'EUR';
+  const totalCents = orderList.reduce((sum, o) => sum + BigInt(o.gross_amount_cents), 0n);
+  const displayCurrency = orderList[0]?.currency ?? 'EUR';
+
+  const purgeButton =
+    canPurgeTest && testOrderCount > 0 ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 text-amber-400 hover:text-amber-300"
+        disabled={purging}
+        onClick={() => void onPurgeTest()}
+      >
+        <Trash2 className="h-4 w-4" />
+        {purging ? t('purgingTest') : t('purgeTest')}
+      </Button>
+    ) : null;
+
+  if ((loadError || loadErrorDetail) && orders === null) {
+    return (
+      <div className="space-y-6">
+        <SalesFeedPageChrome onRefresh={() => void load(false)} purgeSlot={purgeButton} />
+        <p className="text-sm text-red-400">{loadErrorDetail ?? t('loadError')}</p>
+        <button
+          type="button"
+          className="text-sm text-primary hover:underline"
+          onClick={() => void load(false)}
+        >
+          {tc('retry')}
+        </button>
+      </div>
+    );
+  }
+
+  if (orders === null) {
+    return (
+      <div className="space-y-6">
+        <SalesFeedPageChrome loading controlsDisabled />
+        <SalesFeedContentSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {canPurgeTest && testOrderCount > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-amber-400 hover:text-amber-300"
-              disabled={purging}
-              onClick={() => void onPurgeTest()}
-            >
-              <Trash2 className="h-4 w-4" />
-              {purging ? t('purgingTest') : t('purgeTest')}
-            </Button>
-          )}
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void load()}>
-            <RefreshCw className="h-4 w-4" />
-            {t('refresh')}
-          </Button>
-        </div>
-      </div>
+      <SalesFeedPageChrome
+        loading={loading}
+        onRefresh={() => {
+          setPurgeMessage(null);
+          void load(false);
+        }}
+        purgeSlot={purgeButton}
+      />
 
       {purgeMessage && <p className="text-sm text-emerald-400">{purgeMessage}</p>}
 
@@ -140,14 +171,14 @@ export function SalesFeedDashboard({
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {t('kpiOrders')}
           </p>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-primary">{orders.length}</p>
+          <p className="mt-2 text-3xl font-bold tabular-nums text-primary">{orderList.length}</p>
         </div>
         <div className="ravo-glass-panel p-5">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {t('kpiRevenue')}
           </p>
           <p className="mt-2 text-3xl font-bold tabular-nums text-primary">
-            {orders.length > 0
+            {orderList.length > 0
               ? formatMoney(moneyFromCents(totalCents, displayCurrency), locale)
               : '—'}
           </p>
@@ -155,11 +186,7 @@ export function SalesFeedDashboard({
       </section>
 
       <section className="ravo-glass-panel overflow-hidden p-4 md:p-6">
-        {loading ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">{t('loading')}</p>
-        ) : loadError ? (
-          <p className="py-8 text-center text-sm text-red-400">{loadError}</p>
-        ) : orders.length === 0 ? (
+        {orderList.length === 0 ? (
           <div className="py-10 text-center">
             <p className="text-sm text-muted-foreground">{t('empty')}</p>
             <p className="mt-2 text-xs text-muted-foreground">{t('emptyHint')}</p>
@@ -172,14 +199,14 @@ export function SalesFeedDashboard({
           </div>
         ) : (
           <div className="space-y-2">
-            {orders.map((order) => (
+            {orderList.map((order) => (
               <SalesFeedOrderRow
                 key={order.id}
                 order={order}
                 orgSlug={orgSlug}
                 locale={locale}
                 canReassign={canReassign}
-                onReassigned={() => void load()}
+                onReassigned={() => void load(false)}
               />
             ))}
           </div>

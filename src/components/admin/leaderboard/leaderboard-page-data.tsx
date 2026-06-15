@@ -1,7 +1,7 @@
-import { OverviewDashboard } from '@/components/admin/overview/overview-dashboard';
+import { LeaderboardDashboard } from '@/components/admin/leaderboard/leaderboard-dashboard';
 import { loadSerializedOrgDashboard } from '@/lib/dashboard/load-serialized-org-dashboard';
 
-export async function OverviewPageData({
+export async function LeaderboardPageData({
   orgSlug,
   locale,
   orgId,
@@ -11,5 +11,5 @@ export async function OverviewPageData({
   orgId: string;
 }) {
   const initialData = await loadSerializedOrgDashboard(orgId, 30);
-  return <OverviewDashboard orgSlug={orgSlug} locale={locale} initialData={initialData} />;
+  return <LeaderboardDashboard orgSlug={orgSlug} locale={locale} initialData={initialData} />;
 }

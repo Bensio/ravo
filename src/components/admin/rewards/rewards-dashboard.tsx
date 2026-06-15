@@ -1,11 +1,11 @@
 'use client';
 
 import { Check, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
-import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
+import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import type { OrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
 import type { SerializedReward, SerializedRewardRule } from '@/lib/rewards/types';
 import { rewardSummary } from '@/lib/rewards/format-reward';
@@ -46,9 +46,20 @@ export function RewardsDashboard({
   initialData?: OrgRewardsPageData | null;
 }) {
   const t = useTranslations('admin.rewards');
-  const [data, setData] = useState<OrgRewardsPageData | null>(initialData ?? null);
-  const [loading, setLoading] = useState(initialData === undefined);
-  const [reloading, setReloading] = useState(false);
+  const {
+    data,
+    loading,
+    reloading,
+    load,
+  } = useAdminLiveData({
+    orgSlug,
+    initialData,
+    fetchData: async () => {
+      const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
+      if (!res.ok) return { data: null, error: true };
+      return { data: (await res.json()) as OrgRewardsPageData, error: false };
+    },
+  });
   const [actionError, setActionError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('queue');
   const [showCreate, setShowCreate] = useState(false);
@@ -63,22 +74,6 @@ export function RewardsDashboard({
   const [formPerkLabel, setFormPerkLabel] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const load = useCallback(async (background = false) => {
-    if (background) {
-      setReloading(true);
-    } else {
-      setLoading(true);
-    }
-    const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
-    if (res.ok) {
-      setData((await res.json()) as OrgRewardsPageData);
-    }
-    setReloading(false);
-    setLoading(false);
-  }, [orgSlug]);
-
-  useAdminPageRefresh(orgSlug, (silent) => load(silent));
 
   useEffect(() => {
     if (data?.campaigns.length && !formCampaignId) {

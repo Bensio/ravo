@@ -2,36 +2,44 @@
 
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
+import {
+  adminCacheKey,
+  clearAdminCacheForOrg,
+  prefetchAdminJson,
+  readAdminCache,
+  writeAdminCache,
+} from '@/lib/admin/admin-client-cache';
+import type { SalesFeedRow } from '@/components/admin/sales-feed/sales-feed-dashboard';
 
-const dashboardByKey = new Map<string, SerializedOrgDashboard>();
-const inflightDashboard = new Map<string, Promise<SerializedOrgDashboard | null>>();
+export { clearAdminCacheForOrg };
+
+const DASHBOARD_RESOURCE = 'dashboard';
+const ORDERS_RESOURCE = 'orders';
 
 export function dashboardCacheKey(orgSlug: string, days: DashboardDays, eventScope?: string | null) {
-  return `${orgSlug}:${days}:${eventScope ?? 'org'}`;
+  return adminCacheKey(orgSlug, DASHBOARD_RESOURCE, `${days}:${eventScope ?? 'org'}`);
+}
+
+export function ordersCacheKey(orgSlug: string) {
+  return adminCacheKey(orgSlug, ORDERS_RESOURCE);
 }
 
 export function readDashboardCache(key: string): SerializedOrgDashboard | null {
-  return dashboardByKey.get(key) ?? null;
-}
-
-export function clearDashboardCacheForOrg(orgSlug: string) {
-  for (const key of dashboardByKey.keys()) {
-    if (key.startsWith(`${orgSlug}:`)) {
-      dashboardByKey.delete(key);
-    }
-  }
-  for (const key of inflightDashboard.keys()) {
-    if (key.startsWith(`${orgSlug}:`)) {
-      inflightDashboard.delete(key);
-    }
-  }
+  return readAdminCache<SerializedOrgDashboard>(key);
 }
 
 export function writeDashboardCache(orgSlug: string, data: SerializedOrgDashboard) {
-  const scopedKey = dashboardCacheKey(orgSlug, data.days, data.eventName);
-  const looseKey = dashboardCacheKey(orgSlug, data.days);
-  dashboardByKey.set(scopedKey, data);
-  dashboardByKey.set(looseKey, data);
+  writeAdminCache(dashboardCacheKey(orgSlug, data.days, data.eventName), data);
+  writeAdminCache(dashboardCacheKey(orgSlug, data.days), data);
+}
+
+export function readOrdersCache(orgSlug: string): SalesFeedRow[] | null {
+  const body = readAdminCache<{ orders?: SalesFeedRow[] }>(ordersCacheKey(orgSlug));
+  return body?.orders ?? null;
+}
+
+export function writeOrdersCache(orgSlug: string, orders: SalesFeedRow[]) {
+  writeAdminCache(ordersCacheKey(orgSlug), { orders });
 }
 
 export async function prefetchDashboard(
@@ -42,26 +50,32 @@ export async function prefetchDashboard(
   const cached = readDashboardCache(key);
   if (cached) return cached;
 
-  const existing = inflightDashboard.get(key);
-  if (existing) return existing;
-
-  const promise = (async () => {
-    try {
-      const res = await fetch(`/api/${orgSlug}/dashboard?days=${days}`, { cache: 'no-store' });
-      if (!res.ok) return null;
-      const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
-      if (body.dashboard) {
-        writeDashboardCache(orgSlug, body.dashboard);
-        return body.dashboard;
-      }
-      return null;
-    } catch {
-      return null;
-    } finally {
-      inflightDashboard.delete(key);
-    }
-  })();
-
-  inflightDashboard.set(key, promise);
-  return promise;
+  const body = await prefetchAdminJson<{ dashboard?: SerializedOrgDashboard }>(
+    key,
+    `/api/${orgSlug}/dashboard?days=${days}`,
+  );
+  if (body?.dashboard) {
+    writeDashboardCache(orgSlug, body.dashboard);
+    return body.dashboard;
+  }
+  return null;
 }
+
+export async function prefetchOrders(orgSlug: string): Promise<SalesFeedRow[] | null> {
+  const key = ordersCacheKey(orgSlug);
+  const cached = readOrdersCache(orgSlug);
+  if (cached) return cached;
+
+  const body = await prefetchAdminJson<{ orders?: SalesFeedRow[] }>(
+    key,
+    `/api/${orgSlug}/orders`,
+  );
+  const orders = body?.orders ?? null;
+  if (orders) {
+    writeOrdersCache(orgSlug, orders);
+  }
+  return orders;
+}
+
+/** @deprecated Use clearAdminCacheForOrg */
+export const clearDashboardCacheForOrg = clearAdminCacheForOrg;

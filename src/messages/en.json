@@ -3,6 +3,7 @@
     "appName": "Ravo",
     "loading": "Loading…",
     "error": "Something went wrong",
+    "retry": "Try again",
     "signOut": "Sign out"
   },
   "marketing": {

@@ -3,12 +3,13 @@
 import { CalendarDays, Loader2, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { SerializedEvent } from '@/lib/events/types';
-import { clearDashboardCacheForOrg } from '@/lib/admin/client-data-cache';
-import { dispatchOrgContextRefresh, useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
+import { clearAdminCacheForOrg } from '@/lib/admin/client-data-cache';
+import { dispatchOrgContextRefresh } from '@/lib/hooks/use-admin-page-refresh';
+import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatInFestivalTz } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
@@ -34,30 +35,28 @@ export function EventsDashboard({
 }) {
   const t = useTranslations('admin.events');
   const router = useRouter();
-  const [data, setData] = useState<EventsData | null>(initialData ?? null);
-  const [loading, setLoading] = useState(initialData === undefined);
+  const {
+    data,
+    loading,
+    load,
+  } = useAdminLiveData({
+    orgSlug,
+    initialData,
+    fetchData: async () => {
+      const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
+      if (!res.ok) return { data: null, error: true };
+      return { data: (await res.json()) as EventsData, error: false };
+    },
+  });
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const load = useCallback(async (silent = false) => {
-    if (!silent) {
-      setLoading(true);
-    }
-    const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
-    if (res.ok) {
-      setData((await res.json()) as EventsData);
-    }
-    setLoading(false);
-  }, [orgSlug]);
-
-  useAdminPageRefresh(orgSlug, (silent) => load(silent));
 
   async function handleActivate(eventId: string) {
     setActivatingId(eventId);
     const res = await fetch(`/api/${orgSlug}/events/${eventId}/activate`, { method: 'POST' });
     if (res.ok) {
-      clearDashboardCacheForOrg(orgSlug);
+      clearAdminCacheForOrg(orgSlug);
       dispatchOrgContextRefresh();
       await load(true);
       router.refresh();

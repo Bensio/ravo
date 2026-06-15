@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { prefetchDashboard } from '@/lib/admin/client-data-cache';
+import { prefetchDashboard, prefetchOrders } from '@/lib/admin/client-data-cache';
 import { RavoLogo } from '@/components/shared/ravo-logo';
 import { AdminNavLink } from './admin-nav-link';
 import { ADMIN_NAV_ITEMS } from './admin-nav-config';
@@ -33,6 +33,7 @@ export function AdminSidebar({
 
   useEffect(() => {
     void prefetchDashboard(orgSlug, 30);
+    void prefetchOrders(orgSlug);
   }, [orgSlug]);
 
   return (
@@ -49,6 +50,7 @@ export function AdminSidebar({
             iconName={item.iconName}
             orgSlug={orgSlug}
             prefetchDashboardOnHover={item.key === 'overview' || item.key === 'leaderboard'}
+            prefetchOrdersOnHover={item.key === 'salesFeed'}
           />
         ))}
       </nav>

@@ -75,7 +75,8 @@ Dark theme matches the mockup: deep purple/black background, vibrant accents (pu
 
 ## State management
 
-- **Server state:** Supabase queries via TanStack Query. Cache key includes `org_id`. Invalidations are scoped.
+- **Admin server state:** `useAdminLiveData` + `useAdminPageRefresh` + org-scoped client cache (`src/lib/admin/`). See `10-admin-live-data.mdc`.
+- **Ambassador server state (post-MVP):** TanStack Query with org/campaign-scoped cache keys.
 - **Realtime:** Supabase Realtime → TanStack Query cache updates. Surfaced via a `useRealtime(channel)` hook.
 - **UI state:** local `useState`. For complex flows (multi-step forms), use `useReducer` or Zustand store scoped to the route.
 - **Forms:** react-hook-form + zod schemas. Schemas live next to the form in a `*.schema.ts` file.

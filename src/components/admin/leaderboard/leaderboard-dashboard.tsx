@@ -1,12 +1,19 @@
 'use client';
 
-import { Crown, Search } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
+import { LeaderboardContentSkeleton } from '@/components/admin/leaderboard/leaderboard-content-skeleton';
+import { LeaderboardPageChrome } from '@/components/admin/leaderboard/leaderboard-page-chrome';
+import {
+  dashboardCacheKey,
+  readDashboardCache,
+  writeDashboardCache,
+} from '@/lib/admin/client-data-cache';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
-import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
+import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
@@ -23,7 +30,17 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function LeaderboardRow({ row, rank, locale, currency }: { row: Row; rank: number; locale: string; currency: string }) {
+function LeaderboardRow({
+  row,
+  rank,
+  locale,
+  currency,
+}: {
+  row: Row;
+  rank: number;
+  locale: string;
+  currency: string;
+}) {
   return (
     <div className="grid items-center gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3 transition-colors hover:border-primary/20 hover:bg-primary/5 sm:grid-cols-[40px_minmax(0,1.4fr)_80px_80px_100px_90px]">
       <div className="flex items-center gap-1.5">
@@ -81,22 +98,26 @@ export function LeaderboardDashboard({
   locale: string;
 }) {
   const t = useTranslations('admin.leaderboard');
+  const tc = useTranslations('common');
   const [query, setQuery] = useState('');
-  const [data, setData] = useState<SerializedOrgDashboard | null>(initialData);
-  const [loadError, setLoadError] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoadError(false);
+  const fetchDashboard = useCallback(async (): Promise<SerializedOrgDashboard | null> => {
     const res = await fetch(`/api/${orgSlug}/dashboard?days=30`, { cache: 'no-store' });
-    if (res.ok) {
-      const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
-      setData(body.dashboard ?? null);
-    } else {
-      setLoadError(true);
-    }
+    if (!res.ok) return null;
+    const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
+    return body.dashboard ?? null;
   }, [orgSlug]);
 
-  useAdminPageRefresh(orgSlug, () => load());
+  const { data, loadError, load } = useAdminLiveData({
+    orgSlug,
+    initialData,
+    readCache: () => readDashboardCache(dashboardCacheKey(orgSlug, 30)),
+    writeCache: (next) => writeDashboardCache(orgSlug, next),
+    fetchData: async () => {
+      const next = await fetchDashboard();
+      return { data: next, error: next === null };
+    },
+  });
 
   const rows = useMemo(() => {
     const base = data?.rows ?? [];
@@ -110,20 +131,27 @@ export function LeaderboardDashboard({
     );
   }, [data?.rows, query]);
 
-  if (!data && loadError) {
+  if (loadError && !data) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+      <div className="space-y-4">
+        <LeaderboardPageChrome onQueryChange={setQuery} />
         <p className="text-sm text-red-400">{t('loadError')}</p>
+        <button
+          type="button"
+          className="text-sm text-primary hover:underline"
+          onClick={() => void load(false)}
+        >
+          {tc('retry')}
+        </button>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('loading')}</p>
+      <div className="space-y-4">
+        <LeaderboardPageChrome disabled />
+        <LeaderboardContentSkeleton />
       </div>
     );
   }
@@ -136,23 +164,7 @@ export function LeaderboardDashboard({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
-          <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
-        </div>
-        <div
-          className="flex min-w-[220px] items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-2"
-        >
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('searchPlaceholder')}
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-      </div>
+      <LeaderboardPageChrome query={query} onQueryChange={setQuery} />
 
       <section className="grid auto-rows-fr gap-3 lg:grid-cols-12">
         <div className="lg:col-span-8">
@@ -172,10 +184,7 @@ export function LeaderboardDashboard({
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted-foreground">{t('snapshotRevenue')}</span>
               <span className="text-2xl font-bold tabular-nums">
-                {formatMoney(
-                  moneyFromCents(totalRevenue, data.currency),
-                  locale,
-                )}
+                {formatMoney(moneyFromCents(totalRevenue, data.currency), locale)}
               </span>
             </div>
             <div className="flex items-baseline justify-between gap-2">

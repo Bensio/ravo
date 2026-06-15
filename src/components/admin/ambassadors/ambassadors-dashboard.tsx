@@ -14,14 +14,14 @@ import {
   UserRoundCheck,
   X,
 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import type {
   AmbassadorListRow,
   PendingInviteRow,
 } from '@/lib/ambassadors/list-ambassadors-admin';
-import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
+import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatUtc } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
@@ -52,9 +52,23 @@ export function AmbassadorsDashboard({
   activeEventName?: string | null;
 }) {
   const t = useTranslations('admin.ambassadors');
-  const [data, setData] = useState<AdminData | null>(initialData ?? null);
-  const [loading, setLoading] = useState(initialData === undefined);
-  const [reloading, setReloading] = useState(false);
+  const {
+    data,
+    setData,
+    loading,
+    reloading,
+    load,
+  } = useAdminLiveData({
+    orgSlug,
+    initialData,
+    fetchData: async () => {
+      const res = await fetch(`/api/${orgSlug}/ambassadors`, { cache: 'no-store' });
+      if (!res.ok) return { data: null, error: true };
+      const next = (await res.json()) as AdminData;
+      return { data: next, error: false };
+    },
+  });
+
   const [email, setEmail] = useState('');
   const [handle, setHandle] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -64,22 +78,6 @@ export function AmbassadorsDashboard({
   const [linkReady, setLinkReady] = useState<LinkReady | null>(null);
   const [copied, setCopied] = useState(false);
   const [suspendingId, setSuspendingId] = useState<string | null>(null);
-
-  const load = useCallback(async (background = false) => {
-    if (background) {
-      setReloading(true);
-    } else {
-      setLoading(true);
-    }
-    const res = await fetch(`/api/${orgSlug}/ambassadors`, { cache: 'no-store' });
-    if (res.ok) {
-      setData(await res.json());
-    }
-    setReloading(false);
-    setLoading(false);
-  }, [orgSlug]);
-
-  useAdminPageRefresh(orgSlug, (silent) => load(silent));
 
   async function onCreateInvite(e: React.FormEvent) {
     e.preventDefault();

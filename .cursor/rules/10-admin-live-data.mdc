@@ -1,0 +1,58 @@
+---
+description: Admin live-data pattern — instant paint, background revalidation, layout-matched skeletons.
+globs:
+  - src/app/[locale]/[org_slug]/**
+  - src/components/admin/**
+  - src/lib/hooks/use-admin-live-data.ts
+  - src/lib/hooks/use-admin-page-refresh.ts
+  - src/lib/admin/**
+---
+
+# Admin live data
+
+Data-heavy admin pages use **SSR + client cache + background revalidation**, not TanStack Query (ambassador app may adopt Query post-MVP).
+
+## Required pattern
+
+1. **Page shell (`page.tsx`)** — auth + permissions only; wrap slow fetch in `<Suspense fallback={<PageSkeleton />}>` via a `*PageData` async server component.
+2. **Page chrome** — real title/subtitle/controls render immediately; disable controls while loading.
+3. **Content skeleton** — layout-matched placeholders (`DashboardPanel`, row shapes). Never bare "Loading…" text.
+4. **`useAdminLiveData`** — seeds from `initialData` + optional client cache; syncs when SSR props update; idle revalidates via `useAdminPageRefresh`.
+5. **Client cache** — `read/write/prefetch` in `src/lib/admin/client-data-cache.ts` (or resource helpers). Prefetch on sidebar mount + nav hover for hot routes.
+6. **Event switch** — call `clearAdminCacheForOrg(orgSlug)` then `dispatchOrgContextRefresh()` so all mounted pages refetch.
+
+## Hook usage
+
+```tsx
+const { data, loading, reloading, loadError, load, refresh, invalidateInstantPaint } =
+  useAdminLiveData({
+    orgSlug,
+    initialData,
+    readCache: () => readOrdersCache(orgSlug),
+    writeCache: (next) => writeOrdersCache(orgSlug, next),
+    fetchData: async () => {
+      const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
+      if (!res.ok) return { data: null, error: true };
+      return { data: body.orders, error: false };
+    },
+  });
+```
+
+When SSR or cache already painted the page, pass deferred revalidation through the hook’s integration with `ADMIN_INSTANT_REVALIDATE_DELAY_MS` (set `invalidateInstantPaint()` before user-driven range/filter changes).
+
+## Lazy bundles
+
+Dynamic-import heavy client widgets (Recharts, large tables) with a layout-matched skeleton as `loading`.
+
+## Reference implementations
+
+- Overview — `overview-page-chrome`, `overview-content-skeleton`, `overview-page-data`
+- Leaderboard — shares dashboard cache/API
+- Sales feed — orders cache pilot for non-dashboard resources
+
+## Never
+
+- Block first paint on client fetch when SSR or cache can seed UI
+- Skip `initialData` prop sync after `router.refresh()`
+- Use generic `AdminPageSkeleton` as the only loading state on data-heavy pages
+- Clear only dashboard cache on event switch — use `clearAdminCacheForOrg`

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { SerializedEvent } from '@/lib/events/types';
 import { formatInFestivalTz } from '@/lib/time';
-import { clearDashboardCacheForOrg } from '@/lib/admin/client-data-cache';
+import { clearAdminCacheForOrg } from '@/lib/admin/client-data-cache';
 import { dispatchOrgContextRefresh } from '@/lib/hooks/use-admin-page-refresh';
 import { cn } from '@/lib/utils';
 
@@ -53,7 +53,7 @@ export function AdminEventSwitcher({
     setActivatingId(null);
     if (res.ok) {
       setOpen(false);
-      clearDashboardCacheForOrg(orgSlug);
+      clearAdminCacheForOrg(orgSlug);
       dispatchOrgContextRefresh();
       router.refresh();
     }

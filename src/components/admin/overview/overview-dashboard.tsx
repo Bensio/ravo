@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Euro, MousePointerClick, Percent, Ticket } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-card';
@@ -19,7 +19,7 @@ import {
 } from '@/lib/admin/client-data-cache';
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
-import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
+import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
@@ -30,8 +30,6 @@ const ClicksSalesChart = dynamic(
     })),
   { ssr: false, loading: () => <OverviewChartSkeleton /> },
 );
-
-const INSTANT_REVALIDATE_DELAY_MS = 10_000;
 
 export function OverviewDashboard({
   orgSlug,
@@ -44,58 +42,43 @@ export function OverviewDashboard({
 }) {
   const t = useTranslations('admin.overview');
   const initialDays = initialData?.days ?? 30;
-  const hadInstantPaint = useRef(
-    Boolean(initialData ?? readDashboardCache(dashboardCacheKey(orgSlug, initialDays))),
-  );
   const [range, setRange] = useState<DashboardDays>(initialDays);
-  const [data, setData] = useState<SerializedOrgDashboard | null>(
-    () => initialData ?? readDashboardCache(dashboardCacheKey(orgSlug, initialDays)) ?? null,
-  );
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const rangeRef = useRef<DashboardDays>(initialDays);
+  rangeRef.current = range;
 
-  useEffect(() => {
-    if (!initialData) return;
-    setData(initialData);
-    setRange(initialData.days);
-    writeDashboardCache(orgSlug, initialData);
-    hadInstantPaint.current = true;
-  }, [initialData, orgSlug]);
-
-  const load = useCallback(
-    async (days: DashboardDays, options?: { silent?: boolean }) => {
-      if (!options?.silent) {
-        setLoading(true);
-      }
-      setLoadError(false);
+  const fetchDashboard = useCallback(
+    async (days: DashboardDays): Promise<SerializedOrgDashboard | null> => {
       const res = await fetch(`/api/${orgSlug}/dashboard?days=${days}`, { cache: 'no-store' });
-      if (res.ok) {
-        const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
-        const next = body.dashboard ?? null;
-        setData(next);
-        if (next) writeDashboardCache(orgSlug, next);
-      } else {
-        setLoadError(true);
-      }
-      setLoading(false);
+      if (!res.ok) return null;
+      const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
+      return body.dashboard ?? null;
     },
     [orgSlug],
   );
 
-  useAdminPageRefresh(orgSlug, (silent) => load(range, { silent }), {
-    revalidateDelayMs: hadInstantPaint.current ? INSTANT_REVALIDATE_DELAY_MS : 0,
+  const { data, loading, loadError, load, invalidateInstantPaint } = useAdminLiveData({
+    orgSlug,
+    initialData,
+    readCache: () => readDashboardCache(dashboardCacheKey(orgSlug, range)),
+    writeCache: (next) => writeDashboardCache(orgSlug, next),
+    fetchData: async () => {
+      const next = await fetchDashboard(rangeRef.current);
+      return { data: next, error: next === null };
+    },
+    onInitialDataSync: (next) => setRange(next.days),
   });
 
   function handleRangeChange(next: DashboardDays) {
+    rangeRef.current = next;
     setRange(next);
-    hadInstantPaint.current = false;
-    void load(next);
+    invalidateInstantPaint();
+    void load(false);
   }
 
   if (loadError && !data) {
     return (
       <div className="space-y-4">
-        <OverviewPageChrome range={range} onRefresh={() => void load(range)} />
+        <OverviewPageChrome range={range} onRefresh={() => void load(false)} />
         <p className="text-sm text-red-400">{t('loadError')}</p>
       </div>
     );
@@ -119,7 +102,7 @@ export function OverviewDashboard({
         eventName={data.eventName}
         loading={loading}
         onRangeChange={handleRangeChange}
-        onRefresh={() => void load(range)}
+        onRefresh={() => void load(false)}
       />
 
       {!hasActivity && (

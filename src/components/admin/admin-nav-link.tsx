@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { prefetchDashboard } from '@/lib/admin/client-data-cache';
+import { prefetchDashboard, prefetchOrders } from '@/lib/admin/client-data-cache';
 import { cn } from '@/lib/utils';
 import type { AdminNavKey } from './admin-nav-types';
 import { ADMIN_NAV_ICONS } from './admin-nav-icons';
@@ -15,12 +15,14 @@ export function AdminNavLink({
   iconName,
   orgSlug,
   prefetchDashboardOnHover = false,
+  prefetchOrdersOnHover = false,
 }: {
   href: string;
   label: string;
   iconName: AdminNavKey;
   orgSlug?: string;
   prefetchDashboardOnHover?: boolean;
+  prefetchOrdersOnHover?: boolean;
 }) {
   const pathname = usePathname();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -39,6 +41,9 @@ export function AdminNavLink({
       onMouseEnter={() => {
         if (prefetchDashboardOnHover && orgSlug) {
           void prefetchDashboard(orgSlug, 30);
+        }
+        if (prefetchOrdersOnHover && orgSlug) {
+          void prefetchOrders(orgSlug);
         }
       }}
       onClick={() => setPendingHref(href)}
