@@ -51,15 +51,18 @@ export function useAdminLiveData<T>({
   useEffect(() => {
     if (initialData === undefined) return;
     if (skipInitialSyncRef.current) return;
+    // SSR `.catch(() => null)` must not wipe a cache seed painted on first render.
+    if (initialData === null) {
+      if (dataRef.current === null) {
+        setLoading(false);
+      }
+      return;
+    }
     setData(initialData);
     setLoading(false);
-    if (initialData !== null) {
-      writeCache?.(initialData);
-      hadInstantPaintRef.current = true;
-    }
-    if (initialData != null) {
-      onInitialDataSync?.(initialData);
-    }
+    writeCache?.(initialData);
+    hadInstantPaintRef.current = true;
+    onInitialDataSync?.(initialData);
   }, [initialData, writeCache, onInitialDataSync]);
 
   const markClientMutation = useCallback(() => {

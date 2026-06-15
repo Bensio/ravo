@@ -1,5 +1,8 @@
 import { RewardsDashboard } from '@/components/admin/rewards/rewards-dashboard';
-import { fetchOrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
+import {
+  EMPTY_ORG_REWARDS_PAGE_DATA,
+  fetchOrgRewardsPageData,
+} from '@/lib/rewards/fetch-org-rewards-page-data';
 
 export async function RewardsPageData({
   orgSlug,
@@ -22,7 +25,7 @@ export async function RewardsPageData({
 }) {
   const initialData = await fetchOrgRewardsPageData(orgId, {
     bootstrapUserId: userId,
-  }).catch(() => null);
+  }).catch(() => EMPTY_ORG_REWARDS_PAGE_DATA);
 
   return (
     <RewardsDashboard

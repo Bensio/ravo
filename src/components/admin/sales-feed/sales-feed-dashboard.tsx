@@ -81,6 +81,7 @@ export function SalesFeedDashboard({
   });
 
   const orderList = orders ?? [];
+  const showContentSkeleton = loading && orders === null;
   const testOrderCount = orderList.filter((o) => o.is_simulated).length;
 
   async function onPurgeTest() {
@@ -144,7 +145,7 @@ export function SalesFeedDashboard({
     );
   }
 
-  if (orders === null) {
+  if (showContentSkeleton) {
     return (
       <div className="space-y-6">
         <SalesFeedPageChrome loading controlsDisabled />

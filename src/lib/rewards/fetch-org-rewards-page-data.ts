@@ -14,6 +14,13 @@ export type OrgRewardsPageData = {
   };
 };
 
+export const EMPTY_ORG_REWARDS_PAGE_DATA: OrgRewardsPageData = {
+  rewards: [],
+  rules: [],
+  campaigns: [],
+  summary: { needsReview: 0, pendingFulfillment: 0, pending: 0 },
+};
+
 export async function fetchOrgRewardsPageData(
   organizationId: string,
   options?: { bootstrapUserId?: string },

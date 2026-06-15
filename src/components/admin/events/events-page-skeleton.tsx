@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { EventsSkeleton } from '@/components/admin/events/events-content-skeleton';
+import { AdminSuspenseBodyPulse } from '@/components/admin/admin-suspense-body-pulse';
+import { EventsPageChrome } from '@/components/admin/events/events-content-skeleton';
+import { SkeletonPulse } from '@/components/admin/dashboard/dashboard-skeleton-parts';
 import { prefetchEvents } from '@/lib/admin/client-data-cache';
 
+/** Suspense fallback: chrome + single body pulse (avoids duplicating EventsContentSkeleton). */
 export function EventsPageSkeleton({
   orgSlug,
   canCreate = false,
@@ -18,5 +21,13 @@ export function EventsPageSkeleton({
     void prefetchEvents(orgSlug);
   }, [orgSlug]);
 
-  return <EventsSkeleton canCreate={canCreate} />;
+  return (
+    <div className="space-y-6">
+      <EventsPageChrome
+        controlsDisabled
+        createSlot={canCreate ? <SkeletonPulse className="h-9 w-28 rounded-lg" /> : undefined}
+      />
+      <AdminSuspenseBodyPulse />
+    </div>
+  );
 }

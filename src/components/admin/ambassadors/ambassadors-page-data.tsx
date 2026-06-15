@@ -1,4 +1,4 @@
-import { AmbassadorsDashboard } from '@/components/admin/ambassadors/ambassadors-dashboard';
+import { AmbassadorsDashboard, EMPTY_ORG_AMBASSADORS_PAGE_DATA } from '@/components/admin/ambassadors/ambassadors-dashboard';
 import { listAmbassadorsAdmin } from '@/lib/ambassadors/list-ambassadors-admin';
 import { resolveActiveEvent } from '@/lib/events/event-context';
 import { resolveEventScope } from '@/lib/events/event-scope';
@@ -21,7 +21,7 @@ export async function AmbassadorsPageData({
   const eventScope = await resolveEventScope(orgId);
   const initialData = await listAmbassadorsAdmin(supabase, orgId, {
     eventId: eventScope?.eventId ?? null,
-  }).catch(() => null);
+  }).catch(() => EMPTY_ORG_AMBASSADORS_PAGE_DATA);
   const activeEvent = await resolveActiveEvent(orgId);
 
   return (

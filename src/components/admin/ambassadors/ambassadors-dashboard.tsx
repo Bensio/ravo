@@ -35,6 +35,11 @@ export type OrgAmbassadorsPageData = {
   pendingInvites: PendingInviteRow[];
 };
 
+export const EMPTY_ORG_AMBASSADORS_PAGE_DATA: OrgAmbassadorsPageData = {
+  ambassadors: [],
+  pendingInvites: [],
+};
+
 type AdminData = OrgAmbassadorsPageData;
 
 type LinkReady = {

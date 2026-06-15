@@ -5,7 +5,6 @@ import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import {
   adminCacheKey,
   clearAdminCacheForOrg,
-  prefetchAdminJson,
   readAdminCache,
   writeAdminCache,
 } from '@/lib/admin/admin-client-cache';
@@ -133,19 +132,20 @@ export async function prefetchDashboard(
 }
 
 export async function prefetchOrders(orgSlug: string): Promise<SalesFeedRow[] | null> {
-  const key = ordersCacheKey(orgSlug);
   const cached = readOrdersCache(orgSlug);
   if (cached) return cached;
 
-  const body = await prefetchAdminJson<{ orders?: SalesFeedRow[] }>(
-    key,
-    `/api/${orgSlug}/orders`,
-  );
-  const orders = body?.orders ?? null;
-  if (orders) {
+  try {
+    const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { orders?: SalesFeedRow[] };
+    const orders = body.orders ?? null;
+    if (!orders) return null;
     writeOrdersCache(orgSlug, orders);
+    return orders;
+  } catch {
+    return null;
   }
-  return orders;
 }
 
 export async function prefetchTracklinks(orgSlug: string): Promise<TracklinksPageData | null> {
@@ -175,36 +175,51 @@ export async function prefetchTracklinks(orgSlug: string): Promise<TracklinksPag
 }
 
 export async function prefetchAmbassadors(orgSlug: string): Promise<OrgAmbassadorsPageData | null> {
-  const key = ambassadorsCacheKey(orgSlug);
   const cached = readAmbassadorsCache(orgSlug);
   if (cached) return cached;
 
-  const body = await prefetchAdminJson<OrgAmbassadorsPageData>(key, `/api/${orgSlug}/ambassadors`);
-  if (!body?.ambassadors) return null;
-  writeAmbassadorsCache(orgSlug, body);
-  return body;
+  try {
+    const res = await fetch(`/api/${orgSlug}/ambassadors`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = (await res.json()) as OrgAmbassadorsPageData;
+    if (!Array.isArray(data.ambassadors)) return null;
+    writeAmbassadorsCache(orgSlug, data);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export async function prefetchRewards(orgSlug: string): Promise<OrgRewardsPageData | null> {
-  const key = rewardsCacheKey(orgSlug);
   const cached = readRewardsCache(orgSlug);
   if (cached) return cached;
 
-  const body = await prefetchAdminJson<OrgRewardsPageData>(key, `/api/${orgSlug}/rewards`);
-  if (!body?.rewards) return null;
-  writeRewardsCache(orgSlug, body);
-  return body;
+  try {
+    const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = (await res.json()) as OrgRewardsPageData;
+    if (!Array.isArray(data.rewards)) return null;
+    writeRewardsCache(orgSlug, data);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export async function prefetchEvents(orgSlug: string): Promise<OrgEventsPageData | null> {
-  const key = eventsCacheKey(orgSlug);
   const cached = readEventsCache(orgSlug);
   if (cached) return cached;
 
-  const body = await prefetchAdminJson<OrgEventsPageData>(key, `/api/${orgSlug}/events`);
-  if (!body?.events) return null;
-  writeEventsCache(orgSlug, body);
-  return body;
+  try {
+    const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = (await res.json()) as OrgEventsPageData;
+    if (!Array.isArray(data.events)) return null;
+    writeEventsCache(orgSlug, data);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 /** @deprecated Use clearAdminCacheForOrg */
