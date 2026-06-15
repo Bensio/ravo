@@ -1,10 +1,7 @@
-import { setRequestLocale } from 'next-intl/server';
-import { SalesFeedPageShell } from '@/components/admin/admin-data-page-shells';
+import { createAdminClientPage } from '@/lib/admin/create-admin-client-page';
 
-type Props = { params: Promise<{ locale: string; org_slug: string }> };
-
-export default async function SalesFeedPage({ params }: Props) {
-  const { locale, org_slug } = await params;
-  setRequestLocale(locale);
-  return <SalesFeedPageShell orgSlug={org_slug} locale={locale} />;
-}
+export default createAdminClientPage(() =>
+  import('@/components/admin/sales-feed/sales-feed-page-shell').then((m) => ({
+    default: m.SalesFeedPageShell,
+  })),
+);

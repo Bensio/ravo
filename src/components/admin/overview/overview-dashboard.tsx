@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-card';
 import { OverviewPageChrome } from '@/components/admin/overview/overview-page-chrome';
+import { OverviewChartSkeleton } from '@/components/admin/overview/overview-content-skeleton';
 import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 import {
   readDashboardCacheForOrg,
@@ -28,7 +29,7 @@ const ClicksSalesChart = dynamic(
     import('@/components/admin/dashboard/clicks-sales-chart').then((m) => ({
       default: m.ClicksSalesChart,
     })),
-  { ssr: false, loading: () => <DashboardPanel className="min-h-[18rem]">{null}</DashboardPanel> },
+  { ssr: false, loading: () => <OverviewChartSkeleton /> },
 );
 
 export function OverviewDashboard({

@@ -19,11 +19,11 @@ Every list/dashboard page follows the same three layers:
 
 | Layer | File | Responsibility |
 |---|---|---|
-| `page.tsx` | route | `setRequestLocale` only → `*PageShell` from `admin-data-page-shells.tsx` |
-| `AdminCachedPageShell` | `admin-cached-page-shell.tsx` | `useAdminCachedBoot` → warm cache paints instantly; cold → layout `*Skeleton` + prefetch |
+| `page.tsx` | route | `createAdminClientPage` → dynamic import of per-route `*-page-shell.tsx` (`ssr: false`) |
+| `*PageShell` | feature folder | `AdminCachedPageShell` + cache read/prefetch + cold `*Skeleton` |
 | `*Dashboard` | feature folder | `useAdminLiveData` for refresh/revalidate; receives `initialData` from shell |
 
-Wire new pages in **`admin-data-page-shells.tsx`** only — do not add per-page boot logic.
+Wire new pages in a feature `*-page-shell.tsx` + `createAdminClientPage` route — do not add per-page boot logic or monolithic shell barrels.
 
 ## Infrastructure
 
@@ -43,8 +43,8 @@ Wire new pages in **`admin-data-page-shells.tsx`** only — do not add per-page 
 
 1. Add `read/write/prefetch` in `client-data-cache.ts`
 2. Add `*Skeleton` + `*Dashboard` in feature folder
-3. Add `FooPageShell` in `admin-data-page-shells.tsx`
-4. `page.tsx`: locale + `<FooPageShell orgSlug locale />`
+3. Add `FooPageShell` in `components/admin/foo/foo-page-shell.tsx`
+4. `page.tsx`: `createAdminClientPage(() => import('...foo-page-shell'))`
 5. Register prefetch in `admin-sidebar.tsx` `prefetchForNavKey`
 
 ## Exceptions

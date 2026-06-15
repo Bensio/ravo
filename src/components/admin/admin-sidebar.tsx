@@ -21,6 +21,10 @@ import { AdminSidebarUser } from './admin-sidebar-user';
 function prefetchForNavKey(orgSlug: string, key: AdminNavKey): (() => void) | undefined {
   switch (key) {
     case 'overview':
+      return () => {
+        void prefetchDashboard(orgSlug, 30);
+        void import('@/components/admin/dashboard/clicks-sales-chart');
+      };
     case 'leaderboard':
       return () => {
         void prefetchDashboard(orgSlug, 30);
