@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Crown } from 'lucide-react';
 import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
+import { formatConversionRate } from '@/lib/dashboard/format-org-conversion';
 import { cn } from '@/lib/utils';
 
 type Row = SerializedOrgDashboard['rows'][number];
@@ -56,7 +57,7 @@ function PodiumSlot({ row, rank }: { row: Row; rank: 1 | 2 | 3 }) {
         </div>
         <p className="w-full truncate text-xs font-semibold">{row.name}</p>
         <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-          {row.sales} · {(row.conversion * 100).toFixed(0)}%
+          {row.sales} · {formatConversionRate(row.conversion, 0)}
         </p>
       </div>
     </div>

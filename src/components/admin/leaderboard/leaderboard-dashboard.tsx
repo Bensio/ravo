@@ -15,6 +15,10 @@ import {
   type SerializedOrgDashboard,
 } from '@/lib/dashboard/types';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
+import {
+  averageCappedConversionRate,
+  formatConversionRate,
+} from '@/lib/dashboard/format-org-conversion';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
@@ -83,7 +87,7 @@ function LeaderboardRow({
         {formatMoney(moneyFromCents(BigInt(row.revenueCents), currency), locale)}
       </span>
       <span className="text-right text-sm tabular-nums text-muted-foreground">
-        {(row.conversion * 100).toFixed(1)}%
+        {formatConversionRate(row.conversion, 1)}
       </span>
     </div>
   );
@@ -151,10 +155,7 @@ export function LeaderboardDashboard({
   }
 
   const totalRevenue = dashboard.rows.reduce((s, r) => s + BigInt(r.revenueCents), 0n);
-  const avgConv =
-    dashboard.rows.length > 0
-      ? dashboard.rows.reduce((s, r) => s + r.conversion, 0) / dashboard.rows.length
-      : 0;
+  const avgConv = averageCappedConversionRate(dashboard.rows);
 
   return (
     <div className="space-y-4">
@@ -184,7 +185,7 @@ export function LeaderboardDashboard({
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted-foreground">{t('snapshotConversion')}</span>
               <span className="text-2xl font-bold tabular-nums text-accent">
-                {(avgConv * 100).toFixed(1)}%
+                {formatConversionRate(avgConv, 1)}
               </span>
             </div>
           </div>
