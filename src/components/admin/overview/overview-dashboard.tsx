@@ -9,7 +9,6 @@ import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium
 import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-card';
 import { OverviewPageChrome } from '@/components/admin/overview/overview-page-chrome';
 import { OverviewChartSkeleton } from '@/components/admin/overview/overview-content-skeleton';
-import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 import {
   readDashboardCacheForOrg,
   writeDashboardCache,
