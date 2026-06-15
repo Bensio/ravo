@@ -53,9 +53,9 @@ export function RewardsDashboard({
   const t = useTranslations('admin.rewards');
   const {
     data,
-    loading,
     reloading,
     load,
+    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -199,7 +199,6 @@ export function RewardsDashboard({
     await load(true);
   }
 
-  const showContentSkeleton = loading && !data;
   const summary = data?.summary;
 
   const createButton =

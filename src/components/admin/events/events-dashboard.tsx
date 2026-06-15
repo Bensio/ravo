@@ -47,9 +47,9 @@ export function EventsDashboard({
   const router = useRouter();
   const {
     data,
-    loading,
     reloading,
     load,
+    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -102,7 +102,6 @@ export function EventsDashboard({
     router.refresh();
   }
 
-  const showContentSkeleton = loading && !data;
   const events = data?.events ?? [];
   const activeId = data?.activeEventId ?? null;
   const liveCount = events.filter((e) => e.phase === 'live').length;

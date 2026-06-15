@@ -69,6 +69,7 @@ export function AmbassadorsDashboard({
     loading,
     reloading,
     load,
+    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -209,7 +210,6 @@ export function AmbassadorsDashboard({
   const suspendedAmbassadors = ambassadors.filter((a) => a.state !== 'active');
   const pending = data?.pendingInvites ?? [];
   const canNativeShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
-  const showContentSkeleton = loading && !data;
 
   async function onToggleSuspend(ambassadorId: string, suspend: boolean, label: string) {
     const confirmKey = suspend ? 'suspendConfirm' : 'reactivateConfirm';

@@ -56,7 +56,8 @@ export function OverviewDashboard({
     [orgSlug],
   );
 
-  const { data, loading, loadError, load, invalidateInstantPaint } = useAdminLiveData({
+  const { data, loading, loadError, load, invalidateInstantPaint, showContentSkeleton } =
+    useAdminLiveData({
     orgSlug,
     initialData,
     readCache: () => readDashboardCacheForOrg(orgSlug, range),
@@ -84,7 +85,7 @@ export function OverviewDashboard({
     );
   }
 
-  if (loading && !data) {
+  if (showContentSkeleton) {
     return (
       <div className="space-y-4">
         <OverviewPageChrome range={range} loading controlsDisabled />

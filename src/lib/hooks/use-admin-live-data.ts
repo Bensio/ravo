@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAdminPageRefresh } from '@/lib/hooks/use-admin-page-refresh';
 
 /** Defer background revalidate when SSR or client cache already painted the page. */
@@ -37,7 +37,12 @@ export function useAdminLiveData<T>({
   const skipInitialSyncRef = useRef(false);
 
   const [data, setData] = useState<T | null>(seed);
-  const [loading, setLoading] = useState(() => seed === null);
+  // When *PageData passes initialData, Suspense already showed the page skeleton.
+  const [loading, setLoading] = useState(() => {
+    if (seed !== null) return false;
+    if (initialData !== undefined) return false;
+    return true;
+  });
   const [reloading, setReloading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
@@ -48,7 +53,7 @@ export function useAdminLiveData<T>({
     }
   }, [data]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (initialData === undefined) return;
     if (skipInitialSyncRef.current) return;
     // SSR `.catch(() => null)` must not wipe a cache seed painted on first render.
@@ -119,5 +124,6 @@ export function useAdminLiveData<T>({
     refresh: () => load(false),
     invalidateInstantPaint,
     markClientMutation,
+    showContentSkeleton: loading && data === null && initialData === undefined,
   };
 }

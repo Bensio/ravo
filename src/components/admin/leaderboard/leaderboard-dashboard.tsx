@@ -107,7 +107,7 @@ export function LeaderboardDashboard({
     return body.dashboard ?? null;
   }, [orgSlug]);
 
-  const { data, loading, loadError, load } = useAdminLiveData({
+  const { data, loadError, load, showContentSkeleton } = useAdminLiveData({
     orgSlug,
     initialData,
     readCache: () => readDashboardCacheForOrg(orgSlug, 30),
@@ -146,7 +146,7 @@ export function LeaderboardDashboard({
     );
   }
 
-  if (loading && !data) {
+  if (showContentSkeleton) {
     return (
       <div className="space-y-4">
         <LeaderboardPageChrome disabled />

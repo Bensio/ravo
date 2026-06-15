@@ -70,11 +70,11 @@ export function TracklinksDashboard({
   const {
     data,
     setData,
-    loading,
     reloading,
     loadError,
     load,
     markClientMutation,
+    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -262,8 +262,6 @@ export function TracklinksDashboard({
       setError(t('deleteError'));
     }
   };
-
-  const showContentSkeleton = loading && !data;
 
   return (
     <div className="space-y-6">

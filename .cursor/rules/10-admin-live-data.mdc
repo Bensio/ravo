@@ -17,7 +17,7 @@ Data-heavy admin pages use **SSR + client cache + background revalidation**, not
 1. **Page shell (`page.tsx`)** — auth + permissions only; wrap slow fetch in `<Suspense fallback={<PageSkeleton />}>` via a `*PageData` async server component.
 2. **Page skeleton (Suspense fallback)** — real page chrome + single `AdminSuspenseBodyPulse` only. Prefetch warms client cache in `useEffect`. Never mount `*ContentSkeleton` or an interactive dashboard in the fallback — that duplicates the dashboard’s own `loading && !data` skeleton.
 3. **Page chrome** — real title/subtitle/controls render immediately; disable controls while loading.
-3. **Content skeleton** — layout-matched placeholders (`DashboardPanel`, row shapes). Shown only inside the dashboard when `loading && !data`. Never bare "Loading…" text.
+3. **Content skeleton** — layout-matched placeholders inside the dashboard when `showContentSkeleton` from `useAdminLiveData` is true (client-only cold load). Never duplicate the Suspense fallback skeleton.
 4. **`useAdminLiveData`** — seeds from `initialData` + optional client cache; syncs when SSR props update; idle revalidates via `useAdminPageRefresh`. Call `markClientMutation()` before optimistic `setData` so a late SSR `initialData` pass does not undo the edit. Never pass `initialData={null}` from SSR on error — use an empty page shape so cache seeds are not wiped.
 5. **Client cache** — `read/write/prefetch` in `src/lib/admin/client-data-cache.ts` (or resource helpers). Prefetch on sidebar mount + nav hover for hot routes. Prefetch writes via typed `write*Cache` helpers, not raw `prefetchAdminJson` (avoids shape mismatches).
 6. **Event switch** — call `clearAdminCacheForOrg(orgSlug)` then `dispatchOrgContextRefresh()` so all mounted pages refetch.

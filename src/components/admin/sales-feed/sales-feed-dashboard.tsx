@@ -69,7 +69,7 @@ export function SalesFeedDashboard({
     return (data.orders ?? []) as SalesFeedRow[];
   }, [orgSlug, t]);
 
-  const { data: orders, loading, loadError, load } = useAdminLiveData({
+  const { data: orders, loading, loadError, load, showContentSkeleton } = useAdminLiveData({
     orgSlug,
     initialData: initialOrders,
     readCache: () => readOrdersCache(orgSlug),
@@ -81,7 +81,6 @@ export function SalesFeedDashboard({
   });
 
   const orderList = orders ?? [];
-  const showContentSkeleton = loading && orders === null;
   const testOrderCount = orderList.filter((o) => o.is_simulated).length;
 
   async function onPurgeTest() {
