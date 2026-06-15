@@ -56,7 +56,7 @@ export function OverviewDashboard({
     [orgSlug],
   );
 
-  const { data, loading, loadError, load, invalidateInstantPaint, showContentSkeleton } =
+  const { data, loadError, load, invalidateInstantPaint, showContentSkeleton, reloading } =
     useAdminLiveData({
     orgSlug,
     initialData,
@@ -105,7 +105,7 @@ export function OverviewDashboard({
       <OverviewPageChrome
         range={range}
         eventName={data.eventName}
-        loading={loading}
+        loading={reloading}
         onRangeChange={handleRangeChange}
         onRefresh={() => void load(false)}
       />

@@ -1,5 +1,6 @@
-import { AdminPageSkeleton } from '@/components/admin/admin-page-skeleton';
+import { AdminSuspenseBodyPulse } from '@/components/admin/admin-suspense-body-pulse';
 
+/** Route transition placeholder — pages supply their own chrome via *PageSkeleton. */
 export default function AdminOrgLoading() {
-  return <AdminPageSkeleton />;
+  return <AdminSuspenseBodyPulse className="h-[28rem]" />;
 }

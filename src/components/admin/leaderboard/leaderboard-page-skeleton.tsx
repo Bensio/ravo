@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AdminSuspenseBodyPulse } from '@/components/admin/admin-suspense-body-pulse';
+import { AdminSuspenseFallback } from '@/components/admin/admin-suspense-fallback';
 import { LeaderboardPageChrome } from '@/components/admin/leaderboard/leaderboard-page-chrome';
 import { prefetchDashboard } from '@/lib/admin/client-data-cache';
 
-/** Suspense fallback: chrome + single body pulse (avoids duplicating LeaderboardContentSkeleton). */
 export function LeaderboardPageSkeleton({
   orgSlug,
 }: {
@@ -17,9 +16,9 @@ export function LeaderboardPageSkeleton({
   }, [orgSlug]);
 
   return (
-    <div className="space-y-6">
-      <LeaderboardPageChrome disabled />
-      <AdminSuspenseBodyPulse className="h-[28rem]" />
-    </div>
+    <AdminSuspenseFallback
+      pulseClassName="h-[28rem]"
+      chrome={<LeaderboardPageChrome disabled />}
+    />
   );
 }

@@ -28,6 +28,11 @@ type EventsData = {
 
 export type OrgEventsPageData = EventsData;
 
+export const EMPTY_ORG_EVENTS_PAGE_DATA: OrgEventsPageData = {
+  events: [],
+  activeEventId: null,
+};
+
 export function EventsDashboard({
   locale,
   orgSlug,

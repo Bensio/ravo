@@ -39,13 +39,13 @@ export type SalesFeedRow = {
 export function SalesFeedDashboard({
   orgSlug,
   locale,
-  initialOrders,
+  initialData,
   canReassign = false,
   canPurgeTest = false,
 }: {
   orgSlug: string;
   locale: string;
-  initialOrders?: SalesFeedRow[];
+  initialData: SalesFeedRow[];
   canReassign?: boolean;
   canPurgeTest?: boolean;
 }) {
@@ -69,9 +69,9 @@ export function SalesFeedDashboard({
     return (data.orders ?? []) as SalesFeedRow[];
   }, [orgSlug, t]);
 
-  const { data: orders, loading, loadError, load, showContentSkeleton } = useAdminLiveData({
+  const { data: orders, loadError, load, showContentSkeleton, reloading } = useAdminLiveData({
     orgSlug,
-    initialData: initialOrders,
+    initialData,
     readCache: () => readOrdersCache(orgSlug),
     writeCache: (next) => writeOrdersCache(orgSlug, next),
     fetchData: async () => {
@@ -156,7 +156,7 @@ export function SalesFeedDashboard({
   return (
     <div className="space-y-6">
       <SalesFeedPageChrome
-        loading={loading}
+        loading={reloading}
         onRefresh={() => {
           setPurgeMessage(null);
           void load(false);

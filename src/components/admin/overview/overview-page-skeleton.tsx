@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
+import { AdminSuspenseFallback } from '@/components/admin/admin-suspense-fallback';
 import { OverviewPageChrome } from '@/components/admin/overview/overview-page-chrome';
-import { AdminSuspenseBodyPulse } from '@/components/admin/admin-suspense-body-pulse';
 import { prefetchDashboard } from '@/lib/admin/client-data-cache';
 
-/** Suspense fallback: chrome + single body pulse (avoids duplicating OverviewContentSkeleton). */
 export function OverviewPageSkeleton({
   orgSlug,
 }: {
@@ -17,9 +16,9 @@ export function OverviewPageSkeleton({
   }, [orgSlug]);
 
   return (
-    <div className="space-y-6">
-      <OverviewPageChrome range={30} controlsDisabled />
-      <AdminSuspenseBodyPulse className="h-[28rem]" />
-    </div>
+    <AdminSuspenseFallback
+      pulseClassName="h-[28rem]"
+      chrome={<OverviewPageChrome range={30} controlsDisabled />}
+    />
   );
 }

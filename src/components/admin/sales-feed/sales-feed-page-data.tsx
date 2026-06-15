@@ -27,7 +27,7 @@ export async function SalesFeedPageData({
     <SalesFeedDashboard
       orgSlug={orgSlug}
       locale={locale}
-      initialOrders={initialOrders}
+      initialData={initialOrders}
       canReassign={canReassign}
       canPurgeTest={canPurgeTest}
     />
