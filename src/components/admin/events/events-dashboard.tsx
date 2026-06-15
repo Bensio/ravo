@@ -8,7 +8,6 @@ import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { SerializedEvent } from '@/lib/events/types';
 import {
-  EventsContentSkeleton,
   EventsPageChrome,
 } from '@/components/admin/events/events-content-skeleton';
 import {
@@ -54,7 +53,6 @@ export function EventsDashboard({
     data,
     reloading,
     load,
-    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -124,15 +122,11 @@ export function EventsDashboard({
     <div className="space-y-6">
       <EventsPageChrome
         loading={reloading}
-        controlsDisabled={showContentSkeleton}
         onRefresh={() => void load(true)}
         createSlot={createButton}
       />
 
-      {showContentSkeleton ? (
-        <EventsContentSkeleton />
-      ) : (
-        <>
+      <>
       <section className="grid gap-4 sm:grid-cols-3">
         {[
           { label: t('kpiTotal'), value: String(events.length) },
@@ -257,8 +251,7 @@ export function EventsDashboard({
           </div>
         </section>
       )}
-        </>
-      )}
+      </>
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
-  TracklinksContentSkeleton,
   TracklinksPageChrome,
 } from '@/components/admin/tracklinks/tracklinks-content-skeleton';
 import type { OrgAmbassadorOption } from '@/lib/ambassadors/list-org-ambassadors';
@@ -74,7 +73,6 @@ export function TracklinksDashboard({
     loadError,
     load,
     markClientMutation,
-    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -267,14 +265,10 @@ export function TracklinksDashboard({
     <div className="space-y-6">
       <TracklinksPageChrome
         loading={reloading}
-        controlsDisabled={showContentSkeleton}
         onRefresh={() => void load(true)}
       />
 
-      {showContentSkeleton ? (
-        <TracklinksContentSkeleton />
-      ) : (
-        <>
+      <>
           <section className="grid gap-4 sm:grid-cols-3">
             {[
               { label: t('kpiClicks'), value: totalClicks.toLocaleString(locale) },
@@ -484,7 +478,6 @@ export function TracklinksDashboard({
             )}
           </section>
         </>
-      )}
     </div>
   );
 }

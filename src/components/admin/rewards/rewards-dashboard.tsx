@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
-  RewardsContentSkeleton,
   RewardsPageChrome,
 } from '@/components/admin/rewards/rewards-content-skeleton';
 import { readRewardsCache, writeRewardsCache } from '@/lib/admin/client-data-cache';
@@ -56,7 +55,6 @@ export function RewardsDashboard({
     data,
     reloading,
     load,
-    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -208,7 +206,7 @@ export function RewardsDashboard({
         type="button"
         variant="outline"
         size="sm"
-        disabled={showContentSkeleton}
+        disabled={reloading}
         className="gap-1.5"
         onClick={() => {
           setTab('rules');
@@ -224,15 +222,11 @@ export function RewardsDashboard({
     <div className="space-y-6">
       <RewardsPageChrome
         loading={reloading}
-        controlsDisabled={showContentSkeleton}
         onRefresh={() => void load(true)}
         createSlot={createButton}
       />
 
-      {showContentSkeleton ? (
-        <RewardsContentSkeleton />
-      ) : (
-        <>
+      <>
       {actionError && <p className="text-sm text-red-400">{actionError}</p>}
 
       {summary && (summary.needsReview > 0 || summary.pendingFulfillment > 0) && (
@@ -448,7 +442,6 @@ export function RewardsDashboard({
         </div>
       )}
         </>
-      )}
     </div>
   );
 }

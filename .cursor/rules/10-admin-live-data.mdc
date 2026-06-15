@@ -4,60 +4,58 @@ globs:
   - src/app/[locale]/[org_slug]/**
   - src/components/admin/**
   - src/lib/hooks/use-admin-live-data.ts
+  - src/lib/hooks/use-admin-cached-boot.ts
   - src/lib/hooks/use-admin-page-refresh.ts
   - src/lib/admin/**
 ---
 
 # Admin live data
 
-Data-heavy admin pages use **SSR + client cache + background revalidation**, not TanStack Query (ambassador app may adopt Query post-MVP).
+Data-heavy admin pages use **client cache boot + background revalidation**, not TanStack Query.
 
-## Required pattern
+## Canonical pattern (all data pages)
 
-1. **Page shell (`page.tsx`)** — auth + permissions only; wrap slow fetch in `<Suspense fallback={<PageSkeleton />}>` via a `*PageData` async server component.
-2. **Page skeleton (Suspense fallback)** — use `AdminSuspenseFallback` (chrome + `AdminSuspenseBodyPulse`). Prefetch warms client cache in `useEffect`. Never mount `*ContentSkeleton` or an interactive dashboard in the fallback.
-3. **Route `loading.tsx`** — omit under `[org_slug]/` when pages use Suspense `*PageSkeleton` (stacked loaders). Sidebar nav uses a dimmed icon, not a spinner, while RSC resolves.
-4. **Page chrome** — real title/subtitle/controls render immediately; `loading={reloading}` on refresh, `controlsDisabled={showContentSkeleton}`.
-5. **Content skeleton** — only when `showContentSkeleton` from `useAdminLiveData` is true (client-only cold load without `initialData` from `*PageData`).
-6. **`useAdminLiveData`** — seeds from `initialData` + optional client cache; syncs SSR props in `useLayoutEffect`. With `suspenseBound` (default), skip pathname revalidation — `*PageData` already SSR-fetches on navigation; only org-context refresh + manual refresh + 10s stale timer refetch.
-7. **Client cache** — `read/write/prefetch` in `src/lib/admin/client-data-cache.ts`. Prefetch on sidebar mount + nav hover. Prefetch writes via typed `write*Cache` helpers.
-8. **Event switch** — call `clearAdminCacheForOrg(orgSlug)` then `dispatchOrgContextRefresh()`.
+Every list/dashboard page follows the same three layers:
 
-## Hook usage
+| Layer | File | Responsibility |
+|---|---|---|
+| `page.tsx` | route | `setRequestLocale` only → `*PageShell` from `admin-data-page-shells.tsx` |
+| `AdminCachedPageShell` | `admin-cached-page-shell.tsx` | `useAdminCachedBoot` → warm cache paints instantly; cold → layout `*Skeleton` + prefetch |
+| `*Dashboard` | feature folder | `useAdminLiveData` for refresh/revalidate; receives `initialData` from shell |
 
-```tsx
-const { data, reloading, loadError, load, showContentSkeleton, markClientMutation } =
-  useAdminLiveData({
-    orgSlug,
-    initialData,
-    readCache: () => readOrdersCache(orgSlug),
-    writeCache: (next) => writeOrdersCache(orgSlug, next),
-    fetchData: async () => {
-      const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
-      if (!res.ok) return { data: null, error: true };
-      return { data: body.orders, error: false };
-    },
-  });
-```
+Wire new pages in **`admin-data-page-shells.tsx`** only — do not add per-page boot logic.
 
-When SSR or cache already painted the page, pass deferred revalidation through the hook’s integration with `ADMIN_INSTANT_REVALIDATE_DELAY_MS` (set `invalidateInstantPaint()` before user-driven range/filter changes).
+## Infrastructure
 
-## Lazy bundles
+1. **`useAdminCachedBoot`** — `useSyncExternalStore` over `subscribeAdminCache`; SSR snapshot empty, client reads warm cache before paint. Kicks `prefetch` in `useLayoutEffect` on cold load.
+2. **`client-data-cache.ts`** — typed `read/write/prefetch` per resource; `dedupedPrefetch` for inflight dedup; `clearAdminCacheForOrg` on event switch.
+3. **`AdminStaffProvider`** (layout) — role + active event name; shells use `useAdminCan` for permission-gated chrome. No per-page `requireOrgPageContext` on data routes.
+4. **`useAdminLiveData`** — seeds from shell `initialData` + cache; `suspenseBound: true` (default) skips pathname revalidate; 10s deferred silent refresh when data already painted.
+5. **Sidebar** — prefetch all resources on mount + nav hover.
 
-Dynamic-import heavy client widgets (Recharts, large tables) with a layout-matched skeleton as `loading`.
+## Skeleton contract
 
-## Reference implementations
+- **Cold load only:** full-page `*Skeleton` (chrome + content layout) via `AdminCachedPageShell`
+- **Never:** `AdminSuspenseFallback` pulse on data pages (removed); never stack route `loading.tsx` under `[org_slug]/`
+- **Dashboards:** no inner content-skeleton branches — boot layer owns first paint
 
-- Overview — `overview-page-chrome`, `overview-content-skeleton`, `overview-page-data`
-- Leaderboard — shares dashboard cache/API
-- Sales feed — orders cache
-- Tracklinks, Ambassadors, Rewards, Events — resource-specific cache in `client-data-cache.ts`
+## Adding a new data page
+
+1. Add `read/write/prefetch` in `client-data-cache.ts`
+2. Add `*Skeleton` + `*Dashboard` in feature folder
+3. Add `FooPageShell` in `admin-data-page-shells.tsx`
+4. `page.tsx`: locale + `<FooPageShell orgSlug locale />`
+5. Register prefetch in `admin-sidebar.tsx` `prefetchForNavKey`
+
+## Exceptions
+
+- **Settings, event detail, forms** — inline SSR or local state; no cache boot until they become list-heavy.
+- **Placeholder pages** — static `PageShell` empty states.
 
 ## Never
 
-- Block first paint on client fetch when SSR or cache can seed UI
-- Mount an interactive dashboard inside a Suspense fallback — static skeleton only; prefetch warms cache in the background
-- Use `load(true)` / silent refresh when data is already painted — never flash the full content skeleton on revisit
-- Skip `initialData` prop sync after `router.refresh()`
-- Use `AdminPageSkeleton` or full `*Skeleton` wrappers in Suspense fallbacks or route `loading.tsx`
+- Per-page `useState(() => readCache())` — hydration ignores client cache
+- SSR `*PageData` + Suspense for list pages — blocks navigation on slow queries
+- Duplicate auth in `page.tsx` — layout + `AdminStaffProvider` handle staff gate
+- `showContentSkeleton` in dashboards — cold load is shell responsibility
 - Clear only dashboard cache on event switch — use `clearAdminCacheForOrg`

@@ -3,9 +3,10 @@ import { setRequestLocale } from 'next-intl/server';
 import { getSessionUser } from '@/lib/auth/session';
 import { getUserMemberships } from '@/lib/auth/org-context';
 import { setRequestOrgContext } from '@/lib/auth/set-org-context';
+import { AdminStaffProvider } from '@/components/admin/admin-staff-context';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
-import { isStaffRole, roleHasPermission } from '@/lib/auth/permissions';
+import { isStaffRole, roleHasPermission, type Role } from '@/lib/auth/permissions';
 import { listEventsForOrg, resolveActiveEvent } from '@/lib/events/event-context';
 
 type Props = {
@@ -41,27 +42,32 @@ export default async function AdminOrgLayout({ children, params }: Props) {
   const canCreateEvents = roleHasPermission(membership.role, 'event.create');
 
   return (
-    <div className="ravo-shell-bg flex h-screen overflow-hidden">
-      <AdminSidebar
-        locale={locale}
-        orgSlug={org_slug}
-        userEmail={user.email}
-        userRole={membership.role}
-        events={events}
-        activeEvent={activeEvent}
-        canManageEvents={canManageEvents}
-        canCreateEvents={canCreateEvents}
-      />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <AdminHeader
-          orgName={membership.org.name}
-          orgId={membership.org.id}
-          email={user.email}
+    <AdminStaffProvider
+      role={membership.role as Role}
+      activeEventName={activeEvent?.name ?? null}
+    >
+      <div className="ravo-shell-bg flex h-screen overflow-hidden">
+        <AdminSidebar
           locale={locale}
-          orgs={memberships.map((m) => m.org)}
+          orgSlug={org_slug}
+          userEmail={user.email}
+          userRole={membership.role}
+          events={events}
+          activeEvent={activeEvent}
+          canManageEvents={canManageEvents}
+          canCreateEvents={canCreateEvents}
         />
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">{children}</main>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <AdminHeader
+            orgName={membership.org.name}
+            orgId={membership.org.id}
+            email={user.email}
+            locale={locale}
+            orgs={memberships.map((m) => m.org)}
+          />
+          <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">{children}</main>
+        </div>
       </div>
-    </div>
+    </AdminStaffProvider>
   );
 }

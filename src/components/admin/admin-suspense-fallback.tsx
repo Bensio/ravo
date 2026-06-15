@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { AdminSuspenseBodyPulse } from '@/components/admin/admin-suspense-body-pulse';
 import { cn } from '@/lib/utils';
 
-/** Standard Suspense fallback: page chrome + single body pulse (never *ContentSkeleton). */
+/** @deprecated Data pages use AdminCachedPageShell + layout *Skeleton. Kept for rare Suspense boundaries. */
 export function AdminSuspenseFallback({
   chrome,
   pulseClassName,

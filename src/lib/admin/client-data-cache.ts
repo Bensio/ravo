@@ -4,8 +4,9 @@ import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import {
   adminCacheKey,
-  clearAdminCacheForOrg,
+  clearAdminCacheForOrg as clearAdminCacheStoreForOrg,
   readAdminCache,
+  subscribeAdminCache,
   writeAdminCache,
 } from '@/lib/admin/admin-client-cache';
 import type { SalesFeedRow } from '@/components/admin/sales-feed/sales-feed-dashboard';
@@ -13,8 +14,14 @@ import type { TracklinksPageData } from '@/components/admin/tracklinks/tracklink
 import type { OrgAmbassadorsPageData } from '@/components/admin/ambassadors/ambassadors-dashboard';
 import type { OrgRewardsPageData } from '@/lib/rewards/org-rewards-page-data';
 import type { OrgEventsPageData } from '@/components/admin/events/events-dashboard';
+import { dedupedPrefetch, clearPrefetchInflightForOrg } from '@/lib/admin/prefetch-inflight';
 
-export { clearAdminCacheForOrg };
+export { subscribeAdminCache };
+
+export function clearAdminCacheForOrg(orgSlug: string) {
+  clearAdminCacheStoreForOrg(orgSlug);
+  clearPrefetchInflightForOrg(orgSlug);
+}
 
 const DASHBOARD_RESOURCE = 'dashboard';
 const ORDERS_RESOURCE = 'orders';
@@ -116,110 +123,128 @@ export async function prefetchDashboard(
   orgSlug: string,
   days: DashboardDays = 30,
 ): Promise<SerializedOrgDashboard | null> {
+  const key = dashboardCacheKey(orgSlug, days);
   const cached = readDashboardCacheForOrg(orgSlug, days);
   if (cached) return cached;
 
-  try {
-    const res = await fetch(`/api/${orgSlug}/dashboard?days=${days}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
-    if (!body.dashboard) return null;
-    writeDashboardCache(orgSlug, body.dashboard);
-    return body.dashboard;
-  } catch {
-    return null;
-  }
+  return dedupedPrefetch(key, async () => {
+    try {
+      const res = await fetch(`/api/${orgSlug}/dashboard?days=${days}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { dashboard?: SerializedOrgDashboard };
+      if (!body.dashboard) return null;
+      writeDashboardCache(orgSlug, body.dashboard);
+      return body.dashboard;
+    } catch {
+      return null;
+    }
+  });
 }
 
 export async function prefetchOrders(orgSlug: string): Promise<SalesFeedRow[] | null> {
   const cached = readOrdersCache(orgSlug);
   if (cached) return cached;
 
-  try {
-    const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const body = (await res.json()) as { orders?: SalesFeedRow[] };
-    const orders = body.orders ?? null;
-    if (!orders) return null;
-    writeOrdersCache(orgSlug, orders);
-    return orders;
-  } catch {
-    return null;
-  }
+  const key = ordersCacheKey(orgSlug);
+  return dedupedPrefetch(key, async () => {
+    try {
+      const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { orders?: SalesFeedRow[] };
+      const orders = body.orders ?? null;
+      if (!orders) return null;
+      writeOrdersCache(orgSlug, orders);
+      return orders;
+    } catch {
+      return null;
+    }
+  });
 }
 
 export async function prefetchTracklinks(orgSlug: string): Promise<TracklinksPageData | null> {
   const cached = readTracklinksCache(orgSlug);
   if (cached) return cached;
 
-  try {
-    const [linksRes, ambRes] = await Promise.all([
-      fetch(`/api/${orgSlug}/links`, { cache: 'no-store' }),
-      fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' }),
-    ]);
-    if (!linksRes.ok) return null;
-    const linksBody = (await linksRes.json()) as { links?: TracklinksPageData['links'] };
-    const ambBody = ambRes.ok
-      ? ((await ambRes.json()) as { ambassadors?: TracklinksPageData['ambassadors'] })
-      : { ambassadors: [] };
-    if (!linksBody.links) return null;
-    const data: TracklinksPageData = {
-      links: linksBody.links,
-      ambassadors: ambBody.ambassadors ?? [],
-    };
-    writeTracklinksCache(orgSlug, data);
-    return data;
-  } catch {
-    return null;
-  }
+  const key = tracklinksCacheKey(orgSlug);
+  return dedupedPrefetch(key, async () => {
+    try {
+      const [linksRes, ambRes] = await Promise.all([
+        fetch(`/api/${orgSlug}/links`, { cache: 'no-store' }),
+        fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' }),
+      ]);
+      if (!linksRes.ok) return null;
+      const linksBody = (await linksRes.json()) as { links?: TracklinksPageData['links'] };
+      const ambBody = ambRes.ok
+        ? ((await ambRes.json()) as { ambassadors?: TracklinksPageData['ambassadors'] })
+        : { ambassadors: [] };
+      if (!linksBody.links) return null;
+      const data: TracklinksPageData = {
+        links: linksBody.links,
+        ambassadors: ambBody.ambassadors ?? [],
+      };
+      writeTracklinksCache(orgSlug, data);
+      return data;
+    } catch {
+      return null;
+    }
+  });
 }
 
 export async function prefetchAmbassadors(orgSlug: string): Promise<OrgAmbassadorsPageData | null> {
   const cached = readAmbassadorsCache(orgSlug);
   if (cached) return cached;
 
-  try {
-    const res = await fetch(`/api/${orgSlug}/ambassadors`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const data = (await res.json()) as OrgAmbassadorsPageData;
-    if (!Array.isArray(data.ambassadors)) return null;
-    writeAmbassadorsCache(orgSlug, data);
-    return data;
-  } catch {
-    return null;
-  }
+  const key = ambassadorsCacheKey(orgSlug);
+  return dedupedPrefetch(key, async () => {
+    try {
+      const res = await fetch(`/api/${orgSlug}/ambassadors`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = (await res.json()) as OrgAmbassadorsPageData;
+      if (!Array.isArray(data.ambassadors)) return null;
+      writeAmbassadorsCache(orgSlug, data);
+      return data;
+    } catch {
+      return null;
+    }
+  });
 }
 
 export async function prefetchRewards(orgSlug: string): Promise<OrgRewardsPageData | null> {
   const cached = readRewardsCache(orgSlug);
   if (cached) return cached;
 
-  try {
-    const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const data = (await res.json()) as OrgRewardsPageData;
-    if (!Array.isArray(data.rewards)) return null;
-    writeRewardsCache(orgSlug, data);
-    return data;
-  } catch {
-    return null;
-  }
+  const key = rewardsCacheKey(orgSlug);
+  return dedupedPrefetch(key, async () => {
+    try {
+      const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = (await res.json()) as OrgRewardsPageData;
+      if (!Array.isArray(data.rewards)) return null;
+      writeRewardsCache(orgSlug, data);
+      return data;
+    } catch {
+      return null;
+    }
+  });
 }
 
 export async function prefetchEvents(orgSlug: string): Promise<OrgEventsPageData | null> {
   const cached = readEventsCache(orgSlug);
   if (cached) return cached;
 
-  try {
-    const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const data = (await res.json()) as OrgEventsPageData;
-    if (!Array.isArray(data.events)) return null;
-    writeEventsCache(orgSlug, data);
-    return data;
-  } catch {
-    return null;
-  }
+  const key = eventsCacheKey(orgSlug);
+  return dedupedPrefetch(key, async () => {
+    try {
+      const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = (await res.json()) as OrgEventsPageData;
+      if (!Array.isArray(data.events)) return null;
+      writeEventsCache(orgSlug, data);
+      return data;
+    } catch {
+      return null;
+    }
+  });
 }
 
 /** @deprecated Use clearAdminCacheForOrg */

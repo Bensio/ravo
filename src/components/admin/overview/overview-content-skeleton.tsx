@@ -7,6 +7,7 @@ import {
   SkeletonPulse,
 } from '@/components/admin/dashboard/dashboard-skeleton-parts';
 import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
+import { OverviewPageChrome } from '@/components/admin/overview/overview-page-chrome';
 
 export function OverviewChartSkeleton() {
   const t = useTranslations('admin.overview');
@@ -34,6 +35,16 @@ export function OverviewChartSkeleton() {
         <SkeletonPulse className="h-2.5 w-16" />
       </div>
     </DashboardPanel>
+  );
+}
+
+/** Full page skeleton with chrome — matches loaded overview layout. */
+export function OverviewSkeleton() {
+  return (
+    <div className="space-y-4">
+      <OverviewPageChrome range={30} controlsDisabled />
+      <OverviewContentSkeleton />
+    </div>
   );
 }
 

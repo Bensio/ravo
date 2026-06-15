@@ -18,7 +18,7 @@ export type UseAdminLiveDataOptions<T> = {
   writeCache?: (data: T) => void;
   fetchData: (silent: boolean) => Promise<AdminLiveFetchResult<T>>;
   onInitialDataSync?: (data: T) => void;
-  /** Pages mounted from *PageData inside Suspense already showed *PageSkeleton. */
+  /** Default true: page booted via AdminCachedPageShell (skip pathname revalidate). */
   suspenseBound?: boolean;
 };
 
@@ -113,7 +113,6 @@ export function useAdminLiveData<T>({
   }, []);
 
   useAdminPageRefresh(orgSlug, (silent) => load(silent), {
-    // *PageData already SSR-fetches on each navigation; pathname revalidation races and causes jank.
     revalidateOnVisit: !suspenseBound,
     getRevalidateDelayMs: () =>
       hadInstantPaintRef.current ? ADMIN_INSTANT_REVALIDATE_DELAY_MS : 0,
@@ -139,7 +138,5 @@ export function useAdminLiveData<T>({
     refresh: () => load(false),
     invalidateInstantPaint,
     markClientMutation,
-    showContentSkeleton:
-      !suspenseBound && loading && data === null && initialData === undefined,
   };
 }

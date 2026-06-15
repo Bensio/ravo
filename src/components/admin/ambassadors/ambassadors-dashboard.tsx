@@ -26,7 +26,6 @@ import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatUtc } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import {
-  AmbassadorsContentSkeleton,
   AmbassadorsPageChrome,
 } from '@/components/admin/ambassadors/ambassadors-content-skeleton';
 
@@ -69,7 +68,6 @@ export function AmbassadorsDashboard({
     loading,
     reloading,
     load,
-    showContentSkeleton,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -239,26 +237,11 @@ export function AmbassadorsDashboard({
     <div className="space-y-6">
       <AmbassadorsPageChrome
         loading={reloading}
-        controlsDisabled={showContentSkeleton}
         onRefresh={() => void load(true)}
         activeEventName={activeEventName}
       />
 
-      {showContentSkeleton ? (
-        <>
-          {canInvite && (
-            <section className="ravo-glass-panel space-y-4 p-5" aria-hidden>
-              <div className="h-4 w-28 animate-pulse rounded bg-white/[0.06]" />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
-                <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
-              </div>
-            </section>
-          )}
-          <AmbassadorsContentSkeleton />
-        </>
-      ) : (
-        <>
+      <>
       {canInvite && (
         <section className="ravo-glass-panel space-y-4 p-5">
           <div className="flex items-center gap-2 text-sm font-medium">
@@ -478,7 +461,6 @@ export function AmbassadorsDashboard({
         </section>
       )}
         </>
-      )}
     </div>
   );
 }

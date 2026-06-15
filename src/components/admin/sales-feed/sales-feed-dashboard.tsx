@@ -6,7 +6,6 @@ import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { SalesFeedOrderRow } from '@/components/admin/sales-feed/sales-feed-order-row';
 import {
-  SalesFeedContentSkeleton,
   SalesFeedPageChrome,
 } from '@/components/admin/sales-feed/sales-feed-content-skeleton';
 import { Button } from '@/components/ui/button';
@@ -69,7 +68,7 @@ export function SalesFeedDashboard({
     return (data.orders ?? []) as SalesFeedRow[];
   }, [orgSlug, t]);
 
-  const { data: orders, loadError, load, showContentSkeleton, reloading } = useAdminLiveData({
+  const { data: orders, loadError, load, reloading } = useAdminLiveData({
     orgSlug,
     initialData,
     readCache: () => readOrdersCache(orgSlug),
@@ -140,15 +139,6 @@ export function SalesFeedDashboard({
         >
           {tc('retry')}
         </button>
-      </div>
-    );
-  }
-
-  if (showContentSkeleton) {
-    return (
-      <div className="space-y-6">
-        <SalesFeedPageChrome loading controlsDisabled />
-        <SalesFeedContentSkeleton />
       </div>
     );
   }

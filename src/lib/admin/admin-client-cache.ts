@@ -2,6 +2,20 @@
 
 const store = new Map<string, unknown>();
 const inflight = new Map<string, Promise<unknown>>();
+const listeners = new Set<() => void>();
+
+function notifyAdminCache() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+export function subscribeAdminCache(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
 
 export function adminCacheKey(orgSlug: string, resource: string, scope = 'default') {
   return `${orgSlug}:${resource}:${scope}`;
@@ -14,18 +28,24 @@ export function readAdminCache<T>(key: string): T | null {
 
 export function writeAdminCache<T>(key: string, data: T) {
   store.set(key, data);
+  notifyAdminCache();
 }
 
 export function clearAdminCacheForOrg(orgSlug: string) {
+  let changed = false;
   for (const key of store.keys()) {
     if (key.startsWith(`${orgSlug}:`)) {
       store.delete(key);
+      changed = true;
     }
   }
   for (const key of inflight.keys()) {
     if (key.startsWith(`${orgSlug}:`)) {
       inflight.delete(key);
     }
+  }
+  if (changed) {
+    notifyAdminCache();
   }
 }
 

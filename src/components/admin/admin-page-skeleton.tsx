@@ -1,4 +1,4 @@
-/** @deprecated Use AdminSuspenseFallback on data-heavy pages; minimal pulse in route loading.tsx. */
+/** @deprecated Use AdminCachedPageShell + *Skeleton on data pages. */
 export function AdminPageSkeleton() {
   return (
     <div className="animate-pulse space-y-6">
