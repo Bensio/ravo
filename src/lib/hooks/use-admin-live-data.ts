@@ -30,11 +30,7 @@ export function useAdminLiveData<T>({
 }: UseAdminLiveDataOptions<T>) {
   const cacheSeed = readCache?.() ?? null;
   const seed =
-    initialData !== undefined && initialData !== null
-      ? initialData
-      : initialData === null
-        ? null
-        : cacheSeed;
+    initialData !== undefined ? (initialData ?? cacheSeed) : cacheSeed;
 
   const dataRef = useRef<T | null>(seed);
   const hadInstantPaintRef = useRef(seed !== null);

@@ -19,6 +19,7 @@ import {
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
+import { formatOrgConversionRate } from '@/lib/dashboard/format-org-conversion';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
@@ -83,13 +84,17 @@ export function OverviewDashboard({
     );
   }
 
-  if (!data) {
+  if (loading && !data) {
     return (
       <div className="space-y-4">
         <OverviewPageChrome range={range} loading controlsDisabled />
         <OverviewContentSkeleton />
       </div>
     );
+  }
+
+  if (!data) {
+    return null;
   }
 
   const hasActivity = data.totals.clicks > 0 || data.totals.sales > 0;
@@ -147,7 +152,7 @@ export function OverviewDashboard({
         <DashboardKpiCard
           compact
           label={t('kpiConversion')}
-          value={`${(data.totals.conversion * 100).toFixed(1)}%`}
+          value={formatOrgConversionRate(data.totals.conversion)}
           delta={data.deltas.conversion}
           deltaLabel={t('vsPriorPeriod')}
           icon={Percent}
