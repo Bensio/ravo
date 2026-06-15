@@ -16,7 +16,7 @@ Data-heavy admin pages use **SSR + client cache + background revalidation**, not
 
 1. **Page shell (`page.tsx`)** — auth + permissions only; wrap slow fetch in `<Suspense fallback={<PageSkeleton />}>` via a `*PageData` async server component.
 2. **Page skeleton (Suspense fallback)** — use `AdminSuspenseFallback` (chrome + `AdminSuspenseBodyPulse`). Prefetch warms client cache in `useEffect`. Never mount `*ContentSkeleton` or an interactive dashboard in the fallback.
-3. **Route `loading.tsx`** — single `AdminSuspenseBodyPulse` only (no fake titles/cards). Each page’s `*PageSkeleton` supplies real chrome once the route is known.
+3. **Route `loading.tsx`** — do not add one under `[org_slug]/` when pages use Suspense `*PageSkeleton` (causes a double pulse before chrome).
 4. **Page chrome** — real title/subtitle/controls render immediately; `loading={reloading}` on refresh, `controlsDisabled={showContentSkeleton}`.
 5. **Content skeleton** — only when `showContentSkeleton` from `useAdminLiveData` is true (client-only cold load without `initialData` from `*PageData`).
 6. **`useAdminLiveData`** — seeds from `initialData` + optional client cache; syncs SSR props in `useLayoutEffect`; idle revalidates via `useAdminPageRefresh`. Call `markClientMutation()` before optimistic `setData`. Never pass `initialData={null}` from SSR on error — use an `EMPTY_*` page shape.

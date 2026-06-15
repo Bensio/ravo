@@ -18,6 +18,8 @@ export type UseAdminLiveDataOptions<T> = {
   writeCache?: (data: T) => void;
   fetchData: (silent: boolean) => Promise<AdminLiveFetchResult<T>>;
   onInitialDataSync?: (data: T) => void;
+  /** Pages mounted from *PageData inside Suspense already showed *PageSkeleton. */
+  suspenseBound?: boolean;
 };
 
 export function useAdminLiveData<T>({
@@ -27,6 +29,7 @@ export function useAdminLiveData<T>({
   writeCache,
   fetchData,
   onInitialDataSync,
+  suspenseBound = true,
 }: UseAdminLiveDataOptions<T>) {
   const cacheSeed = readCache?.() ?? null;
   const seed =
@@ -124,6 +127,7 @@ export function useAdminLiveData<T>({
     refresh: () => load(false),
     invalidateInstantPaint,
     markClientMutation,
-    showContentSkeleton: loading && data === null && initialData === undefined,
+    showContentSkeleton:
+      !suspenseBound && loading && data === null && initialData === undefined,
   };
 }

@@ -12,6 +12,7 @@ import {
 import { readRewardsCache, writeRewardsCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import type { OrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
+import { EMPTY_ORG_REWARDS_PAGE_DATA } from '@/lib/rewards/fetch-org-rewards-page-data';
 import type { SerializedReward, SerializedRewardRule } from '@/lib/rewards/types';
 import { rewardSummary } from '@/lib/rewards/format-reward';
 import { formatUtc } from '@/lib/time';
@@ -40,7 +41,7 @@ export function RewardsDashboard({
   canArchiveRule,
   canFulfill,
   canConfirm,
-  initialData,
+  initialData = EMPTY_ORG_REWARDS_PAGE_DATA,
 }: {
   orgSlug: string;
   locale: string;
@@ -48,7 +49,7 @@ export function RewardsDashboard({
   canArchiveRule: boolean;
   canFulfill: boolean;
   canConfirm: boolean;
-  initialData?: OrgRewardsPageData | null;
+  initialData?: OrgRewardsPageData;
 }) {
   const t = useTranslations('admin.rewards');
   const {
