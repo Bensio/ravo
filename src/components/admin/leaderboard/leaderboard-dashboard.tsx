@@ -5,13 +5,15 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
-import { LeaderboardContentSkeleton } from '@/components/admin/leaderboard/leaderboard-content-skeleton';
 import { LeaderboardPageChrome } from '@/components/admin/leaderboard/leaderboard-page-chrome';
 import {
   readDashboardCacheForOrg,
   writeDashboardCache,
 } from '@/lib/admin/client-data-cache';
-import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
+import {
+  EMPTY_SERIALIZED_ORG_DASHBOARD,
+  type SerializedOrgDashboard,
+} from '@/lib/dashboard/types';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
@@ -89,11 +91,11 @@ function LeaderboardRow({
 
 export function LeaderboardDashboard({
   orgSlug,
-  initialData,
+  initialData = EMPTY_SERIALIZED_ORG_DASHBOARD,
   locale,
 }: {
   orgSlug: string;
-  initialData: SerializedOrgDashboard | null;
+  initialData?: SerializedOrgDashboard;
   locale: string;
 }) {
   const t = useTranslations('admin.leaderboard');
@@ -107,7 +109,7 @@ export function LeaderboardDashboard({
     return body.dashboard ?? null;
   }, [orgSlug]);
 
-  const { data, loadError, load, showContentSkeleton } = useAdminLiveData({
+  const { data, loadError, load } = useAdminLiveData({
     orgSlug,
     initialData,
     readCache: () => readDashboardCacheForOrg(orgSlug, 30),
@@ -118,8 +120,10 @@ export function LeaderboardDashboard({
     },
   });
 
+  const dashboard = data ?? EMPTY_SERIALIZED_ORG_DASHBOARD;
+
   const rows = useMemo(() => {
-    const base = data?.rows ?? [];
+    const base = dashboard.rows;
     const sorted = [...base].sort((a, b) => b.sales - a.sales || b.clicks - a.clicks);
     if (!query.trim()) return sorted;
     const q = query.toLowerCase();
@@ -128,7 +132,7 @@ export function LeaderboardDashboard({
         r.name.toLowerCase().includes(q) ||
         (r.handle ?? '').toLowerCase().includes(q),
     );
-  }, [data?.rows, query]);
+  }, [dashboard.rows, query]);
 
   if (loadError && !data) {
     return (
@@ -146,23 +150,10 @@ export function LeaderboardDashboard({
     );
   }
 
-  if (showContentSkeleton) {
-    return (
-      <div className="space-y-4">
-        <LeaderboardPageChrome disabled />
-        <LeaderboardContentSkeleton />
-      </div>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  const totalRevenue = data.rows.reduce((s, r) => s + BigInt(r.revenueCents), 0n);
+  const totalRevenue = dashboard.rows.reduce((s, r) => s + BigInt(r.revenueCents), 0n);
   const avgConv =
-    data.rows.length > 0
-      ? data.rows.reduce((s, r) => s + r.conversion, 0) / data.rows.length
+    dashboard.rows.length > 0
+      ? dashboard.rows.reduce((s, r) => s + r.conversion, 0) / dashboard.rows.length
       : 0;
 
   return (
@@ -171,7 +162,7 @@ export function LeaderboardDashboard({
 
       <section className="grid auto-rows-fr gap-3 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <AmbassadorPodium rows={data.rows} title={t('podiumTitle')} />
+          <AmbassadorPodium rows={dashboard.rows} title={t('podiumTitle')} />
         </div>
         <DashboardPanel className="lg:col-span-4">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -181,13 +172,13 @@ export function LeaderboardDashboard({
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted-foreground">{t('snapshotAmbassadors')}</span>
               <span className="text-2xl font-bold tabular-nums text-primary">
-                {formatNumber(data.rows.length, locale)}
+                {formatNumber(dashboard.rows.length, locale)}
               </span>
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted-foreground">{t('snapshotRevenue')}</span>
               <span className="text-2xl font-bold tabular-nums">
-                {formatMoney(moneyFromCents(totalRevenue, data.currency), locale)}
+                {formatMoney(moneyFromCents(totalRevenue, dashboard.currency), locale)}
               </span>
             </div>
             <div className="flex items-baseline justify-between gap-2">
@@ -218,7 +209,7 @@ export function LeaderboardDashboard({
               row={row}
               rank={i + 1}
               locale={locale}
-              currency={data.currency}
+              currency={dashboard.currency}
             />
           ))
         )}

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminNavKey } from './admin-nav-types';
 import { ADMIN_NAV_ICONS } from './admin-nav-icons';
@@ -44,17 +43,14 @@ export function AdminNavLink({
             : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
       )}
     >
-      {pending ? (
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
-      ) : (
-        <Icon
-          className={cn(
-            'h-4 w-4 shrink-0',
-            active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
-          )}
-          aria-hidden
-        />
-      )}
+      <Icon
+        className={cn(
+          'h-4 w-4 shrink-0 transition-opacity',
+          active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
+          pending && !active && 'opacity-50',
+        )}
+        aria-hidden
+      />
       <span className="truncate">{label}</span>
     </Link>
   );

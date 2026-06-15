@@ -67,3 +67,14 @@ export function serializeOrgDashboard(data: OrgDashboardData): SerializedOrgDash
     eventName: data.eventName ?? null,
   };
 }
+
+export const EMPTY_SERIALIZED_ORG_DASHBOARD: SerializedOrgDashboard = {
+  rows: [],
+  series: [],
+  totals: { clicks: 0, sales: 0, revenueCents: '0', conversion: 0 },
+  deltas: { clicks: null, sales: null, revenue: null, conversion: null },
+  currency: 'EUR',
+  timezone: 'Europe/Amsterdam',
+  days: 30,
+  eventName: null,
+};

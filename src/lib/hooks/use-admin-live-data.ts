@@ -113,9 +113,21 @@ export function useAdminLiveData<T>({
   }, []);
 
   useAdminPageRefresh(orgSlug, (silent) => load(silent), {
+    // *PageData already SSR-fetches on each navigation; pathname revalidation races and causes jank.
+    revalidateOnVisit: !suspenseBound,
     getRevalidateDelayMs: () =>
       hadInstantPaintRef.current ? ADMIN_INSTANT_REVALIDATE_DELAY_MS : 0,
   });
+
+  useEffect(() => {
+    if (!suspenseBound) return;
+    const id = window.setTimeout(() => {
+      if (hadInstantPaintRef.current) {
+        void load(true);
+      }
+    }, ADMIN_INSTANT_REVALIDATE_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [orgSlug, suspenseBound, load]);
 
   return {
     data,

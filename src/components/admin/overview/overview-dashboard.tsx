@@ -7,9 +7,6 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AmbassadorPodium } from '@/components/admin/dashboard/ambassador-podium';
 import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-card';
-import {
-  OverviewContentSkeleton,
-} from '@/components/admin/overview/overview-content-skeleton';
 import { OverviewPageChrome } from '@/components/admin/overview/overview-page-chrome';
 import { DashboardPanel } from '@/components/admin/dashboard/dashboard-panel';
 import {
@@ -17,7 +14,10 @@ import {
   writeDashboardCache,
 } from '@/lib/admin/client-data-cache';
 import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
-import type { SerializedOrgDashboard } from '@/lib/dashboard/types';
+import {
+  EMPTY_SERIALIZED_ORG_DASHBOARD,
+  type SerializedOrgDashboard,
+} from '@/lib/dashboard/types';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatOrgConversionRate } from '@/lib/dashboard/format-org-conversion';
 import { formatNumber } from '@/lib/i18n';
@@ -34,11 +34,11 @@ const ClicksSalesChart = dynamic(
 export function OverviewDashboard({
   orgSlug,
   locale,
-  initialData,
+  initialData = EMPTY_SERIALIZED_ORG_DASHBOARD,
 }: {
   orgSlug: string;
   locale: string;
-  initialData: SerializedOrgDashboard | null;
+  initialData?: SerializedOrgDashboard;
 }) {
   const t = useTranslations('admin.overview');
   const initialDays = initialData?.days ?? 30;
@@ -56,7 +56,7 @@ export function OverviewDashboard({
     [orgSlug],
   );
 
-  const { data, loadError, load, invalidateInstantPaint, showContentSkeleton, reloading } =
+  const { data, loadError, load, invalidateInstantPaint, reloading } =
     useAdminLiveData({
     orgSlug,
     initialData,
@@ -85,26 +85,14 @@ export function OverviewDashboard({
     );
   }
 
-  if (showContentSkeleton) {
-    return (
-      <div className="space-y-4">
-        <OverviewPageChrome range={range} loading controlsDisabled />
-        <OverviewContentSkeleton />
-      </div>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  const hasActivity = data.totals.clicks > 0 || data.totals.sales > 0;
+  const dashboard = data ?? EMPTY_SERIALIZED_ORG_DASHBOARD;
+  const hasActivity = dashboard.totals.clicks > 0 || dashboard.totals.sales > 0;
 
   return (
     <div className="space-y-4">
       <OverviewPageChrome
         range={range}
-        eventName={data.eventName}
+        eventName={dashboard.eventName}
         loading={reloading}
         onRangeChange={handleRangeChange}
         onRefresh={() => void load(false)}
@@ -126,16 +114,16 @@ export function OverviewDashboard({
         <DashboardKpiCard
           compact
           label={t('kpiClicks')}
-          value={formatNumber(data.totals.clicks, locale)}
-          delta={data.deltas.clicks}
+          value={formatNumber(dashboard.totals.clicks, locale)}
+          delta={dashboard.deltas.clicks}
           deltaLabel={t('vsPriorPeriod')}
           icon={MousePointerClick}
         />
         <DashboardKpiCard
           compact
           label={t('kpiSales')}
-          value={formatNumber(data.totals.sales, locale)}
-          delta={data.deltas.sales}
+          value={formatNumber(dashboard.totals.sales, locale)}
+          delta={dashboard.deltas.sales}
           deltaLabel={t('vsPriorPeriod')}
           icon={Ticket}
         />
@@ -143,18 +131,18 @@ export function OverviewDashboard({
           compact
           label={t('kpiRevenue')}
           value={formatMoney(
-            moneyFromCents(BigInt(data.totals.revenueCents), data.currency),
+            moneyFromCents(BigInt(dashboard.totals.revenueCents), dashboard.currency),
             locale,
           )}
-          delta={data.deltas.revenue}
+          delta={dashboard.deltas.revenue}
           deltaLabel={t('vsPriorPeriod')}
           icon={Euro}
         />
         <DashboardKpiCard
           compact
           label={t('kpiConversion')}
-          value={formatOrgConversionRate(data.totals.conversion)}
-          delta={data.deltas.conversion}
+          value={formatOrgConversionRate(dashboard.totals.conversion)}
+          delta={dashboard.deltas.conversion}
           deltaLabel={t('vsPriorPeriod')}
           icon={Percent}
         />
@@ -162,15 +150,15 @@ export function OverviewDashboard({
 
       <section className="grid auto-rows-fr gap-3 lg:grid-cols-2">
         <ClicksSalesChart
-          key={data.days}
-          data={data.series}
+          key={dashboard.days}
+          data={dashboard.series}
           title={t('chartTitle')}
           clicksLabel={t('kpiClicks')}
           salesLabel={t('kpiSales')}
-          timezone={data.timezone}
+          timezone={dashboard.timezone}
         />
         <AmbassadorPodium
-          rows={data.rows}
+          rows={dashboard.rows}
           title={t('podiumTitle')}
           viewAllHref={`/${locale}/${orgSlug}/leaderboard`}
           viewAllLabel={t('viewLeaderboard')}
