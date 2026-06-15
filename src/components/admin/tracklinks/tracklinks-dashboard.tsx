@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, Copy, Link2, Plus, Trash2, Zap } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -74,6 +74,7 @@ export function TracklinksDashboard({
     reloading,
     loadError,
     load,
+    markClientMutation,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -87,7 +88,37 @@ export function TracklinksDashboard({
 
   const links = data?.links ?? [];
   const ambassadors = data?.ambassadors;
-  const ambassadorsReady = data !== null;
+  const ambassadorsFetchedRef = useRef(false);
+  const [ambassadorsLoading, setAmbassadorsLoading] = useState(false);
+
+  useEffect(() => {
+    if (ambassadorsFetchedRef.current) return;
+    ambassadorsFetchedRef.current = true;
+    let cancelled = false;
+    setAmbassadorsLoading(true);
+    void fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as { ambassadors?: OrgAmbassadorOption[] };
+        const list = body.ambassadors ?? [];
+        if (cancelled) return;
+        setData((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, ambassadors: list };
+          writeTracklinksCache(orgSlug, next);
+          return next;
+        });
+        if (list[0]?.id) {
+          setAmbassadorId((current) => current || list[0].id);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAmbassadorsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [orgSlug, setData]);
 
   useEffect(() => {
     if (!ambassadorId && ambassadors?.[0]?.id) {
@@ -97,6 +128,7 @@ export function TracklinksDashboard({
 
   const patchData = useCallback(
     (patch: (prev: TracklinksPageData) => TracklinksPageData) => {
+      markClientMutation();
       setData((prev) => {
         if (!prev) return prev;
         const next = patch(prev);
@@ -104,7 +136,7 @@ export function TracklinksDashboard({
         return next;
       });
     },
-    [orgSlug, setData],
+    [markClientMutation, orgSlug, setData],
   );
 
   const filtered = links.filter((l) => (filter === 'active' ? !l.disabled : true));
@@ -309,7 +341,7 @@ export function TracklinksDashboard({
               ))}
             </div>
 
-            {!ambassadorsReady ? (
+            {!ambassadorsLoading ? (
               <div className="space-y-3" aria-hidden>
                 <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
                 <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CalendarDays, Loader2, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -174,21 +174,22 @@ export function EventsDashboard({
                   const isActive = event.id === activeId;
                   const detailHref = `${basePath}/events/${event.id}`;
                   return (
-                    <tr
-                      key={event.id}
-                      className="group cursor-pointer hover:bg-white/[0.02]"
-                      onClick={() => router.push(detailHref)}
-                    >
+                    <tr key={event.id} className="group hover:bg-white/[0.02]">
                       <td className="px-5 py-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">{event.name}</span>
-                          {isActive && (
-                            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                              {t('activeBadge')}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{event.slug}</p>
+                        <Link
+                          href={detailHref}
+                          className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium group-hover:text-primary">{event.name}</span>
+                            {isActive && (
+                              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                {t('activeBadge')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 font-mono text-xs text-muted-foreground">{event.slug}</p>
+                        </Link>
                       </td>
                       <td className="px-5 py-4 text-muted-foreground">
                         {formatInFestivalTz(event.startAt, event, 'PP')} –{' '}
@@ -227,13 +228,6 @@ export function EventsDashboard({
                               )}
                             </Button>
                           )}
-                          <Link
-                            href={detailHref}
-                            className={buttonVariants({ variant: 'outline', size: 'sm', className: 'h-8' })}
-                          >
-                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                            {t('table.edit')}
-                          </Link>
                           {canDelete && (
                             <Button
                               type="button"

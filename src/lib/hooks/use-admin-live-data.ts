@@ -36,8 +36,11 @@ export function useAdminLiveData<T>({
   const [reloading, setReloading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
+  const skipInitialSyncRef = useRef(false);
+
   useEffect(() => {
     if (initialData === undefined) return;
+    if (skipInitialSyncRef.current) return;
     setData(initialData);
     setLoading(false);
     if (initialData !== null) {
@@ -48,6 +51,10 @@ export function useAdminLiveData<T>({
       onInitialDataSync?.(initialData);
     }
   }, [initialData, writeCache, onInitialDataSync]);
+
+  const markClientMutation = useCallback(() => {
+    skipInitialSyncRef.current = true;
+  }, []);
 
   const load = useCallback(
     async (silent = false) => {
@@ -62,8 +69,10 @@ export function useAdminLiveData<T>({
         if (result.data !== null) {
           setData(result.data);
           writeCache?.(result.data);
+          skipInitialSyncRef.current = false;
         } else if (!result.error) {
           setData(null);
+          skipInitialSyncRef.current = false;
         }
         if (result.error) {
           setLoadError(true);
@@ -93,5 +102,6 @@ export function useAdminLiveData<T>({
     load,
     refresh: () => load(false),
     invalidateInstantPaint,
+    markClientMutation,
   };
 }

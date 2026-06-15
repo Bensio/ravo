@@ -134,25 +134,29 @@ export async function prefetchOrders(orgSlug: string): Promise<SalesFeedRow[] | 
 }
 
 export async function prefetchTracklinks(orgSlug: string): Promise<TracklinksPageData | null> {
-  const key = tracklinksCacheKey(orgSlug);
   const cached = readTracklinksCache(orgSlug);
   if (cached) return cached;
 
-  const [linksBody, ambBody] = await Promise.all([
-    prefetchAdminJson<{ links?: TracklinksPageData['links'] }>(key, `/api/${orgSlug}/links`),
-    prefetchAdminJson<{ ambassadors?: TracklinksPageData['ambassadors'] }>(
-      `${key}:amb`,
-      `/api/${orgSlug}/ambassadors?picker=1`,
-    ),
-  ]);
-
-  if (!linksBody?.links) return null;
-  const data: TracklinksPageData = {
-    links: linksBody.links,
-    ambassadors: ambBody?.ambassadors ?? [],
-  };
-  writeTracklinksCache(orgSlug, data);
-  return data;
+  try {
+    const [linksRes, ambRes] = await Promise.all([
+      fetch(`/api/${orgSlug}/links`, { cache: 'no-store' }),
+      fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' }),
+    ]);
+    if (!linksRes.ok) return null;
+    const linksBody = (await linksRes.json()) as { links?: TracklinksPageData['links'] };
+    const ambBody = ambRes.ok
+      ? ((await ambRes.json()) as { ambassadors?: TracklinksPageData['ambassadors'] })
+      : { ambassadors: [] };
+    if (!linksBody.links) return null;
+    const data: TracklinksPageData = {
+      links: linksBody.links,
+      ambassadors: ambBody.ambassadors ?? [],
+    };
+    writeTracklinksCache(orgSlug, data);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export async function prefetchAmbassadors(orgSlug: string): Promise<OrgAmbassadorsPageData | null> {

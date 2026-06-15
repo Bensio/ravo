@@ -17,7 +17,7 @@ Data-heavy admin pages use **SSR + client cache + background revalidation**, not
 1. **Page shell (`page.tsx`)** — auth + permissions only; wrap slow fetch in `<Suspense fallback={<PageSkeleton />}>` via a `*PageData` async server component.
 2. **Page chrome** — real title/subtitle/controls render immediately; disable controls while loading.
 3. **Content skeleton** — layout-matched placeholders (`DashboardPanel`, row shapes). Never bare "Loading…" text.
-4. **`useAdminLiveData`** — seeds from `initialData` + optional client cache; syncs when SSR props update; idle revalidates via `useAdminPageRefresh`.
+4. **`useAdminLiveData`** — seeds from `initialData` + optional client cache; syncs when SSR props update; idle revalidates via `useAdminPageRefresh`. Call `markClientMutation()` before optimistic `setData` so a late SSR `initialData` pass does not undo the edit.
 5. **Client cache** — `read/write/prefetch` in `src/lib/admin/client-data-cache.ts` (or resource helpers). Prefetch on sidebar mount + nav hover for hot routes.
 6. **Event switch** — call `clearAdminCacheForOrg(orgSlug)` then `dispatchOrgContextRefresh()` so all mounted pages refetch.
 
@@ -54,6 +54,7 @@ Dynamic-import heavy client widgets (Recharts, large tables) with a layout-match
 ## Never
 
 - Block first paint on client fetch when SSR or cache can seed UI
+- Mount an interactive dashboard inside a Suspense fallback — use a static skeleton only; prefetch cache in the background instead
 - Skip `initialData` prop sync after `router.refresh()`
 - Use generic `AdminPageSkeleton` as the only loading state on data-heavy pages
 - Clear only dashboard cache on event switch — use `clearAdminCacheForOrg`
