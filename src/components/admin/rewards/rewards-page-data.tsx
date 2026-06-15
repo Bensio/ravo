@@ -1,8 +1,8 @@
 import { RewardsDashboard } from '@/components/admin/rewards/rewards-dashboard';
 import {
   EMPTY_ORG_REWARDS_PAGE_DATA,
-  fetchOrgRewardsPageData,
-} from '@/lib/rewards/fetch-org-rewards-page-data';
+} from '@/lib/rewards/org-rewards-page-data';
+import { fetchOrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
 
 export async function RewardsPageData({
   orgSlug,

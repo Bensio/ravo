@@ -11,7 +11,7 @@ import {
 import type { SalesFeedRow } from '@/components/admin/sales-feed/sales-feed-dashboard';
 import type { TracklinksPageData } from '@/components/admin/tracklinks/tracklinks-dashboard';
 import type { OrgAmbassadorsPageData } from '@/components/admin/ambassadors/ambassadors-dashboard';
-import type { OrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
+import type { OrgRewardsPageData } from '@/lib/rewards/org-rewards-page-data';
 import type { OrgEventsPageData } from '@/components/admin/events/events-dashboard';
 
 export { clearAdminCacheForOrg };

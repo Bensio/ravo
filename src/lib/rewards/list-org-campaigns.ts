@@ -2,12 +2,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { bootstrapCampaignForOrg } from '@/lib/links/bootstrap';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export type OrgCampaignOption = {
-  id: string;
-  name: string;
-  eventName: string | null;
-  state: string;
-};
+import type { OrgCampaignOption } from './org-rewards-page-data';
+
+export type { OrgCampaignOption };
 
 function displayName(row: {
   name: string;

@@ -1,25 +1,10 @@
 import { resolveEventScope } from '@/lib/events/event-scope';
 import { fetchOrgRewardRules, fetchOrgRewards } from './fetch-rewards';
-import { listOrgCampaignsForRewards, type OrgCampaignOption } from './list-org-campaigns';
-import type { SerializedReward, SerializedRewardRule } from './types';
+import { listOrgCampaignsForRewards } from './list-org-campaigns';
+import type { OrgRewardsPageData } from './org-rewards-page-data';
 
-export type OrgRewardsPageData = {
-  rewards: SerializedReward[];
-  rules: SerializedRewardRule[];
-  campaigns: OrgCampaignOption[];
-  summary: {
-    needsReview: number;
-    pendingFulfillment: number;
-    pending: number;
-  };
-};
-
-export const EMPTY_ORG_REWARDS_PAGE_DATA: OrgRewardsPageData = {
-  rewards: [],
-  rules: [],
-  campaigns: [],
-  summary: { needsReview: 0, pendingFulfillment: 0, pending: 0 },
-};
+export type { OrgCampaignOption, OrgRewardsPageData } from './org-rewards-page-data';
+export { EMPTY_ORG_REWARDS_PAGE_DATA } from './org-rewards-page-data';
 
 export async function fetchOrgRewardsPageData(
   organizationId: string,

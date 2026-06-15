@@ -11,8 +11,8 @@ import {
 } from '@/components/admin/rewards/rewards-content-skeleton';
 import { readRewardsCache, writeRewardsCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
-import type { OrgRewardsPageData } from '@/lib/rewards/fetch-org-rewards-page-data';
-import { EMPTY_ORG_REWARDS_PAGE_DATA } from '@/lib/rewards/fetch-org-rewards-page-data';
+import type { OrgRewardsPageData } from '@/lib/rewards/org-rewards-page-data';
+import { EMPTY_ORG_REWARDS_PAGE_DATA } from '@/lib/rewards/org-rewards-page-data';
 import type { SerializedReward, SerializedRewardRule } from '@/lib/rewards/types';
 import { rewardSummary } from '@/lib/rewards/format-reward';
 import { formatUtc } from '@/lib/time';
