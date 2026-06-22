@@ -3,7 +3,6 @@ import { getCampaignIdsForEvent } from '@/lib/events/event-scope';
 import { isTestOrder } from '@/lib/orders/is-test-order';
 import {
   isOrderEventScopeActive,
-  resolveOrderIdsForEventScope,
   type OrderEventScope,
 } from '@/lib/orders/order-event-scope';
 import { transitionReward } from '@/lib/rewards/state/machine';

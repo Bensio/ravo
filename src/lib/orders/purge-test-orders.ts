@@ -81,7 +81,7 @@ export async function purgeTestOrdersForOrg(
     return { ok: true, removedOrders: 0, removedClicks: 0, reversedRewards };
   }
 
-  let reversedRewardsFromOrders = reversedRewards;
+  const reversedRewardsFromOrders = reversedRewards;
 
   const linkIdsToClean = new Set<string>();
   for (const order of testOrders) {
