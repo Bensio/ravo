@@ -8,7 +8,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import {
   RewardsPageChrome,
 } from '@/components/admin/rewards/rewards-content-skeleton';
-import { readRewardsCache, writeRewardsCache, invalidateRewardsCache } from '@/lib/admin/client-data-cache';
+import { readRewardsCache, writeRewardsCache, invalidateRewardsCache, invalidateOrdersCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import type { OrgRewardsPageData } from '@/lib/rewards/org-rewards-page-data';
 import { EMPTY_ORG_REWARDS_PAGE_DATA } from '@/lib/rewards/org-rewards-page-data';
@@ -31,6 +31,23 @@ function ruleStateLabel(
     return t(key);
   }
   return state;
+}
+
+function optimisticRewardsAfterPurge(data: OrgRewardsPageData): OrgRewardsPageData {
+  const rewards = data.rewards.map((r) =>
+    r.state === 'pending' || r.state === 'confirmed'
+      ? { ...r, state: 'reversed' as const, reversalReason: 'test_data_purged' }
+      : r,
+  );
+  const needsReview = rewards.filter(
+    (r) => r.requiresAdminConfirmation && !r.adminConfirmedAt && r.state !== 'reversed',
+  ).length;
+  const pendingFulfillment = rewards.filter(
+    (r) =>
+      r.state === 'confirmed' && (!r.requiresAdminConfirmation || r.adminConfirmedAt),
+  ).length;
+  const pending = rewards.filter((r) => r.state === 'pending').length;
+  return { ...data, rewards, summary: { needsReview, pendingFulfillment, pending } };
 }
 
 export function RewardsDashboard({
@@ -131,13 +148,9 @@ export function RewardsDashboard({
   }, [data, tab, queueItems, fulfillItems, reversedItems, activeRewards]);
 
   async function reloadRewards() {
-    invalidateRewardsCache(orgSlug);
     markClientMutation();
-    const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
-    if (!res.ok) return;
-    const next = (await res.json()) as OrgRewardsPageData;
-    setData(next);
-    writeRewardsCache(orgSlug, next);
+    invalidateRewardsCache(orgSlug);
+    await load(true);
   }
 
   async function onClearTestData() {
@@ -149,6 +162,13 @@ export function RewardsDashboard({
     setActionError(null);
     markClientMutation();
     invalidateRewardsCache(orgSlug);
+    invalidateOrdersCache(orgSlug);
+
+    if (data) {
+      const optimistic = optimisticRewardsAfterPurge(data);
+      setData(optimistic);
+      writeRewardsCache(orgSlug, optimistic);
+    }
 
     const res = await fetch(`/api/${orgSlug}/orders/purge-test`, { method: 'POST' });
     setPurging(false);
@@ -180,7 +200,9 @@ export function RewardsDashboard({
       setPurgeMessage(tPurge('purgeTestEmpty'));
     }
 
-    await reloadRewards();
+    invalidateRewardsCache(orgSlug);
+    invalidateOrdersCache(orgSlug);
+    await load(true);
   }
 
   async function handleConfirm(rewardId: string) {

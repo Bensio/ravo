@@ -38,6 +38,7 @@ Cached routes: `admin-cached-routes.ts` (`ADMIN_CACHED_ROUTE_SHELL_LOADERS` is t
 - **Cold load only:** full-page `*Skeleton` via `AdminCachedPageShell`
 - **Never:** route `loading.tsx` or dashboard inner skeletons on warm nav
 - **Warm nav:** optimistic outlet swap + cache — no skeleton
+- **Mutations:** bump cache epoch + optimistic `setData`; never `deleteAdminCache` mid-session (shell keeps last snapshot)
 
 ## Adding a new data page
 

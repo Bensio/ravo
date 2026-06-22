@@ -120,20 +120,13 @@ export function SalesFeedDashboard({
       }
       invalidateOrdersCache(orgSlug);
       invalidateRewardsCache(orgSlug);
-      const fresh = await fetchOrders();
-      if (fresh !== null) {
-        setData(fresh);
-        writeOrdersCache(orgSlug, fresh);
-      }
+      await load(true);
       return;
     }
 
     invalidateOrdersCache(orgSlug);
-    const fresh = await fetchOrders();
-    if (fresh !== null) {
-      setData(fresh);
-      writeOrdersCache(orgSlug, fresh);
-    }
+    invalidateRewardsCache(orgSlug);
+    await load(true);
     setLoadErrorDetail(t('purgeTestError'));
   }
 
@@ -226,7 +219,7 @@ export function SalesFeedDashboard({
                 orgSlug={orgSlug}
                 locale={locale}
                 canReassign={canReassign}
-                onReassigned={() => void load(false)}
+                onReassigned={() => void load(true)}
               />
             ))}
           </div>

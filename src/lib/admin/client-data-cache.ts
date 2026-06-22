@@ -5,7 +5,6 @@ import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import {
   adminCacheKey,
   clearAdminCacheForOrg as clearAdminCacheStoreForOrg,
-  deleteAdminCache,
   readAdminCache,
   subscribeAdminCache,
   writeAdminCache,
@@ -75,11 +74,10 @@ function currentRewardsCacheEpoch(orgSlug: string): number {
   return rewardsCacheEpoch.get(orgSlug) ?? 0;
 }
 
-/** Drop cached rewards so the next visit refetches (e.g. after test-data purge). */
+/** Bump rewards cache epoch and cancel stale prefetches (keeps warm snapshot painted). */
 export function invalidateRewardsCache(orgSlug: string): number {
   const next = (rewardsCacheEpoch.get(orgSlug) ?? 0) + 1;
   rewardsCacheEpoch.set(orgSlug, next);
-  deleteAdminCache(rewardsCacheKey(orgSlug));
   clearPrefetchInflightForOrg(orgSlug);
   return next;
 }
