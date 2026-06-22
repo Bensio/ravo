@@ -5,10 +5,13 @@ import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import {
   adminCacheKey,
   clearAdminCacheForOrg as clearAdminCacheStoreForOrg,
+  invalidateDashboardCachesForOrg,
+  invalidateEventDetailCachesForOrg,
   readAdminCache,
   subscribeAdminCache,
   writeAdminCache,
 } from '@/lib/admin/admin-client-cache';
+import type { SerializedEventDetail } from '@/lib/events/types';
 import type { SalesFeedRow } from '@/components/admin/sales-feed/sales-feed-dashboard';
 import type { TracklinksPageData } from '@/components/admin/tracklinks/tracklinks-dashboard';
 import type { OrgAmbassadorsPageData } from '@/components/admin/ambassadors/ambassadors-dashboard';
@@ -29,6 +32,7 @@ const TRACKLINKS_RESOURCE = 'tracklinks';
 const AMBASSADORS_RESOURCE = 'ambassadors';
 const REWARDS_RESOURCE = 'rewards';
 const EVENTS_RESOURCE = 'events';
+const EVENT_DETAIL_RESOURCE = 'event-detail';
 
 export function dashboardCacheKey(orgSlug: string, days: DashboardDays, eventScope?: string | null) {
   return adminCacheKey(orgSlug, DASHBOARD_RESOURCE, `${days}:${eventScope ?? 'org'}`);
@@ -85,6 +89,53 @@ export function invalidateRewardsCache(orgSlug: string): number {
 export function eventsCacheKey(orgSlug: string) {
   return adminCacheKey(orgSlug, EVENTS_RESOURCE);
 }
+
+const eventsCacheEpoch = new Map<string, number>();
+
+function currentEventsCacheEpoch(orgSlug: string): number {
+  return eventsCacheEpoch.get(orgSlug) ?? 0;
+}
+
+export function invalidateEventsCache(orgSlug: string): number {
+  const next = (eventsCacheEpoch.get(orgSlug) ?? 0) + 1;
+  eventsCacheEpoch.set(orgSlug, next);
+  clearPrefetchInflightForOrg(orgSlug);
+  return next;
+}
+
+export function eventDetailCacheKey(orgSlug: string, eventId: string) {
+  return adminCacheKey(orgSlug, EVENT_DETAIL_RESOURCE, eventId);
+}
+
+export function readEventDetailCache(
+  orgSlug: string,
+  eventId: string,
+): SerializedEventDetail | null {
+  return readAdminCache<SerializedEventDetail>(eventDetailCacheKey(orgSlug, eventId));
+}
+
+export function writeEventDetailCache(
+  orgSlug: string,
+  eventId: string,
+  event: SerializedEventDetail,
+) {
+  writeAdminCache(eventDetailCacheKey(orgSlug, eventId), event);
+}
+
+/**
+ * Bump epochs for event-scoped admin data without wiping painted snapshots.
+ * Use on active-event switch — not full org cache clear.
+ */
+export function invalidateScopedAdminCachesForOrg(orgSlug: string) {
+  invalidateOrdersCache(orgSlug);
+  invalidateRewardsCache(orgSlug);
+  invalidateEventsCache(orgSlug);
+  invalidateDashboardCachesForOrg(orgSlug);
+  invalidateEventDetailCachesForOrg(orgSlug);
+  clearPrefetchInflightForOrg(orgSlug);
+}
+
+export { invalidateDashboardCachesForOrg, invalidateEventDetailCachesForOrg };
 
 export function readDashboardCache(key: string): SerializedOrgDashboard | null {
   const value = readAdminCache<SerializedOrgDashboard | { dashboard?: SerializedOrgDashboard }>(key);
@@ -167,7 +218,17 @@ export function readEventsCache(orgSlug: string): OrgEventsPageData | null {
   return readAdminCache<OrgEventsPageData>(eventsCacheKey(orgSlug));
 }
 
-export function writeEventsCache(orgSlug: string, data: OrgEventsPageData) {
+export function writeEventsCache(
+  orgSlug: string,
+  data: OrgEventsPageData,
+  options?: { epoch?: number },
+) {
+  if (
+    options?.epoch !== undefined &&
+    options.epoch !== currentEventsCacheEpoch(orgSlug)
+  ) {
+    return;
+  }
   writeAdminCache(eventsCacheKey(orgSlug), data);
 }
 
@@ -287,14 +348,37 @@ export async function prefetchEvents(orgSlug: string): Promise<OrgEventsPageData
   if (cached) return cached;
 
   const key = eventsCacheKey(orgSlug);
+  const epochAtStart = currentEventsCacheEpoch(orgSlug);
   return dedupedPrefetch(key, async () => {
     try {
       const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
       if (!res.ok) return null;
       const data = (await res.json()) as OrgEventsPageData;
       if (!Array.isArray(data.events)) return null;
-      writeEventsCache(orgSlug, data);
+      writeEventsCache(orgSlug, data, { epoch: epochAtStart });
       return data;
+    } catch {
+      return null;
+    }
+  });
+}
+
+export async function prefetchEventDetail(
+  orgSlug: string,
+  eventId: string,
+): Promise<SerializedEventDetail | null> {
+  const cached = readEventDetailCache(orgSlug, eventId);
+  if (cached) return cached;
+
+  const key = eventDetailCacheKey(orgSlug, eventId);
+  return dedupedPrefetch(key, async () => {
+    try {
+      const res = await fetch(`/api/${orgSlug}/events/${eventId}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { event?: SerializedEventDetail };
+      if (!body.event) return null;
+      writeEventDetailCache(orgSlug, eventId, body.event);
+      return body.event;
     } catch {
       return null;
     }

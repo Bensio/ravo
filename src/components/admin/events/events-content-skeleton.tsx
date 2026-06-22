@@ -81,3 +81,32 @@ export function EventsSkeleton({ canCreate = false }: { canCreate?: boolean }) {
     </div>
   );
 }
+
+export function EventDetailSkeleton() {
+  const t = useTranslations('admin.events');
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <SkeletonPulse className="h-4 w-24" />
+        <SkeletonPulse className="h-7 w-56 max-w-full" />
+        <SkeletonPulse className="h-4 w-72 max-w-full" />
+      </div>
+      <section className="ravo-glass-panel space-y-4 p-6">
+        <SkeletonPulse className="h-5 w-32" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <SkeletonPulse className="h-10 md:col-span-2" />
+          <SkeletonPulse className="h-10 md:col-span-2" />
+          <SkeletonPulse className="h-10" />
+          <SkeletonPulse className="h-10" />
+        </div>
+      </section>
+      <section className="ravo-glass-panel space-y-4 p-6">
+        <SkeletonPulse className="h-5 w-40" />
+        <SkeletonPulse className="h-4 w-64" />
+        <SkeletonPulse className="h-10" />
+      </section>
+      <p className="sr-only">{t('loading')}</p>
+    </div>
+  );
+}

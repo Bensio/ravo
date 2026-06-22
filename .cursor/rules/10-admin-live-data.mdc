@@ -50,7 +50,8 @@ Cached routes: `admin-cached-routes.ts` (`ADMIN_CACHED_ROUTE_SHELL_LOADERS` is t
 
 ## Exceptions
 
-- **Settings, event detail, forms** — render via layout `children` (not cached outlet).
+- **Settings, `events/new`, forms** — render via layout `children` (not cached outlet).
+- **Event detail** (`/events/[id]`) — cached via `AdminMainOutlet` + `EventDetailPageShell` (not a list segment); prefetch on list row hover.
 - **Placeholder pages** — static `PageShell` empty states.
 
 ## Never
@@ -58,4 +59,4 @@ Cached routes: `admin-cached-routes.ts` (`ADMIN_CACHED_ROUTE_SHELL_LOADERS` is t
 - Per-page boot logic outside `AdminCachedPageShell`
 - Duplicate auth in data `page.tsx`
 - Inner dashboard skeleton branches (boot layer owns first paint)
-- Calling client factories from server `page.tsx`
+- **Event-scoped invalidation:** use `invalidateScopedAdminCachesForOrg` on active-event switch — not `clearAdminCacheForOrg` (avoids wiping unrelated list caches).

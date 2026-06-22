@@ -11,7 +11,9 @@ import {
   EventsPageChrome,
 } from '@/components/admin/events/events-content-skeleton';
 import {
-  clearAdminCacheForOrg,
+  invalidateEventsCache,
+  invalidateScopedAdminCachesForOrg,
+  prefetchEventDetail,
   readEventsCache,
   writeEventsCache,
 } from '@/lib/admin/client-data-cache';
@@ -53,6 +55,7 @@ export function EventsDashboard({
     data,
     reloading,
     load,
+    markClientMutation,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -72,7 +75,7 @@ export function EventsDashboard({
     setActivatingId(eventId);
     const res = await fetch(`/api/${orgSlug}/events/${eventId}/activate`, { method: 'POST' });
     if (res.ok) {
-      clearAdminCacheForOrg(orgSlug);
+      invalidateScopedAdminCachesForOrg(orgSlug);
       dispatchOrgContextRefresh();
       await load(true);
       router.refresh();
@@ -100,8 +103,8 @@ export function EventsDashboard({
       return;
     }
 
-    await load();
-    clearAdminCacheForOrg(orgSlug);
+    await load(true);
+    invalidateScopedAdminCachesForOrg(orgSlug);
     router.refresh();
   }
 
@@ -122,7 +125,11 @@ export function EventsDashboard({
     <div className="space-y-6">
       <EventsPageChrome
         loading={reloading}
-        onRefresh={() => void load(true)}
+        onRefresh={() => {
+          markClientMutation();
+          invalidateEventsCache(orgSlug);
+          void load(true);
+        }}
         createSlot={createButton}
       />
 
@@ -175,6 +182,7 @@ export function EventsDashboard({
                     <tr
                       key={event.id}
                       className="group cursor-pointer hover:bg-white/[0.02]"
+                      onMouseEnter={() => void prefetchEventDetail(orgSlug, event.id)}
                       onClick={() => router.push(detailHref)}
                     >
                       <td className="px-5 py-4">

@@ -37,6 +37,38 @@ export function deleteAdminCache(key: string) {
   }
 }
 
+/** Drop event-scoped dashboard snapshots after active event changes. */
+export function invalidateDashboardCachesForOrg(orgSlug: string) {
+  const prefix = `${orgSlug}:dashboard:`;
+  let changed = false;
+  for (const key of store.keys()) {
+    if (key.startsWith(prefix)) {
+      store.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    notifyAdminCache();
+  }
+}
+
+/** Drop cached event detail pages for an org (after edit/delete). */
+export function invalidateEventDetailCachesForOrg(orgSlug: string, eventId?: string) {
+  const prefix = eventId
+    ? `${orgSlug}:event-detail:${eventId}`
+    : `${orgSlug}:event-detail:`;
+  let changed = false;
+  for (const key of store.keys()) {
+    if (eventId ? key === prefix : key.startsWith(prefix)) {
+      store.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    notifyAdminCache();
+  }
+}
+
 export function clearAdminCacheForOrg(orgSlug: string) {
   let changed = false;
   for (const key of store.keys()) {

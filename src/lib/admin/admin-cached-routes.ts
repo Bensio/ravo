@@ -69,6 +69,22 @@ export function matchAdminCachedRouteSegment(
   return isAdminCachedRouteSegment(rest) ? rest : null;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** `/events/[id]` detail (not `events/new`). */
+export function matchEventDetailRoute(
+  pathname: string,
+  locale: string,
+  orgSlug: string,
+): string | null {
+  const prefix = `/${locale}/${orgSlug}/events/`;
+  if (!pathname.startsWith(prefix)) return null;
+  const eventId = pathname.slice(prefix.length);
+  if (!eventId || eventId.includes('/') || eventId === 'new') return null;
+  return UUID_RE.test(eventId) ? eventId : null;
+}
+
 export function preloadAdminCachedRouteShell(segment: AdminCachedRouteSegment): void {
   void ADMIN_CACHED_ROUTE_SHELL_LOADERS[segment]();
   if (segment === 'overview') {
