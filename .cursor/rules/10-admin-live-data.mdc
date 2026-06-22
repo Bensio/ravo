@@ -22,7 +22,7 @@ Data-heavy admin pages use **client cache boot + background revalidation**, not 
 | `*PageShell` | feature folder | `AdminCachedPageShell` + cache read/prefetch + cold `*Skeleton` |
 | `*Dashboard` | feature folder | `useAdminLiveData` for refresh; receives `initialData` from shell |
 
-Cached routes: `admin-cached-routes.ts`. Nav click calls `beginNavigation(segment)` **before** RSC completes.
+Cached routes: `admin-cached-routes.ts` (`ADMIN_CACHED_ROUTE_SHELL_LOADERS` is the single shell registry). Nav click calls `beginNavigation(segment)` **before** RSC completes.
 
 ## Infrastructure
 
@@ -30,22 +30,22 @@ Cached routes: `admin-cached-routes.ts`. Nav click calls `beginNavigation(segmen
 2. **`AdminNavigationProvider`** — optimistic segment on nav click; cleared when pathname commits.
 3. **`client-data-cache.ts`** — typed read/write/prefetch; `dedupedPrefetch`; `clearAdminCacheForOrg` on event switch.
 4. **`AdminStaffProvider`** (layout) — role + active event; shells use `useAdminCan`.
-5. **`useAdminLiveData`** — seeds from shell `initialData`; deferred silent refresh when painted.
+5. **`useAdminLiveData`** — seeds from shell `initialData`; `deferPathnameRevalidate: true` (default) + 10s silent refresh when painted.
 6. **Sidebar** — data prefetch on mount/hover + `preloadAdminCachedRouteShell`.
 
 ## Skeleton contract
 
 - **Cold load only:** full-page `*Skeleton` via `AdminCachedPageShell`
-- **Never:** route `loading.tsx`, `AdminSuspenseFallback` on data pages, dashboard inner skeletons
+- **Never:** route `loading.tsx` or dashboard inner skeletons on warm nav
 - **Warm nav:** optimistic outlet swap + cache — no skeleton
 
 ## Adding a new data page
 
-1. Add segment to `ADMIN_CACHED_ROUTE_SEGMENTS` + preload/shell case in `admin-main-outlet.tsx`
+1. Add segment to `ADMIN_CACHED_ROUTE_SEGMENTS` + loader in `ADMIN_CACHED_ROUTE_SHELL_LOADERS`
 2. Add `read/write/prefetch` in `client-data-cache.ts`
 3. Add `*Skeleton` + `*Dashboard` + `*-page-shell.tsx`
 4. `page.tsx`: locale stub returning `null`
-5. Sidebar prefetch + shell preload in `admin-cached-routes.ts`
+5. Sidebar data prefetch; shell preload via `preloadAdminCachedRouteShell`
 
 ## Exceptions
 
@@ -54,7 +54,7 @@ Cached routes: `admin-cached-routes.ts`. Nav click calls `beginNavigation(segmen
 
 ## Never
 
-- `createAdminClientPage()` from server `page.tsx` (build break)
 - Per-page boot logic outside `AdminCachedPageShell`
 - Duplicate auth in data `page.tsx`
-- `showContentSkeleton` in dashboards
+- Inner dashboard skeleton branches (boot layer owns first paint)
+- Calling client factories from server `page.tsx`

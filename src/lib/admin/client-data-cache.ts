@@ -246,6 +246,3 @@ export async function prefetchEvents(orgSlug: string): Promise<OrgEventsPageData
     }
   });
 }
-
-/** @deprecated Use clearAdminCacheForOrg */
-export const clearDashboardCacheForOrg = clearAdminCacheForOrg;

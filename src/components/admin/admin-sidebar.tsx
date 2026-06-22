@@ -11,8 +11,8 @@ import {
   prefetchTracklinks,
 } from '@/lib/admin/client-data-cache';
 import {
+  isAdminCachedRouteSegment,
   preloadAdminCachedRouteShell,
-  type AdminCachedRouteSegment,
 } from '@/lib/admin/admin-cached-routes';
 import { RavoLogo } from '@/components/shared/ravo-logo';
 import { AdminNavLink } from './admin-nav-link';
@@ -22,20 +22,10 @@ import type { SerializedEvent } from '@/lib/events/types';
 import { AdminEventSwitcher } from './admin-event-switcher';
 import { AdminSidebarUser } from './admin-sidebar-user';
 
-const NAV_KEY_TO_ROUTE_SEGMENT: Partial<Record<AdminNavKey, AdminCachedRouteSegment>> = {
-  overview: 'overview',
-  events: 'events',
-  leaderboard: 'leaderboard',
-  ambassadors: 'ambassadors',
-  tracklinks: 'tracklinks',
-  salesFeed: 'sales-feed',
-  rewards: 'rewards',
-};
-
 function prefetchForNavKey(orgSlug: string, key: AdminNavKey): (() => void) | undefined {
-  const segment = NAV_KEY_TO_ROUTE_SEGMENT[key];
-  if (segment) {
-    preloadAdminCachedRouteShell(segment);
+  const href = ADMIN_NAV_ITEMS.find((item) => item.key === key)?.href;
+  if (href && isAdminCachedRouteSegment(href)) {
+    preloadAdminCachedRouteShell(href);
   }
 
   switch (key) {

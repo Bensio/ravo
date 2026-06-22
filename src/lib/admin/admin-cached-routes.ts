@@ -1,3 +1,6 @@
+import type { ComponentType } from 'react';
+import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
+
 /** URL segments (after /[locale]/[org_slug]/) served by AdminMainOutlet + client cache boot. */
 export const ADMIN_CACHED_ROUTE_SEGMENTS = [
   'overview',
@@ -10,6 +13,45 @@ export const ADMIN_CACHED_ROUTE_SEGMENTS = [
 ] as const;
 
 export type AdminCachedRouteSegment = (typeof ADMIN_CACHED_ROUTE_SEGMENTS)[number];
+
+export type AdminCachedShellLoader = () => Promise<{
+  default: ComponentType<AdminOrgPageProps>;
+}>;
+
+/** Single registry for outlet dynamic imports and sidebar shell preload. */
+export const ADMIN_CACHED_ROUTE_SHELL_LOADERS: Record<
+  AdminCachedRouteSegment,
+  AdminCachedShellLoader
+> = {
+  overview: () =>
+    import('@/components/admin/overview/overview-page-shell').then((m) => ({
+      default: m.OverviewPageShell,
+    })),
+  events: () =>
+    import('@/components/admin/events/events-page-shell').then((m) => ({
+      default: m.EventsPageShell,
+    })),
+  leaderboard: () =>
+    import('@/components/admin/leaderboard/leaderboard-page-shell').then((m) => ({
+      default: m.LeaderboardPageShell,
+    })),
+  ambassadors: () =>
+    import('@/components/admin/ambassadors/ambassadors-page-shell').then((m) => ({
+      default: m.AmbassadorsPageShell,
+    })),
+  tracklinks: () =>
+    import('@/components/admin/tracklinks/tracklinks-page-shell').then((m) => ({
+      default: m.TracklinksPageShell,
+    })),
+  'sales-feed': () =>
+    import('@/components/admin/sales-feed/sales-feed-page-shell').then((m) => ({
+      default: m.SalesFeedPageShell,
+    })),
+  rewards: () =>
+    import('@/components/admin/rewards/rewards-page-shell').then((m) => ({
+      default: m.RewardsPageShell,
+    })),
+};
 
 export function isAdminCachedRouteSegment(value: string): value is AdminCachedRouteSegment {
   return (ADMIN_CACHED_ROUTE_SEGMENTS as readonly string[]).includes(value);
@@ -28,32 +70,8 @@ export function matchAdminCachedRouteSegment(
 }
 
 export function preloadAdminCachedRouteShell(segment: AdminCachedRouteSegment): void {
-  switch (segment) {
-    case 'overview':
-      void import('@/components/admin/overview/overview-page-shell');
-      void import('@/components/admin/dashboard/clicks-sales-chart');
-      break;
-    case 'leaderboard':
-      void import('@/components/admin/leaderboard/leaderboard-page-shell');
-      break;
-    case 'sales-feed':
-      void import('@/components/admin/sales-feed/sales-feed-page-shell');
-      break;
-    case 'tracklinks':
-      void import('@/components/admin/tracklinks/tracklinks-page-shell');
-      break;
-    case 'ambassadors':
-      void import('@/components/admin/ambassadors/ambassadors-page-shell');
-      break;
-    case 'rewards':
-      void import('@/components/admin/rewards/rewards-page-shell');
-      break;
-    case 'events':
-      void import('@/components/admin/events/events-page-shell');
-      break;
-    default: {
-      const _exhaustive: never = segment;
-      return _exhaustive;
-    }
+  void ADMIN_CACHED_ROUTE_SHELL_LOADERS[segment]();
+  if (segment === 'overview') {
+    void import('@/components/admin/dashboard/clicks-sales-chart');
   }
 }

@@ -18,8 +18,8 @@ export type UseAdminLiveDataOptions<T> = {
   writeCache?: (data: T) => void;
   fetchData: (silent: boolean) => Promise<AdminLiveFetchResult<T>>;
   onInitialDataSync?: (data: T) => void;
-  /** Default true: page booted via AdminCachedPageShell (skip pathname revalidate). */
-  suspenseBound?: boolean;
+  /** Default true: booted via AdminCachedPageShell (skip pathname revalidate; use deferred timer). */
+  deferPathnameRevalidate?: boolean;
 };
 
 export function useAdminLiveData<T>({
@@ -29,7 +29,7 @@ export function useAdminLiveData<T>({
   writeCache,
   fetchData,
   onInitialDataSync,
-  suspenseBound = true,
+  deferPathnameRevalidate = true,
 }: UseAdminLiveDataOptions<T>) {
   const cacheSeed = readCache?.() ?? null;
   const seed =
@@ -40,7 +40,6 @@ export function useAdminLiveData<T>({
   const skipInitialSyncRef = useRef(false);
 
   const [data, setData] = useState<T | null>(seed);
-  // When *PageData passes initialData, Suspense already showed the page skeleton.
   const [loading, setLoading] = useState(() => {
     if (seed !== null) return false;
     if (initialData !== undefined) return false;
@@ -113,20 +112,20 @@ export function useAdminLiveData<T>({
   }, []);
 
   useAdminPageRefresh(orgSlug, (silent) => load(silent), {
-    revalidateOnVisit: !suspenseBound,
+    revalidateOnVisit: !deferPathnameRevalidate,
     getRevalidateDelayMs: () =>
       hadInstantPaintRef.current ? ADMIN_INSTANT_REVALIDATE_DELAY_MS : 0,
   });
 
   useEffect(() => {
-    if (!suspenseBound) return;
+    if (!deferPathnameRevalidate) return;
     const id = window.setTimeout(() => {
       if (hadInstantPaintRef.current) {
         void load(true);
       }
     }, ADMIN_INSTANT_REVALIDATE_DELAY_MS);
     return () => window.clearTimeout(id);
-  }, [orgSlug, suspenseBound, load]);
+  }, [orgSlug, deferPathnameRevalidate, load]);
 
   return {
     data,

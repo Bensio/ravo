@@ -2,88 +2,23 @@
 
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
+import type { ComponentType } from 'react';
 import type { AdminOrgPageProps } from '@/lib/admin/admin-org-page-props';
 import {
+  ADMIN_CACHED_ROUTE_SEGMENTS,
+  ADMIN_CACHED_ROUTE_SHELL_LOADERS,
   isAdminCachedRouteSegment,
   matchAdminCachedRouteSegment,
+  type AdminCachedRouteSegment,
 } from '@/lib/admin/admin-cached-routes';
 import { useAdminNavigation } from '@/components/admin/admin-navigation-context';
 
-const OverviewShell = dynamic(
-  () =>
-    import('@/components/admin/overview/overview-page-shell').then((m) => ({
-      default: m.OverviewPageShell,
-    })),
-  { ssr: false },
-);
-const EventsShell = dynamic(
-  () =>
-    import('@/components/admin/events/events-page-shell').then((m) => ({
-      default: m.EventsPageShell,
-    })),
-  { ssr: false },
-);
-const LeaderboardShell = dynamic(
-  () =>
-    import('@/components/admin/leaderboard/leaderboard-page-shell').then((m) => ({
-      default: m.LeaderboardPageShell,
-    })),
-  { ssr: false },
-);
-const AmbassadorsShell = dynamic(
-  () =>
-    import('@/components/admin/ambassadors/ambassadors-page-shell').then((m) => ({
-      default: m.AmbassadorsPageShell,
-    })),
-  { ssr: false },
-);
-const TracklinksShell = dynamic(
-  () =>
-    import('@/components/admin/tracklinks/tracklinks-page-shell').then((m) => ({
-      default: m.TracklinksPageShell,
-    })),
-  { ssr: false },
-);
-const SalesFeedShell = dynamic(
-  () =>
-    import('@/components/admin/sales-feed/sales-feed-page-shell').then((m) => ({
-      default: m.SalesFeedPageShell,
-    })),
-  { ssr: false },
-);
-const RewardsShell = dynamic(
-  () =>
-    import('@/components/admin/rewards/rewards-page-shell').then((m) => ({
-      default: m.RewardsPageShell,
-    })),
-  { ssr: false },
-);
-
-function CachedRouteShell({
-  segment,
-  orgSlug,
-  locale,
-}: AdminOrgPageProps & { segment: string }) {
-  const props = { orgSlug, locale };
-  switch (segment) {
-    case 'overview':
-      return <OverviewShell {...props} />;
-    case 'events':
-      return <EventsShell {...props} />;
-    case 'leaderboard':
-      return <LeaderboardShell {...props} />;
-    case 'ambassadors':
-      return <AmbassadorsShell {...props} />;
-    case 'tracklinks':
-      return <TracklinksShell {...props} />;
-    case 'sales-feed':
-      return <SalesFeedShell {...props} />;
-    case 'rewards':
-      return <RewardsShell {...props} />;
-    default:
-      return null;
-  }
-}
+const CACHED_SHELLS = Object.fromEntries(
+  ADMIN_CACHED_ROUTE_SEGMENTS.map((segment) => [
+    segment,
+    dynamic(ADMIN_CACHED_ROUTE_SHELL_LOADERS[segment], { ssr: false }),
+  ]),
+) as Record<AdminCachedRouteSegment, ComponentType<AdminOrgPageProps>>;
 
 /**
  * Layout-owned outlet: paints cached data shells on optimistic nav (click) or pathname match.
@@ -103,7 +38,8 @@ export function AdminMainOutlet({
       : pathnameSegment;
 
   if (segment) {
-    return <CachedRouteShell segment={segment} orgSlug={orgSlug} locale={locale} />;
+    const Shell = CACHED_SHELLS[segment];
+    return <Shell orgSlug={orgSlug} locale={locale} />;
   }
 
   return children;

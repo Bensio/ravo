@@ -9,6 +9,7 @@ import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-car
 import { Button } from '@/components/ui/button';
 import type { AmbassadorStatsData } from '@/lib/stats/fetch-ambassador-stats';
 import { formatNumber } from '@/lib/i18n';
+import { formatOrgConversionRate } from '@/lib/dashboard/format-org-conversion';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
 export function AmbassadorStatsDashboard({ locale }: { locale: string }) {
@@ -99,7 +100,7 @@ export function AmbassadorStatsDashboard({ locale }: { locale: string }) {
         <DashboardKpiCard
           compact
           label={t('kpiConversion')}
-          value={`${(stats.totals.conversion * 100).toFixed(1)}%`}
+          value={formatOrgConversionRate(stats.totals.conversion)}
           delta={stats.deltas.conversion}
           deltaLabel={t('vsLastWeek')}
           icon={Percent}
