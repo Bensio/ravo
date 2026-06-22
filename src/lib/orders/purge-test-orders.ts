@@ -1,8 +1,14 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isTestOrder } from '@/lib/orders/is-test-order';
+import {
+  isOrderEventScopeActive,
+  resolveOrderIdsForEventScope,
+  type OrderEventScope,
+} from '@/lib/orders/order-event-scope';
+import { reverseRewardsForOrder } from '@/lib/rewards/reverse-for-order';
 
 export type PurgeTestOrdersResult =
-  | { ok: true; removedOrders: number; removedClicks: number }
+  | { ok: true; removedOrders: number; removedClicks: number; reversedRewards: number }
   | { ok: false; error: 'db_error' };
 
 function linkIdFromTestMetadata(metadata: unknown): string | null {
@@ -16,6 +22,7 @@ function linkIdFromTestMetadata(metadata: unknown): string | null {
 export async function purgeTestOrdersForOrg(
   organizationId: string,
   actorUserId: string,
+  scope?: OrderEventScope,
 ): Promise<PurgeTestOrdersResult> {
   const admin = createAdminClient();
 
@@ -29,10 +36,25 @@ export async function purgeTestOrdersForOrg(
     return { ok: false, error: 'db_error' };
   }
 
-  const testOrders = (orders ?? []).filter(isTestOrder);
+  let testOrders = (orders ?? []).filter(isTestOrder);
+
+  if (scope && isOrderEventScopeActive(scope)) {
+    const scopedIds = await resolveOrderIdsForEventScope(organizationId, scope);
+    testOrders = testOrders.filter((row) => scopedIds.has(row.id));
+  }
+
   const testOrderIds = testOrders.map((row) => row.id);
   if (testOrderIds.length === 0) {
-    return { ok: true, removedOrders: 0, removedClicks: 0 };
+    return { ok: true, removedOrders: 0, removedClicks: 0, reversedRewards: 0 };
+  }
+
+  let reversedRewards = 0;
+  for (const orderId of testOrderIds) {
+    reversedRewards += await reverseRewardsForOrder(
+      organizationId,
+      orderId,
+      'test_data_purged',
+    );
   }
 
   const linkIdsToClean = new Set<string>();
@@ -148,9 +170,16 @@ export async function purgeTestOrdersForOrg(
     after: {
       removed_orders: testOrderIds.length,
       removed_clicks: removedClicks,
+      reversed_rewards: reversedRewards,
       cleaned_link_ids: linkIdList,
+      event_id: scope?.eventId ?? null,
     },
   });
 
-  return { ok: true, removedOrders: testOrderIds.length, removedClicks };
+  return {
+    ok: true,
+    removedOrders: testOrderIds.length,
+    removedClicks,
+    reversedRewards,
+  };
 }

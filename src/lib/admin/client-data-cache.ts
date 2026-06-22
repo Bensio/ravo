@@ -38,6 +38,24 @@ export function ordersCacheKey(orgSlug: string) {
   return adminCacheKey(orgSlug, ORDERS_RESOURCE);
 }
 
+const ordersCacheEpoch = new Map<string, number>();
+
+/** Bump epoch and cancel in-flight order prefetches (stale responses must not repopulate cache). */
+export function invalidateOrdersCache(orgSlug: string): number {
+  const next = (ordersCacheEpoch.get(orgSlug) ?? 0) + 1;
+  ordersCacheEpoch.set(orgSlug, next);
+  clearPrefetchInflightForOrg(orgSlug);
+  return next;
+}
+
+function currentOrdersCacheEpoch(orgSlug: string): number {
+  return ordersCacheEpoch.get(orgSlug) ?? 0;
+}
+
+export function getOrdersCacheEpoch(orgSlug: string): number {
+  return currentOrdersCacheEpoch(orgSlug);
+}
+
 export function tracklinksCacheKey(orgSlug: string) {
   return adminCacheKey(orgSlug, TRACKLINKS_RESOURCE);
 }
@@ -83,7 +101,17 @@ export function readOrdersCache(orgSlug: string): SalesFeedRow[] | null {
   return body?.orders ?? null;
 }
 
-export function writeOrdersCache(orgSlug: string, orders: SalesFeedRow[]) {
+export function writeOrdersCache(
+  orgSlug: string,
+  orders: SalesFeedRow[],
+  options?: { epoch?: number },
+) {
+  if (
+    options?.epoch !== undefined &&
+    options.epoch !== currentOrdersCacheEpoch(orgSlug)
+  ) {
+    return;
+  }
   writeAdminCache(ordersCacheKey(orgSlug), { orders });
 }
 
@@ -146,6 +174,7 @@ export async function prefetchOrders(orgSlug: string): Promise<SalesFeedRow[] | 
   if (cached) return cached;
 
   const key = ordersCacheKey(orgSlug);
+  const epochAtStart = currentOrdersCacheEpoch(orgSlug);
   return dedupedPrefetch(key, async () => {
     try {
       const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
@@ -153,7 +182,7 @@ export async function prefetchOrders(orgSlug: string): Promise<SalesFeedRow[] | 
       const body = (await res.json()) as { orders?: SalesFeedRow[] };
       const orders = body.orders ?? null;
       if (!orders) return null;
-      writeOrdersCache(orgSlug, orders);
+      writeOrdersCache(orgSlug, orders, { epoch: epochAtStart });
       return orders;
     } catch {
       return null;

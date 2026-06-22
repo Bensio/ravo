@@ -9,7 +9,7 @@ import {
   SalesFeedPageChrome,
 } from '@/components/admin/sales-feed/sales-feed-content-skeleton';
 import { Button } from '@/components/ui/button';
-import { readOrdersCache, writeOrdersCache } from '@/lib/admin/client-data-cache';
+import { readOrdersCache, writeOrdersCache, invalidateOrdersCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
@@ -68,7 +68,7 @@ export function SalesFeedDashboard({
     return (data.orders ?? []) as SalesFeedRow[];
   }, [orgSlug, t]);
 
-  const { data: orders, loadError, load, reloading } = useAdminLiveData({
+  const { data: orders, loadError, load, reloading, setData, markClientMutation } = useAdminLiveData({
     orgSlug,
     initialData,
     readCache: () => readOrdersCache(orgSlug),
@@ -88,10 +88,22 @@ export function SalesFeedDashboard({
     }
     setPurging(true);
     setPurgeMessage(null);
+    markClientMutation();
+    invalidateOrdersCache(orgSlug);
+
+    const optimistic = orderList.filter((o) => !o.is_simulated);
+    setData(optimistic);
+    writeOrdersCache(orgSlug, optimistic);
+
     const res = await fetch(`/api/${orgSlug}/orders/purge-test`, { method: 'POST' });
     setPurging(false);
+
     if (res.ok) {
-      const body = (await res.json()) as { removedOrders?: number; removedClicks?: number };
+      const body = (await res.json()) as {
+        removedOrders?: number;
+        removedClicks?: number;
+        reversedRewards?: number;
+      };
       const count = body.removedOrders ?? 0;
       const clicks = body.removedClicks ?? 0;
       if (count > 0) {
@@ -103,8 +115,20 @@ export function SalesFeedDashboard({
       } else {
         setPurgeMessage(t('purgeTestEmpty'));
       }
-      void load(false);
+      invalidateOrdersCache(orgSlug);
+      const fresh = await fetchOrders();
+      if (fresh !== null) {
+        setData(fresh);
+        writeOrdersCache(orgSlug, fresh);
+      }
       return;
+    }
+
+    invalidateOrdersCache(orgSlug);
+    const fresh = await fetchOrders();
+    if (fresh !== null) {
+      setData(fresh);
+      writeOrdersCache(orgSlug, fresh);
     }
     setLoadErrorDetail(t('purgeTestError'));
   }
@@ -149,7 +173,9 @@ export function SalesFeedDashboard({
         loading={reloading}
         onRefresh={() => {
           setPurgeMessage(null);
-          void load(false);
+          markClientMutation();
+          invalidateOrdersCache(orgSlug);
+          void load(true);
         }}
         purgeSlot={purgeButton}
       />

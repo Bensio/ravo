@@ -2,6 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { reconcileMissingAttributions } from '@/lib/attribution/attribute-order';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isTestOrder } from '@/lib/orders/is-test-order';
+import {
+  resolveOrderIdsForEventScope,
+  type OrderEventScope,
+} from '@/lib/orders/order-event-scope';
+
+export type { OrderEventScope };
 
 export type OrderListItem = {
   id: string;
@@ -121,32 +127,10 @@ export async function listOrdersForOrg(
   let orderIdFilter: string[] | null = null;
 
   if (options?.eventId || options?.campaignIds) {
-    const ids = new Set<string>();
-
-    if (options.eventId) {
-      const { data: byEvent } = await admin
-        .from('orders')
-        .select('id')
-        .eq('organization_id', organizationId)
-        .eq('event_id', options.eventId)
-        .limit(500);
-      for (const row of byEvent ?? []) {
-        ids.add(row.id as string);
-      }
-    }
-
-    if (options.campaignIds && options.campaignIds.length > 0) {
-      const { data: byCampaign } = await admin
-        .from('attributions')
-        .select('order_id')
-        .eq('organization_id', organizationId)
-        .in('campaign_id', options.campaignIds)
-        .limit(500);
-      for (const row of byCampaign ?? []) {
-        ids.add(row.order_id as string);
-      }
-    }
-
+    const ids = await resolveOrderIdsForEventScope(organizationId, {
+      eventId: options?.eventId,
+      campaignIds: options?.campaignIds,
+    });
     orderIdFilter = [...ids];
     if (orderIdFilter.length === 0) {
       return [];
