@@ -31,6 +31,12 @@ export function writeAdminCache<T>(key: string, data: T) {
   notifyAdminCache();
 }
 
+export function deleteAdminCache(key: string) {
+  if (store.delete(key)) {
+    notifyAdminCache();
+  }
+}
+
 export function clearAdminCacheForOrg(orgSlug: string) {
   let changed = false;
   for (const key of store.keys()) {

@@ -390,6 +390,7 @@
       "purgeTestSuccess": "Removed {count} test {count, plural, one {sale} other {sales}}.",
       "purgeTestSuccessWithClicks": "Removed {count} test {count, plural, one {sale} other {sales}} and {clicks} related {clicks, plural, one {click} other {clicks}}.",
       "purgeTestEmpty": "No test sales to remove.",
+      "purgeTestOrphanRewards": "Cleared {count} orphaned test {count, plural, one {reward} other {rewards}}.",
       "purgeTestError": "Could not clear test sales. Try again.",
       "simulatedBadge": "Test",
       "kpiOrders": "Orders",
@@ -452,6 +453,7 @@
         "review": "Review",
         "fulfill": "Fulfill",
         "all": "All rewards",
+        "reversed": "Reversed",
         "rules": "Rules"
       },
       "state": {
@@ -478,6 +480,7 @@
         "discount_code_for_audience": "Discount code",
         "status": "Status"
       },
+      "reversedReason": "Reason: {reason}",
       "actions": {
         "confirm": "Approve",
         "fulfill": "Mark delivered"

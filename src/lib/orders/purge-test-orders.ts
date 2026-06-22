@@ -6,6 +6,7 @@ import {
   type OrderEventScope,
 } from '@/lib/orders/order-event-scope';
 import { reverseRewardsForOrder } from '@/lib/rewards/reverse-for-order';
+import { reverseOrphanedTestRewards } from '@/lib/rewards/reverse-orphaned-test-rewards';
 
 export type PurgeTestOrdersResult =
   | { ok: true; removedOrders: number; removedClicks: number; reversedRewards: number }
@@ -44,9 +45,6 @@ export async function purgeTestOrdersForOrg(
   }
 
   const testOrderIds = testOrders.map((row) => row.id);
-  if (testOrderIds.length === 0) {
-    return { ok: true, removedOrders: 0, removedClicks: 0, reversedRewards: 0 };
-  }
 
   let reversedRewards = 0;
   for (const orderId of testOrderIds) {
@@ -56,6 +54,34 @@ export async function purgeTestOrdersForOrg(
       'test_data_purged',
     );
   }
+
+  if (testOrderIds.length === 0) {
+    reversedRewards += await reverseOrphanedTestRewards(organizationId, scope);
+    if (reversedRewards === 0) {
+      return { ok: true, removedOrders: 0, removedClicks: 0, reversedRewards: 0 };
+    }
+
+    await admin.from('audit_log').insert({
+      organization_id: organizationId,
+      actor_user_id: actorUserId,
+      actor_type: 'user',
+      action: 'order.purge_test',
+      resource_type: 'order',
+      resource_id: organizationId,
+      before: { order_ids: [] },
+      after: {
+        removed_orders: 0,
+        removed_clicks: 0,
+        reversed_rewards: reversedRewards,
+        orphaned_rewards_only: true,
+        event_id: scope?.eventId ?? null,
+      },
+    });
+
+    return { ok: true, removedOrders: 0, removedClicks: 0, reversedRewards };
+  }
+
+  let reversedRewardsFromOrders = reversedRewards;
 
   const linkIdsToClean = new Set<string>();
   for (const order of testOrders) {
@@ -158,6 +184,10 @@ export async function purgeTestOrdersForOrg(
     }
     removedClicks += count ?? 0;
   }
+
+  reversedRewards =
+    reversedRewardsFromOrders +
+    (await reverseOrphanedTestRewards(organizationId, scope));
 
   await admin.from('audit_log').insert({
     organization_id: organizationId,

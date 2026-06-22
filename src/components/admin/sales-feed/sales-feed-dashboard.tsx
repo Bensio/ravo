@@ -9,7 +9,7 @@ import {
   SalesFeedPageChrome,
 } from '@/components/admin/sales-feed/sales-feed-content-skeleton';
 import { Button } from '@/components/ui/button';
-import { readOrdersCache, writeOrdersCache, invalidateOrdersCache } from '@/lib/admin/client-data-cache';
+import { readOrdersCache, writeOrdersCache, invalidateOrdersCache, invalidateRewardsCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 
@@ -80,7 +80,6 @@ export function SalesFeedDashboard({
   });
 
   const orderList = orders ?? [];
-  const testOrderCount = orderList.filter((o) => o.is_simulated).length;
 
   async function onPurgeTest() {
     if (!window.confirm(t('purgeTestConfirm'))) {
@@ -90,6 +89,7 @@ export function SalesFeedDashboard({
     setPurgeMessage(null);
     markClientMutation();
     invalidateOrdersCache(orgSlug);
+    invalidateRewardsCache(orgSlug);
 
     const optimistic = orderList.filter((o) => !o.is_simulated);
     setData(optimistic);
@@ -106,16 +106,20 @@ export function SalesFeedDashboard({
       };
       const count = body.removedOrders ?? 0;
       const clicks = body.removedClicks ?? 0;
+      const reversed = body.reversedRewards ?? 0;
       if (count > 0) {
         setPurgeMessage(
           clicks > 0
             ? t('purgeTestSuccessWithClicks', { count, clicks })
             : t('purgeTestSuccess', { count }),
         );
+      } else if (reversed > 0) {
+        setPurgeMessage(t('purgeTestOrphanRewards', { count: reversed }));
       } else {
         setPurgeMessage(t('purgeTestEmpty'));
       }
       invalidateOrdersCache(orgSlug);
+      invalidateRewardsCache(orgSlug);
       const fresh = await fetchOrders();
       if (fresh !== null) {
         setData(fresh);
@@ -137,7 +141,7 @@ export function SalesFeedDashboard({
   const displayCurrency = orderList[0]?.currency ?? 'EUR';
 
   const purgeButton =
-    canPurgeTest && testOrderCount > 0 ? (
+    canPurgeTest ? (
       <Button
         type="button"
         variant="outline"

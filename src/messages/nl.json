@@ -390,6 +390,7 @@
       "purgeTestSuccess": "{count} test{count, plural, one {verkoop} other {verkopen}} verwijderd.",
       "purgeTestSuccessWithClicks": "{count} test{count, plural, one {verkoop} other {verkopen}} en {clicks} bijbehorende {clicks, plural, one {click} other {clicks}} verwijderd.",
       "purgeTestEmpty": "Geen testverkopen om te verwijderen.",
+      "purgeTestOrphanRewards": "{count} verweesde test-{count, plural, one {beloning} other {beloningen}} opgeruimd.",
       "purgeTestError": "Testverkopen wissen mislukt. Probeer opnieuw.",
       "simulatedBadge": "Test",
       "kpiOrders": "Orders",
@@ -452,6 +453,7 @@
         "review": "Review",
         "fulfill": "Leveren",
         "all": "Alle beloningen",
+        "reversed": "Teruggedraaid",
         "rules": "Regels"
       },
       "ruleState": {
@@ -478,6 +480,7 @@
         "discount_code_for_audience": "Kortingscode",
         "status": "Status"
       },
+      "reversedReason": "Reden: {reason}",
       "actions": {
         "confirm": "Goedkeuren",
         "fulfill": "Markeer als geleverd"

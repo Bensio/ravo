@@ -5,6 +5,7 @@ import type { DashboardDays } from '@/lib/dashboard/dashboard-range';
 import {
   adminCacheKey,
   clearAdminCacheForOrg as clearAdminCacheStoreForOrg,
+  deleteAdminCache,
   readAdminCache,
   subscribeAdminCache,
   writeAdminCache,
@@ -66,6 +67,12 @@ export function ambassadorsCacheKey(orgSlug: string) {
 
 export function rewardsCacheKey(orgSlug: string) {
   return adminCacheKey(orgSlug, REWARDS_RESOURCE);
+}
+
+/** Drop cached rewards so the next visit refetches (e.g. after test-data purge). */
+export function invalidateRewardsCache(orgSlug: string) {
+  deleteAdminCache(rewardsCacheKey(orgSlug));
+  clearPrefetchInflightForOrg(orgSlug);
 }
 
 export function eventsCacheKey(orgSlug: string) {

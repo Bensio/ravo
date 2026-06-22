@@ -17,7 +17,7 @@ import { rewardSummary } from '@/lib/rewards/format-reward';
 import { formatUtc } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
-type Tab = 'queue' | 'fulfill' | 'all' | 'rules';
+type Tab = 'queue' | 'fulfill' | 'all' | 'reversed' | 'rules';
 
 const rowClass =
   'flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3';
@@ -105,12 +105,23 @@ export function RewardsDashboard({
     [data?.rewards],
   );
 
+  const activeRewards = useMemo(
+    () => (data?.rewards ?? []).filter((r) => r.state !== 'reversed'),
+    [data?.rewards],
+  );
+
+  const reversedItems = useMemo(
+    () => (data?.rewards ?? []).filter((r) => r.state === 'reversed'),
+    [data?.rewards],
+  );
+
   const visibleRewards = useMemo(() => {
     if (!data) return [];
     if (tab === 'queue') return queueItems;
     if (tab === 'fulfill') return fulfillItems;
-    return data.rewards;
-  }, [data, tab, queueItems, fulfillItems]);
+    if (tab === 'reversed') return reversedItems;
+    return activeRewards;
+  }, [data, tab, queueItems, fulfillItems, reversedItems, activeRewards]);
 
   async function handleConfirm(rewardId: string) {
     setActingId(rewardId);
@@ -252,7 +263,10 @@ export function RewardsDashboard({
             [
               ['queue', t('tabs.review'), queueItems.length],
               ['fulfill', t('tabs.fulfill'), fulfillItems.length],
-              ['all', t('tabs.all'), data?.rewards.length ?? 0],
+              ['all', t('tabs.all'), activeRewards.length],
+              ...(reversedItems.length > 0
+                ? [['reversed', t('tabs.reversed'), reversedItems.length] as const]
+                : []),
               ['rules', t('tabs.rules'), data?.rules.length ?? 0],
             ] as const
           ).map(([key, label, count]) => (
@@ -529,6 +543,9 @@ function RewardRow({
     formatUtc(reward.createdAt, 'PP'),
     reward.pendingUntil && reward.state === 'pending'
       ? t('pendingUntil', { date: formatUtc(reward.pendingUntil, 'PP') })
+      : null,
+    reward.state === 'reversed' && reward.reversalReason
+      ? t('reversedReason', { reason: reward.reversalReason })
       : null,
   ].filter(Boolean);
 
