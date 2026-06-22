@@ -1,22 +1,32 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCampaignIdsForEvent } from '@/lib/events/event-scope';
+import { isTestOrder } from '@/lib/orders/is-test-order';
 import {
   isOrderEventScopeActive,
+  resolveOrderIdsForEventScope,
   type OrderEventScope,
 } from '@/lib/orders/order-event-scope';
 import { transitionReward } from '@/lib/rewards/state/machine';
 
-/** True when the reward has no backing order row (e.g. test order was purged earlier). */
-export function isOrphanedRewardOrder(
+export type RewardOrderRef = {
+  id: string;
+  provider_order_id: string;
+  metadata: unknown;
+};
+
+/** True when the reward should be reversed during test-data cleanup. */
+export function shouldReverseTestReward(
   orderId: string | null,
-  existingOrderIds: ReadonlySet<string>,
+  ordersById: ReadonlyMap<string, RewardOrderRef>,
 ): boolean {
   if (orderId === null) return true;
-  return !existingOrderIds.has(orderId);
+  const order = ordersById.get(orderId);
+  if (!order) return true;
+  return isTestOrder(order);
 }
 
 /**
- * Reverses pending/confirmed rewards whose order was removed (common after test-data purge).
+ * Reverses pending/confirmed rewards tied to missing or simulated orders.
  * Scoped to the active event's campaigns when provided.
  */
 export async function reverseOrphanedTestRewards(
@@ -65,23 +75,27 @@ export async function reverseOrphanedTestRewards(
     ),
   ];
 
-  const existingOrderIds = new Set<string>();
+  const ordersById = new Map<string, RewardOrderRef>();
   if (orderIds.length > 0) {
     const { data: orders } = await admin
       .from('orders')
-      .select('id')
+      .select('id, provider_order_id, metadata')
       .eq('organization_id', organizationId)
       .in('id', orderIds);
 
     for (const row of orders ?? []) {
-      existingOrderIds.add(row.id as string);
+      ordersById.set(row.id as string, {
+        id: row.id as string,
+        provider_order_id: row.provider_order_id as string,
+        metadata: row.metadata,
+      });
     }
   }
 
   let reversed = 0;
   for (const reward of rewards) {
     const orderId = reward.order_id as string | null;
-    if (!isOrphanedRewardOrder(orderId, existingOrderIds)) {
+    if (!shouldReverseTestReward(orderId, ordersById)) {
       continue;
     }
 

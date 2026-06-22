@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isTestOrder } from '@/lib/orders/is-test-order';
 import {
   isOrderEventScopeActive,
-  resolveOrderIdsForEventScope,
+  resolvePurgeScopeOrderIdSet,
   type OrderEventScope,
 } from '@/lib/orders/order-event-scope';
 import { reverseRewardsForOrder } from '@/lib/rewards/reverse-for-order';
@@ -40,7 +40,7 @@ export async function purgeTestOrdersForOrg(
   let testOrders = (orders ?? []).filter(isTestOrder);
 
   if (scope && isOrderEventScopeActive(scope)) {
-    const scopedIds = await resolveOrderIdsForEventScope(organizationId, scope);
+    const scopedIds = await resolvePurgeScopeOrderIdSet(organizationId, scope);
     testOrders = testOrders.filter((row) => scopedIds.has(row.id));
   }
 

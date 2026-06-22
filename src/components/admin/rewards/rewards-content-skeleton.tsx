@@ -10,11 +10,13 @@ export function RewardsPageChrome({
   controlsDisabled = false,
   onRefresh,
   createSlot,
+  extraSlot,
 }: {
   loading?: boolean;
   controlsDisabled?: boolean;
   onRefresh?: () => void;
   createSlot?: ReactNode;
+  extraSlot?: ReactNode;
 }) {
   const t = useTranslations('admin.rewards');
 
@@ -25,6 +27,7 @@ export function RewardsPageChrome({
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        {extraSlot}
         {createSlot}
         <button
           type="button"

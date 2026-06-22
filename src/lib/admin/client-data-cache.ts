@@ -69,10 +69,19 @@ export function rewardsCacheKey(orgSlug: string) {
   return adminCacheKey(orgSlug, REWARDS_RESOURCE);
 }
 
+const rewardsCacheEpoch = new Map<string, number>();
+
+function currentRewardsCacheEpoch(orgSlug: string): number {
+  return rewardsCacheEpoch.get(orgSlug) ?? 0;
+}
+
 /** Drop cached rewards so the next visit refetches (e.g. after test-data purge). */
-export function invalidateRewardsCache(orgSlug: string) {
+export function invalidateRewardsCache(orgSlug: string): number {
+  const next = (rewardsCacheEpoch.get(orgSlug) ?? 0) + 1;
+  rewardsCacheEpoch.set(orgSlug, next);
   deleteAdminCache(rewardsCacheKey(orgSlug));
   clearPrefetchInflightForOrg(orgSlug);
+  return next;
 }
 
 export function eventsCacheKey(orgSlug: string) {
@@ -142,7 +151,17 @@ export function readRewardsCache(orgSlug: string): OrgRewardsPageData | null {
   return readAdminCache<OrgRewardsPageData>(rewardsCacheKey(orgSlug));
 }
 
-export function writeRewardsCache(orgSlug: string, data: OrgRewardsPageData) {
+export function writeRewardsCache(
+  orgSlug: string,
+  data: OrgRewardsPageData,
+  options?: { epoch?: number },
+) {
+  if (
+    options?.epoch !== undefined &&
+    options.epoch !== currentRewardsCacheEpoch(orgSlug)
+  ) {
+    return;
+  }
   writeAdminCache(rewardsCacheKey(orgSlug), data);
 }
 
@@ -250,13 +269,14 @@ export async function prefetchRewards(orgSlug: string): Promise<OrgRewardsPageDa
   if (cached) return cached;
 
   const key = rewardsCacheKey(orgSlug);
+  const epochAtStart = currentRewardsCacheEpoch(orgSlug);
   return dedupedPrefetch(key, async () => {
     try {
       const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
       if (!res.ok) return null;
       const data = (await res.json()) as OrgRewardsPageData;
       if (!Array.isArray(data.rewards)) return null;
-      writeRewardsCache(orgSlug, data);
+      writeRewardsCache(orgSlug, data, { epoch: epochAtStart });
       return data;
     } catch {
       return null;

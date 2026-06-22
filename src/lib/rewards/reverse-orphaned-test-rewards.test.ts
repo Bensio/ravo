@@ -1,18 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { isOrphanedRewardOrder } from '@/lib/rewards/reverse-orphaned-test-rewards';
+import { shouldReverseTestReward } from '@/lib/rewards/reverse-orphaned-test-rewards';
 
-describe('isOrphanedRewardOrder', () => {
-  const live = new Set(['order-a']);
+describe('shouldReverseTestReward', () => {
+  const ordersById = new Map([
+    [
+      'order-real',
+      { id: 'order-real', provider_order_id: 'weeztix-abc', metadata: {} },
+    ],
+    [
+      'order-test',
+      { id: 'order-test', provider_order_id: 'sim-1710000000000', metadata: {} },
+    ],
+  ]);
 
-  it('treats null order_id as orphaned', () => {
-    expect(isOrphanedRewardOrder(null, live)).toBe(true);
+  it('reverses when order_id is null', () => {
+    expect(shouldReverseTestReward(null, ordersById)).toBe(true);
   });
 
-  it('treats missing order row as orphaned', () => {
-    expect(isOrphanedRewardOrder('order-missing', live)).toBe(true);
+  it('reverses when order row is missing', () => {
+    expect(shouldReverseTestReward('order-missing', ordersById)).toBe(true);
   });
 
-  it('keeps rewards with a live order', () => {
-    expect(isOrphanedRewardOrder('order-a', live)).toBe(false);
+  it('reverses when order is simulated', () => {
+    expect(shouldReverseTestReward('order-test', ordersById)).toBe(true);
+  });
+
+  it('keeps rewards backed by a real order', () => {
+    expect(shouldReverseTestReward('order-real', ordersById)).toBe(false);
   });
 });

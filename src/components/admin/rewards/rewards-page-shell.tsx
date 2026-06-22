@@ -13,6 +13,7 @@ export function RewardsPageShell({ orgSlug, locale }: AdminOrgPageProps) {
   const canArchiveRule = useAdminCan('reward.rule.archive');
   const canFulfill = useAdminCan('reward.fulfill');
   const canConfirm = useAdminCan('reward.confirm');
+  const canPurgeTest = useAdminCan('order.purge_test');
   const readCache = useCallback(() => readRewardsCache(orgSlug), [orgSlug]);
   const prefetch = useCallback(() => prefetchRewards(orgSlug), [orgSlug]);
 
@@ -31,6 +32,7 @@ export function RewardsPageShell({ orgSlug, locale }: AdminOrgPageProps) {
           canArchiveRule={canArchiveRule}
           canFulfill={canFulfill}
           canConfirm={canConfirm}
+          canPurgeTest={canPurgeTest}
         />
       )}
     </AdminCachedPageShell>

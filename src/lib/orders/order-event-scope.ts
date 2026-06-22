@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCampaignIdsForEvent } from '@/lib/events/event-scope';
 
 export type OrderEventScope = {
   eventId?: string | null;
@@ -42,4 +43,38 @@ export async function resolveOrderIdsForEventScope(
 
 export function isOrderEventScopeActive(scope: OrderEventScope): boolean {
   return Boolean(scope.eventId || (scope.campaignIds && scope.campaignIds.length > 0));
+}
+
+/** Event-scoped order ids for purge: sales-feed scope ∪ orders linked from rewards in scope. */
+export async function resolvePurgeScopeOrderIdSet(
+  organizationId: string,
+  scope: OrderEventScope,
+): Promise<Set<string>> {
+  const ids = await resolveOrderIdsForEventScope(organizationId, scope);
+
+  let campaignIds = scope.campaignIds ?? null;
+  if ((!campaignIds || campaignIds.length === 0) && scope.eventId) {
+    campaignIds = await getCampaignIdsForEvent(organizationId, scope.eventId);
+  }
+
+  if (!campaignIds || campaignIds.length === 0) {
+    return ids;
+  }
+
+  const admin = createAdminClient();
+  const { data: rewardRows } = await admin
+    .from('rewards')
+    .select('order_id')
+    .eq('organization_id', organizationId)
+    .in('campaign_id', campaignIds)
+    .not('order_id', 'is', null);
+
+  for (const row of rewardRows ?? []) {
+    const orderId = row.order_id as string | null;
+    if (orderId) {
+      ids.add(orderId);
+    }
+  }
+
+  return ids;
 }

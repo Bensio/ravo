@@ -8,7 +8,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import {
   RewardsPageChrome,
 } from '@/components/admin/rewards/rewards-content-skeleton';
-import { readRewardsCache, writeRewardsCache } from '@/lib/admin/client-data-cache';
+import { readRewardsCache, writeRewardsCache, invalidateRewardsCache } from '@/lib/admin/client-data-cache';
 import { useAdminLiveData } from '@/lib/hooks/use-admin-live-data';
 import type { OrgRewardsPageData } from '@/lib/rewards/org-rewards-page-data';
 import { EMPTY_ORG_REWARDS_PAGE_DATA } from '@/lib/rewards/org-rewards-page-data';
@@ -40,6 +40,7 @@ export function RewardsDashboard({
   canArchiveRule,
   canFulfill,
   canConfirm,
+  canPurgeTest = false,
   initialData = EMPTY_ORG_REWARDS_PAGE_DATA,
 }: {
   orgSlug: string;
@@ -48,13 +49,17 @@ export function RewardsDashboard({
   canArchiveRule: boolean;
   canFulfill: boolean;
   canConfirm: boolean;
+  canPurgeTest?: boolean;
   initialData?: OrgRewardsPageData;
 }) {
   const t = useTranslations('admin.rewards');
+  const tPurge = useTranslations('admin.salesFeed');
   const {
     data,
     reloading,
     load,
+    setData,
+    markClientMutation,
   } = useAdminLiveData({
     orgSlug,
     initialData,
@@ -67,7 +72,9 @@ export function RewardsDashboard({
     },
   });
   const [actionError, setActionError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('queue');
+  const [purgeMessage, setPurgeMessage] = useState<string | null>(null);
+  const [purging, setPurging] = useState(false);
+  const [tab, setTab] = useState<Tab>('all');
   const [showCreate, setShowCreate] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [removingRuleId, setRemovingRuleId] = useState<string | null>(null);
@@ -122,6 +129,59 @@ export function RewardsDashboard({
     if (tab === 'reversed') return reversedItems;
     return activeRewards;
   }, [data, tab, queueItems, fulfillItems, reversedItems, activeRewards]);
+
+  async function reloadRewards() {
+    invalidateRewardsCache(orgSlug);
+    markClientMutation();
+    const res = await fetch(`/api/${orgSlug}/rewards`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const next = (await res.json()) as OrgRewardsPageData;
+    setData(next);
+    writeRewardsCache(orgSlug, next);
+  }
+
+  async function onClearTestData() {
+    if (!window.confirm(tPurge('purgeTestConfirm'))) {
+      return;
+    }
+    setPurging(true);
+    setPurgeMessage(null);
+    setActionError(null);
+    markClientMutation();
+    invalidateRewardsCache(orgSlug);
+
+    const res = await fetch(`/api/${orgSlug}/orders/purge-test`, { method: 'POST' });
+    setPurging(false);
+
+    if (!res.ok) {
+      setActionError(t('clearTestError'));
+      await reloadRewards();
+      return;
+    }
+
+    const body = (await res.json()) as {
+      removedOrders?: number;
+      removedClicks?: number;
+      reversedRewards?: number;
+    };
+    const removedOrders = body.removedOrders ?? 0;
+    const clicks = body.removedClicks ?? 0;
+    const reversed = body.reversedRewards ?? 0;
+
+    if (removedOrders > 0) {
+      setPurgeMessage(
+        clicks > 0
+          ? tPurge('purgeTestSuccessWithClicks', { count: removedOrders, clicks })
+          : tPurge('purgeTestSuccess', { count: removedOrders }),
+      );
+    } else if (reversed > 0) {
+      setPurgeMessage(tPurge('purgeTestOrphanRewards', { count: reversed }));
+    } else {
+      setPurgeMessage(tPurge('purgeTestEmpty'));
+    }
+
+    await reloadRewards();
+  }
 
   async function handleConfirm(rewardId: string) {
     setActingId(rewardId);
@@ -229,15 +289,35 @@ export function RewardsDashboard({
       </Button>
     ) : null;
 
+  const clearTestButton =
+    canPurgeTest ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 text-amber-400 hover:text-amber-300"
+        disabled={purging || reloading}
+        onClick={() => void onClearTestData()}
+      >
+        <Trash2 className="h-4 w-4" />
+        {purging ? tPurge('purgingTest') : t('clearTest')}
+      </Button>
+    ) : null;
+
   return (
     <div className="space-y-6">
       <RewardsPageChrome
         loading={reloading}
-        onRefresh={() => void load(true)}
+        onRefresh={() => {
+          setPurgeMessage(null);
+          void reloadRewards();
+        }}
         createSlot={createButton}
+        extraSlot={clearTestButton}
       />
 
       <>
+      {purgeMessage && <p className="text-sm text-emerald-400">{purgeMessage}</p>}
       {actionError && <p className="text-sm text-red-400">{actionError}</p>}
 
       {summary && (summary.needsReview > 0 || summary.pendingFulfillment > 0) && (

@@ -438,6 +438,8 @@
       "rulesEmpty": "No active rules. Add a per-sale rule to start rewarding ambassadors.",
       "loading": "Loading rewards…",
       "refresh": "Refresh",
+      "clearTest": "Clear test data",
+      "clearTestError": "Could not clear test data. Try again.",
       "addRule": "Add rule",
       "removeRule": "Remove rule",
       "removeRuleConfirm": "Remove “{name}”? Rules with issued rewards are archived; unused rules are deleted.",

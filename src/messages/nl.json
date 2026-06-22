@@ -438,6 +438,8 @@
       "rulesEmpty": "Geen actieve regels. Voeg een per-verkoop regel toe om ambassadeurs te belonen.",
       "loading": "Beloningen laden…",
       "refresh": "Vernieuwen",
+      "clearTest": "Testdata wissen",
+      "clearTestError": "Testdata wissen mislukt. Probeer opnieuw.",
       "addRule": "Regel toevoegen",
       "removeRule": "Regel verwijderen",
       "removeRuleConfirm": "“{name}” verwijderen? Regels met uitgegeven beloningen worden gearchiveerd; ongebruikte regels worden verwijderd.",
