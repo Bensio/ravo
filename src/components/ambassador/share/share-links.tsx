@@ -5,10 +5,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ShareLinkCard, type ShareLinkItem } from '@/components/ambassador/share/share-link-card';
 
-export function ShareLinks({ locale }: { locale: string }) {
+export function ShareLinks({
+  locale,
+  initialLinks = null,
+}: {
+  locale: string;
+  initialLinks?: ShareLinkItem[] | null;
+}) {
   const t = useTranslations('ambassador.share');
-  const [links, setLinks] = useState<ShareLinkItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [links, setLinks] = useState<ShareLinkItem[]>(initialLinks ?? []);
+  const [loading, setLoading] = useState(initialLinks === null);
   const [loadError, setLoadError] = useState<'generic' | 'forbidden' | 'missing_service_role' | null>(
     null,
   );
@@ -35,8 +41,10 @@ export function ShareLinks({ locale }: { locale: string }) {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (initialLinks === null) {
+      void load();
+    }
+  }, [initialLinks, load]);
 
   const copy = async (url: string, id: string) => {
     await navigator.clipboard.writeText(url);

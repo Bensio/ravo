@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { rewardSummary } from './format-reward';
 import { fetchAmbassadorRewards } from './fetch-rewards';
@@ -15,10 +16,10 @@ function first<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-export async function fetchAmbassadorRewardsPage(
+export const fetchAmbassadorRewardsPage = cache(async (
   userId: string,
   locale: string,
-): Promise<AmbassadorRewardsPageData | null> {
+): Promise<AmbassadorRewardsPageData | null> => {
   const admin = createAdminClient();
 
   const { data: ambassador } = await admin
@@ -75,4 +76,4 @@ export async function fetchAmbassadorRewardsPage(
   }
 
   return { rewards, summary, earnRules };
-}
+});

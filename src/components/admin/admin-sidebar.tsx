@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   prefetchAmbassadors,
@@ -79,6 +79,19 @@ export function AdminSidebar({
   canCreateEvents: boolean;
 }) {
   const t = useTranslations('admin.nav');
+
+  useEffect(() => {
+    const warmOverview = () => {
+      preloadAdminCachedRouteShell('overview');
+      void prefetchDashboard(orgSlug, 30);
+    };
+    if ('requestIdleCallback' in globalThis) {
+      const id = globalThis.requestIdleCallback(warmOverview);
+      return () => globalThis.cancelIdleCallback(id);
+    }
+    const id = globalThis.setTimeout(warmOverview, 1500);
+    return () => globalThis.clearTimeout(id);
+  }, [orgSlug]);
 
   const hoverPrefetch = useCallback(
     (key: AdminNavKey) => prefetchForNavKey(orgSlug, key),

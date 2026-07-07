@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns', 'date-fns-tz'],
+    optimizePackageImports: ['lucide-react', 'date-fns', 'date-fns-tz', 'recharts'],
     staleTimes: {
       dynamic: 30,
       static: 180,

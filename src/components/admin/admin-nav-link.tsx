@@ -37,7 +37,7 @@ export function AdminNavLink({
   return (
     <Link
       href={href}
-      prefetch
+      prefetch={false}
       onMouseEnter={() => onPrefetchHover?.()}
       onClick={() => {
         setPendingHref(href);

@@ -23,10 +23,16 @@ import { formatMoney, moneyFromCents } from '@/lib/money';
 import { formatUtc } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
-export function AmbassadorRewardsDashboard({ locale }: { locale: string }) {
+export function AmbassadorRewardsDashboard({
+  locale,
+  initialData = null,
+}: {
+  locale: string;
+  initialData?: AmbassadorRewardsPageData | null;
+}) {
   const t = useTranslations('ambassador.rewards');
-  const [data, setData] = useState<AmbassadorRewardsPageData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<AmbassadorRewardsPageData | null>(initialData);
+  const [loading, setLoading] = useState(initialData === null);
   const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
@@ -44,8 +50,10 @@ export function AmbassadorRewardsDashboard({ locale }: { locale: string }) {
   }, [locale]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!initialData) {
+      void load();
+    }
+  }, [initialData, load]);
 
   const grouped = useMemo(() => {
     const rewards = data?.rewards ?? [];

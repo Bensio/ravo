@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { fetchOrgDashboard } from '@/lib/dashboard/fetch-org-dashboard';
 
@@ -26,9 +27,9 @@ export type AmbassadorCommunityData = {
   festivals: FestivalCommunity[];
 };
 
-export async function fetchAmbassadorCommunity(
+export const fetchAmbassadorCommunity = cache(async (
   userId: string,
-): Promise<AmbassadorCommunityData | null> {
+): Promise<AmbassadorCommunityData | null> => {
   const admin = createAdminClient();
 
   const { data: ambassador } = await admin
@@ -122,4 +123,4 @@ export async function fetchAmbassadorCommunity(
   festivals.sort((a, b) => a.rank - b.rank || b.yourSales - a.yourSales);
 
   return { festivals };
-}
+});

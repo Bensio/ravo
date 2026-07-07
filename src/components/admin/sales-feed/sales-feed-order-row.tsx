@@ -41,12 +41,14 @@ export function SalesFeedOrderRow({
   orgSlug,
   locale,
   canReassign,
+  ambassadors,
   onReassigned,
 }: {
   order: SalesFeedRow;
   orgSlug: string;
   locale: string;
   canReassign: boolean;
+  ambassadors: AmbassadorOption[];
   onReassigned: () => void;
 }) {
   const t = useTranslations('admin.salesFeed');
@@ -54,7 +56,6 @@ export function SalesFeedOrderRow({
   const [trace, setTrace] = useState<Trace | null>(null);
   const [traceLoading, setTraceLoading] = useState(false);
   const [traceError, setTraceError] = useState(false);
-  const [ambassadors, setAmbassadors] = useState<AmbassadorOption[]>([]);
   const [selectedAmbassador, setSelectedAmbassador] = useState('');
   const [reassigning, setReassigning] = useState(false);
   const [reassignError, setReassignError] = useState<string | null>(null);
@@ -78,15 +79,6 @@ export function SalesFeedOrderRow({
     if (!expanded || trace) return;
     void loadTrace();
   }, [expanded, trace, loadTrace]);
-
-  useEffect(() => {
-    if (!canReassign || ambassadors.length > 0) return;
-    void fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { ambassadors?: AmbassadorOption[] } | null) => {
-        if (data?.ambassadors) setAmbassadors(data.ambassadors);
-      });
-  }, [canReassign, orgSlug, ambassadors.length]);
 
   async function handleReassign() {
     if (!selectedAmbassador) return;

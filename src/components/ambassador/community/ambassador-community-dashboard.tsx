@@ -7,10 +7,16 @@ import { useTranslations } from 'next-intl';
 import type { AmbassadorCommunityData } from '@/lib/stats/fetch-ambassador-community';
 import { cn } from '@/lib/utils';
 
-export function AmbassadorCommunityDashboard({ locale }: { locale: string }) {
+export function AmbassadorCommunityDashboard({
+  locale,
+  initialCommunity = null,
+}: {
+  locale: string;
+  initialCommunity?: AmbassadorCommunityData | null;
+}) {
   const t = useTranslations('ambassador.community');
-  const [community, setCommunity] = useState<AmbassadorCommunityData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [community, setCommunity] = useState<AmbassadorCommunityData | null>(initialCommunity);
+  const [loading, setLoading] = useState(initialCommunity === null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -23,8 +29,10 @@ export function AmbassadorCommunityDashboard({ locale }: { locale: string }) {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!initialCommunity) {
+      void load();
+    }
+  }, [initialCommunity, load]);
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">{t('loading')}</p>;

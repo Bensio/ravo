@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isValidDisplayHandle, normalizeDisplayHandle } from '@/lib/ambassadors/invite-ambassador';
 
@@ -124,9 +125,9 @@ async function loadUserProfile(
   return data;
 }
 
-export async function getAmbassadorProfileByUserId(
+export const getAmbassadorProfileByUserId = cache(async (
   userId: string,
-): Promise<AmbassadorProfile | null> {
+): Promise<AmbassadorProfile | null> => {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('ambassadors')
@@ -143,7 +144,7 @@ export async function getAmbassadorProfileByUserId(
 
   const user = await loadUserProfile(admin, userId);
   return mapProfile(data, user);
-}
+});
 
 export async function updateAmbassadorProfile(
   userId: string,

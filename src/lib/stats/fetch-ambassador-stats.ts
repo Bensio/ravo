@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseISO, subDays } from 'date-fns';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -83,7 +84,7 @@ function periodTotals(
   return { clicks, sales, revenueCents };
 }
 
-export async function fetchAmbassadorStats(userId: string): Promise<AmbassadorStatsData | null> {
+export const fetchAmbassadorStats = cache(async (userId: string): Promise<AmbassadorStatsData | null> => {
   const admin = createAdminClient();
 
   const { data: ambassador } = await admin
@@ -314,4 +315,4 @@ export async function fetchAmbassadorStats(userId: string): Promise<AmbassadorSt
     currency,
     timezone: tz,
   };
-}
+});

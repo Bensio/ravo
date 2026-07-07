@@ -43,7 +43,7 @@ function serializeEvent(row: EventRow): SerializedEvent {
   };
 }
 
-export const listEventsForOrg = cache(async (organizationId: string): Promise<SerializedEvent[]> => {
+const getEventRowsForOrg = cache(async (organizationId: string): Promise<EventRow[]> => {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('events')
@@ -58,46 +58,33 @@ export const listEventsForOrg = cache(async (organizationId: string): Promise<Se
     return [];
   }
 
-  return (data as EventRow[]).map(serializeEvent);
+  return data as EventRow[];
+});
+
+export const listEventsForOrg = cache(async (organizationId: string): Promise<SerializedEvent[]> => {
+  const rows = await getEventRowsForOrg(organizationId);
+  return rows.map(serializeEvent);
 });
 
 export type ResolveActiveEventOptions = {
   eventId?: string | null;
 };
 
-export async function resolveActiveEvent(
+export const resolveActiveEvent = cache(async (
   organizationId: string,
   options?: ResolveActiveEventOptions,
-): Promise<SerializedEvent | null> {
-  const admin = createAdminClient();
+): Promise<SerializedEvent | null> => {
   const cookieStore = await cookies();
   const cookieEventId = cookieStore.get(ACTIVE_EVENT_COOKIE)?.value;
   const preferredId = options?.eventId ?? cookieEventId;
+  const rows = await getEventRowsForOrg(organizationId);
 
   if (preferredId) {
-    const { data } = await admin
-      .from('events')
-      .select(
-        'id, organization_id, name, slug, start_at, end_at, timezone, venue, country, cover_image_url, currency',
-      )
-      .eq('organization_id', organizationId)
-      .eq('id', preferredId)
-      .maybeSingle();
-
-    if (data) {
-      return serializeEvent(data as EventRow);
+    const preferred = rows.find((row) => row.id === preferredId);
+    if (preferred) {
+      return serializeEvent(preferred);
     }
   }
 
-  const { data: fallback } = await admin
-    .from('events')
-    .select(
-      'id, organization_id, name, slug, start_at, end_at, timezone, venue, country, cover_image_url, currency',
-    )
-    .eq('organization_id', organizationId)
-    .order('start_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return fallback ? serializeEvent(fallback as EventRow) : null;
-}
+  return rows[0] ? serializeEvent(rows[0]) : null;
+});

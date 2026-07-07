@@ -17,7 +17,7 @@ const OrganizationPanel = dynamic(
     import('@/components/admin/settings/organization-panel').then((m) => ({
       default: m.OrganizationPanel,
     })),
-  { ssr: false, loading: () => <SettingsPanelSkeleton /> },
+  { loading: () => <SettingsPanelSkeleton /> },
 );
 
 const IntegrationsPanel = dynamic(
@@ -25,7 +25,7 @@ const IntegrationsPanel = dynamic(
     import('@/components/admin/settings/integrations-panel').then((m) => ({
       default: m.IntegrationsPanel,
     })),
-  { ssr: false, loading: () => <SettingsPanelSkeleton /> },
+  { loading: () => <SettingsPanelSkeleton /> },
 );
 
 function parseSection(value: string | null): SettingsSection {

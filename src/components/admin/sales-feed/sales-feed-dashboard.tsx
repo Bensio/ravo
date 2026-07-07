@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { SalesFeedOrderRow } from '@/components/admin/sales-feed/sales-feed-order-row';
 import {
@@ -35,6 +35,12 @@ export type SalesFeedRow = {
   } | null;
 };
 
+type AmbassadorOption = {
+  id: string;
+  handle: string | null;
+  displayName: string | null;
+};
+
 export function SalesFeedDashboard({
   orgSlug,
   locale,
@@ -53,6 +59,16 @@ export function SalesFeedDashboard({
   const [purgeMessage, setPurgeMessage] = useState<string | null>(null);
   const [purging, setPurging] = useState(false);
   const [loadErrorDetail, setLoadErrorDetail] = useState<string | null>(null);
+  const [ambassadors, setAmbassadors] = useState<AmbassadorOption[]>([]);
+
+  useEffect(() => {
+    if (!canReassign) return;
+    void fetch(`/api/${orgSlug}/ambassadors?picker=1`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { ambassadors?: AmbassadorOption[] } | null) => {
+        if (data?.ambassadors) setAmbassadors(data.ambassadors);
+      });
+  }, [canReassign, orgSlug]);
 
   const fetchOrders = useCallback(async (): Promise<SalesFeedRow[] | null> => {
     const res = await fetch(`/api/${orgSlug}/orders`, { cache: 'no-store' });
@@ -219,6 +235,7 @@ export function SalesFeedDashboard({
                 orgSlug={orgSlug}
                 locale={locale}
                 canReassign={canReassign}
+                ambassadors={ambassadors}
                 onReassigned={() => void load(true)}
               />
             ))}
