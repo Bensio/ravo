@@ -5,6 +5,7 @@ import { parseWeeztixTrigger } from '@/lib/providers/weeztix/parse-webhook';
 import {
   findWebhookDelivery,
   hashPayload,
+  markWebhookFailed,
   markWebhookProcessed,
   recordWebhookDelivery,
 } from '@/lib/webhooks/delivery';
@@ -18,6 +19,7 @@ type RouteContext = { params: Promise<{ token: string }> };
 export async function POST(request: Request, context: RouteContext) {
   const provider = getProvider('weeztix');
   const retryStatus = provider.capabilities.retryStatusCode;
+  let deliveryId: string | null = null;
 
   try {
     const { token } = await context.params;
@@ -27,6 +29,9 @@ export async function POST(request: Request, context: RouteContext) {
     const connection = await resolveConnectionByWebhookToken('weeztix', token);
     if (!connection) {
       return new NextResponse('not found', { status: 404 });
+    }
+    if (connection.status === 'disconnected' || connection.status === 'error') {
+      return new NextResponse('connection unavailable', { status: 403 });
     }
 
     const triggerParts = parseWeeztixTrigger(headers);
@@ -57,16 +62,23 @@ export async function POST(request: Request, context: RouteContext) {
       return new NextResponse('missing idempotency key', { status: 400 });
     }
 
+    const payloadHash = hashPayload(rawBody);
     const existing = await findWebhookDelivery(idempotencyKey);
-    if (existing?.processed_at) {
+    if (existing?.processed_at && existing.payload_hash === payloadHash) {
       return new NextResponse('ok', { status: 200 });
     }
     if (existing && !existing.processed_at) {
-      return new NextResponse('ok', { status: 200 });
+      return new NextResponse('retry pending', { status: retryStatus });
+    }
+    if (existing?.processed_at && existing.payload_hash !== payloadHash) {
+      console.error('weeztix webhook payload hash mismatch', {
+        deliveryId: existing.id,
+        idempotencyKey,
+      });
+      return new NextResponse('payload hash mismatch', { status: 200 });
     }
 
-    const payloadHash = hashPayload(rawBody);
-    const deliveryId = await recordWebhookDelivery({
+    deliveryId = await recordWebhookDelivery({
       idempotencyKey,
       provider: 'weeztix',
       providerConnectionId: connection.id,
@@ -77,8 +89,9 @@ export async function POST(request: Request, context: RouteContext) {
 
     const parsed = provider.parseWebhook?.({ rawBody, headers });
     if (!parsed) {
-      await markWebhookProcessed(deliveryId, 'malformed payload');
-      return new NextResponse('malformed payload', { status: 400 });
+      const failed = await markWebhookFailed(deliveryId, 'malformed payload');
+      const status = failed.movedToDlq ? 200 : 400;
+      return new NextResponse('malformed payload', { status });
     }
 
     await upsertOrderFromWebhook(connection.organizationId, connection.id, parsed);
@@ -86,6 +99,13 @@ export async function POST(request: Request, context: RouteContext) {
 
     return new NextResponse('ok', { status: 200 });
   } catch (err) {
+    if (deliveryId) {
+      const message = err instanceof Error ? err.message : 'unknown';
+      const failed = await markWebhookFailed(deliveryId, message);
+      if (failed.movedToDlq) {
+        return new NextResponse('ok', { status: 200 });
+      }
+    }
     console.error('weeztix webhook failed', {
       message: err instanceof Error ? err.message : 'unknown',
     });

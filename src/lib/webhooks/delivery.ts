@@ -9,7 +9,11 @@ export function hashPayload(rawBody: string): string {
 export type WebhookDeliveryRecord = {
   id: string;
   processed_at: string | null;
+  payload_hash: string;
+  attempts: number;
 };
+
+const MAX_WEBHOOK_ATTEMPTS = 5;
 
 /** Decode bytea nonce stored as UTF-8 bytes (pre-Vault MVP). */
 export function decodeStoredNonce(value: unknown): string | null {
@@ -29,7 +33,7 @@ export async function findWebhookDelivery(
   const admin = createAdminClient();
   const { data } = await admin
     .from('webhook_deliveries')
-    .select('id, processed_at')
+    .select('id, processed_at, payload_hash, attempts')
     .eq('idempotency_key', idempotencyKey)
     .maybeSingle();
   return data;
@@ -82,16 +86,62 @@ export async function markWebhookProcessed(
   if (error) throw error;
 }
 
-export async function incrementWebhookAttempts(deliveryId: string): Promise<void> {
+export async function incrementWebhookAttempts(deliveryId: string): Promise<number> {
   const admin = createAdminClient();
   const { data } = await admin
     .from('webhook_deliveries')
     .select('attempts')
     .eq('id', deliveryId)
     .single();
-  if (!data) return;
+  if (!data) return 0;
+  const nextAttempts = (data.attempts ?? 1) + 1;
   await admin
     .from('webhook_deliveries')
-    .update({ attempts: (data.attempts ?? 1) + 1 })
+    .update({ attempts: nextAttempts })
     .eq('id', deliveryId);
+  return nextAttempts;
+}
+
+export async function markWebhookFailed(
+  deliveryId: string,
+  processingError: string,
+): Promise<{ attempts: number; movedToDlq: boolean }> {
+  const attempts = await incrementWebhookAttempts(deliveryId);
+  const admin = createAdminClient();
+  const shouldMoveToDlq = attempts >= MAX_WEBHOOK_ATTEMPTS;
+
+  const { error: updateError } = await admin
+    .from('webhook_deliveries')
+    .update({
+      processed_at: null,
+      processing_error: processingError,
+    })
+    .eq('id', deliveryId);
+  if (updateError) throw updateError;
+
+  if (!shouldMoveToDlq) {
+    return { attempts, movedToDlq: false };
+  }
+
+  const { data: delivery, error: deliveryError } = await admin
+    .from('webhook_deliveries')
+    .select('*')
+    .eq('id', deliveryId)
+    .maybeSingle();
+  if (deliveryError) throw deliveryError;
+  if (!delivery) {
+    return { attempts, movedToDlq: false };
+  }
+
+  const { error: dlqError } = await admin.from('webhook_deliveries_dlq').upsert(
+    {
+      ...delivery,
+      moved_at: serverNow().toISOString(),
+      moved_reason: processingError,
+    },
+    { onConflict: 'id' },
+  );
+  if (dlqError) throw dlqError;
+
+  return { attempts, movedToDlq: true };
 }

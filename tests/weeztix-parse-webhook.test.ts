@@ -57,6 +57,66 @@ describe('parseWeeztixWebhook', () => {
     expect(event!.attributionHint?.trackerExternalId).toBe('tracker-1');
   });
 
+  it('parses partial refunds from invalidated tickets', () => {
+    const headers = new Headers({
+      'openticket-trigger': 'order.updated',
+      'openticket-dedupe-key': 'dedupe-partial',
+      'openticket-identifier': 'nonce-xyz',
+    });
+    const event = parseWeeztixWebhook(
+      JSON.stringify({
+        guid: 'order-guid-2',
+        shop_id: 'shop-guid-1',
+        status: 'complete',
+        currency: 'EUR',
+        price: 3000,
+        created_at: '2026-06-01T10:00:00Z',
+        updated_at: '2026-06-03T09:00:00Z',
+        tickets: [
+          { guid: 'ticket-1', price: 1000, ticket_number: 'Friday', invalidated_since: null },
+          { guid: 'ticket-2', price: 1000, ticket_number: 'Saturday', invalidated_since: null },
+          {
+            guid: 'ticket-3',
+            price: 1000,
+            ticket_number: 'Sunday',
+            invalidated_since: '2026-06-03T08:55:00Z',
+          },
+        ],
+      }),
+      headers,
+    );
+    expect(event).not.toBeNull();
+    expect(event!.status).toBe('partially_refunded');
+    expect(event!.grossAmountCents).toBe(3000n);
+    expect(event!.netAmountCents).toBe(2000n);
+    expect(event!.rawMetadata?.refund_amount_cents).toBe('1000');
+  });
+
+  it('parses refund totals from returns payloads', () => {
+    const headers = new Headers({
+      'openticket-trigger': 'order.updated',
+      'openticket-dedupe-key': 'dedupe-return',
+      'openticket-identifier': 'nonce-xyz',
+    });
+    const event = parseWeeztixWebhook(
+      JSON.stringify({
+        guid: 'order-guid-3',
+        shop_id: 'shop-guid-1',
+        status: 'complete',
+        currency: 'EUR',
+        price: 3000,
+        created_at: '2026-06-01T10:00:00Z',
+        updated_at: '2026-06-03T09:00:00Z',
+        returns: [{ amount: 500 }, { total: '250' }],
+      }),
+      headers,
+    );
+    expect(event).not.toBeNull();
+    expect(event!.status).toBe('partially_refunded');
+    expect(event!.netAmountCents).toBe(2250n);
+    expect(event!.rawMetadata?.refund_amount_cents).toBe('750');
+  });
+
   it('returns null for malformed json', () => {
     expect(parseWeeztixWebhook('{bad', new Headers())).toBeNull();
   });

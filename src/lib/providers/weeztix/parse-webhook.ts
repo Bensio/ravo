@@ -29,12 +29,66 @@ type WeeztixOrderPayload = {
     original_id?: string;
     price?: number;
     ticket_number?: string;
+    invalidated_since?: string | null;
   }>;
 };
 
-function mapStatus(payload: WeeztixOrderPayload, trigger: string | null): OrderStatus {
-  if (payload.invalidated_since || payload.returns) {
-    return 'refunded';
+function readAmountCandidate(value: unknown): bigint | null {
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 0) {
+    return BigInt(value);
+  }
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    return BigInt(value);
+  }
+  return null;
+}
+
+function extractRefundAmountCents(payload: WeeztixOrderPayload): bigint {
+  const gross = BigInt(payload.price ?? 0);
+  const invalidatedTickets = payload.tickets?.filter((ticket) => ticket.invalidated_since) ?? [];
+  if (invalidatedTickets.length > 0) {
+    return invalidatedTickets.reduce(
+      (sum, ticket) => sum + BigInt(ticket.price ?? 0),
+      0n,
+    );
+  }
+
+  const returnsValue = payload.returns;
+  if (Array.isArray(returnsValue)) {
+    const fromArray = returnsValue.reduce((sum, entry) => {
+      if (!entry || typeof entry !== 'object') return sum;
+      const record = entry as Record<string, unknown>;
+      return (
+        sum +
+        (readAmountCandidate(record.amount) ??
+          readAmountCandidate(record.price) ??
+          readAmountCandidate(record.value) ??
+          readAmountCandidate(record.total) ??
+          0n)
+      );
+    }, 0n);
+    if (fromArray > 0n) return fromArray;
+  } else if (returnsValue && typeof returnsValue === 'object') {
+    const record = returnsValue as Record<string, unknown>;
+    const fromObject =
+      readAmountCandidate(record.amount) ??
+      readAmountCandidate(record.price) ??
+      readAmountCandidate(record.value) ??
+      readAmountCandidate(record.total);
+    if (fromObject && fromObject > 0n) return fromObject;
+  }
+
+  return payload.invalidated_since ? gross : 0n;
+}
+
+function mapStatus(
+  payload: WeeztixOrderPayload,
+  trigger: string | null,
+  refundAmount: bigint,
+): OrderStatus {
+  if (refundAmount > 0n) {
+    const gross = BigInt(payload.price ?? 0);
+    return refundAmount < gross ? 'partially_refunded' : 'refunded';
   }
   const raw = (payload.status ?? '').toLowerCase();
   if (raw.includes('refund')) return 'refunded';
@@ -46,9 +100,17 @@ function mapStatus(payload: WeeztixOrderPayload, trigger: string | null): OrderS
   return 'paid';
 }
 
-function netAmountCents(payload: WeeztixOrderPayload, status: OrderStatus): bigint {
+function netAmountCents(
+  payload: WeeztixOrderPayload,
+  status: OrderStatus,
+  refundAmount: bigint,
+): bigint {
   const gross = BigInt(payload.price ?? 0);
   if (status === 'refunded') return 0n;
+  if (status === 'partially_refunded') {
+    const cappedRefund = refundAmount > gross ? gross : refundAmount;
+    return gross - cappedRefund;
+  }
   return gross;
 }
 
@@ -68,7 +130,8 @@ export function parseWeeztixWebhook(
   }
 
   const trigger = headers.get('openticket-trigger');
-  const status = mapStatus(payload, trigger);
+  const refundAmount = extractRefundAmountCents(payload);
+  const status = mapStatus(payload, trigger, refundAmount);
   const gross = BigInt(payload.price ?? 0);
   const placedAt = payload.created_at ?? payload.updated_at ?? serverNow().toISOString();
   const paidAt =
@@ -104,7 +167,7 @@ export function parseWeeztixWebhook(
     status,
     currency: payload.currency.toUpperCase(),
     grossAmountCents: gross,
-    netAmountCents: netAmountCents(payload, status),
+    netAmountCents: netAmountCents(payload, status, refundAmount),
     lineItems,
     buyerEmailHash: email ? hashBuyerEmail(email) : null,
     placedAt,
@@ -127,6 +190,7 @@ export function parseWeeztixWebhook(
       trigger,
       weeztix_status: payload.status,
       invalidated_since: payload.invalidated_since,
+      refund_amount_cents: refundAmount.toString(),
     },
   };
 }
