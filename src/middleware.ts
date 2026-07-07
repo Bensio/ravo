@@ -8,6 +8,16 @@ const intlMiddleware = createIntlMiddleware(routing);
 const PUBLIC_PATHS =
   /^\/(en|nl)?\/?(login|auth\/callback)?$|^\/auth\/callback$|^\/$/;
 
+const PUBLIC_API_PREFIXES = ['/api/webhooks/', '/api/ingest/', '/api/invites/'];
+
+function isPublicApiPath(pathname: string): boolean {
+  return PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function hasSupabaseSessionCookies(request: NextRequest): boolean {
+  return request.cookies.getAll().some((cookie) => cookie.name.startsWith('sb-'));
+}
+
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.test(pathname)) return true;
   if (pathname.includes('/login')) return true;
@@ -34,6 +44,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/api/')) {
+    if (isPublicApiPath(pathname) || !hasSupabaseSessionCookies(request)) {
+      return NextResponse.next({ request });
+    }
     return updateSession(request, NextResponse.next({ request }));
   }
 
@@ -42,7 +55,7 @@ export async function middleware(request: NextRequest) {
 
   // Prefetch fires for every nav link in the sidebar — skip auth round-trip there.
   const isPrefetch = request.headers.get('Next-Router-Prefetch') === '1';
-  if (!isPrefetch) {
+  if (!isPrefetch && hasSupabaseSessionCookies(request)) {
     await updateSession(request, response);
   }
 

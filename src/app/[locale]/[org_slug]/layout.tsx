@@ -9,7 +9,7 @@ import { AdminMainOutlet } from '@/components/admin/admin-main-outlet';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { isStaffRole, roleHasPermission, type Role } from '@/lib/auth/permissions';
-import { listEventsForOrg, resolveActiveEvent } from '@/lib/events/event-context';
+import { resolveActiveEvent } from '@/lib/events/event-context';
 
 type Props = {
   children: React.ReactNode;
@@ -36,10 +36,8 @@ export default async function AdminOrgLayout({ children, params }: Props) {
   }
 
   await setRequestOrgContext(membership.org.id);
-  const [activeEvent, events] = await Promise.all([
-    resolveActiveEvent(membership.org.id),
-    listEventsForOrg(membership.org.id),
-  ]);
+  const activeEvent = await resolveActiveEvent(membership.org.id);
+  const initialEvents = activeEvent ? [activeEvent] : [];
   const canManageEvents = roleHasPermission(membership.role, 'event.update');
   const canCreateEvents = roleHasPermission(membership.role, 'event.create');
 
@@ -55,7 +53,7 @@ export default async function AdminOrgLayout({ children, params }: Props) {
             orgSlug={org_slug}
             userEmail={user.email}
             userRole={membership.role}
-            events={events}
+            initialEvents={initialEvents}
             activeEvent={activeEvent}
             canManageEvents={canManageEvents}
             canCreateEvents={canCreateEvents}

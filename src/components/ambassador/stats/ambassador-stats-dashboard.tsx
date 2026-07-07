@@ -21,10 +21,16 @@ const ClicksSalesChart = dynamic(
   { ssr: false, loading: () => <OverviewChartSkeleton /> },
 );
 
-export function AmbassadorStatsDashboard({ locale }: { locale: string }) {
+export function AmbassadorStatsDashboard({
+  locale,
+  initialStats = null,
+}: {
+  locale: string;
+  initialStats?: AmbassadorStatsData | null;
+}) {
   const t = useTranslations('ambassador.stats');
-  const [stats, setStats] = useState<AmbassadorStatsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<AmbassadorStatsData | null>(initialStats);
+  const [loading, setLoading] = useState(initialStats === null);
   const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
@@ -41,8 +47,10 @@ export function AmbassadorStatsDashboard({ locale }: { locale: string }) {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!initialStats) {
+      void load();
+    }
+  }, [initialStats, load]);
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">{t('loading')}</p>;

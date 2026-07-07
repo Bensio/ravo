@@ -14,14 +14,14 @@ import { cn } from '@/lib/utils';
 export function AdminEventSwitcher({
   locale,
   orgSlug,
-  events,
+  initialEvents,
   activeEvent,
   canManage,
   canCreate,
 }: {
   locale: string;
   orgSlug: string;
-  events: SerializedEvent[];
+  initialEvents: SerializedEvent[];
   activeEvent: SerializedEvent | null;
   canManage: boolean;
   canCreate: boolean;
@@ -30,8 +30,16 @@ export function AdminEventSwitcher({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [events, setEvents] = useState<SerializedEvent[]>(initialEvents);
+  const [eventsLoaded, setEventsLoaded] = useState(initialEvents.length > 1);
+  const [loadingEvents, setLoadingEvents] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const basePath = `/${locale}/${orgSlug}`;
+
+  useEffect(() => {
+    setEvents(initialEvents);
+    setEventsLoaded(initialEvents.length > 1);
+  }, [initialEvents]);
 
   useEffect(() => {
     function onPointerDown(e: MouseEvent) {
@@ -56,6 +64,32 @@ export function AdminEventSwitcher({
       invalidateScopedAdminCachesForOrg(orgSlug);
       dispatchOrgContextRefresh();
       router.refresh();
+    }
+  }
+
+  async function loadEvents() {
+    if (eventsLoaded || loadingEvents) return;
+    setLoadingEvents(true);
+    try {
+      const res = await fetch(`/api/${orgSlug}/events`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const payload = (await res.json()) as {
+        events?: SerializedEvent[];
+        activeEventId?: string | null;
+      };
+      const nextEvents = Array.isArray(payload.events) ? payload.events : [];
+      setEvents(nextEvents);
+      setEventsLoaded(true);
+    } finally {
+      setLoadingEvents(false);
+    }
+  }
+
+  function toggleOpen() {
+    const next = !open;
+    setOpen(next);
+    if (next) {
+      void loadEvents();
     }
   }
 
@@ -85,7 +119,7 @@ export function AdminEventSwitcher({
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="flex w-full items-start gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-left transition-colors hover:bg-white/[0.04]"
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -107,10 +141,14 @@ export function AdminEventSwitcher({
             </p>
           )}
         </div>
-        <ChevronDown
-          className={cn('mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
-          aria-hidden
-        />
+        {loadingEvents ? (
+          <Loader2 className="mt-1 h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+        ) : (
+          <ChevronDown
+            className={cn('mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+            aria-hidden
+          />
+        )}
       </button>
 
       {open && (

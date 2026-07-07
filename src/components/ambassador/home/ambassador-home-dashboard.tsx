@@ -9,10 +9,16 @@ import { formatNumber } from '@/lib/i18n';
 import { formatMoney, moneyFromCents } from '@/lib/money';
 import { formatInFestivalTz } from '@/lib/time';
 
-export function AmbassadorHomeDashboard({ locale }: { locale: string }) {
+export function AmbassadorHomeDashboard({
+  locale,
+  initialStats = null,
+}: {
+  locale: string;
+  initialStats?: AmbassadorStatsData | null;
+}) {
   const t = useTranslations('ambassador.home');
-  const [stats, setStats] = useState<AmbassadorStatsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<AmbassadorStatsData | null>(initialStats);
+  const [loading, setLoading] = useState(initialStats === null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -25,8 +31,10 @@ export function AmbassadorHomeDashboard({ locale }: { locale: string }) {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!initialStats) {
+      void load();
+    }
+  }, [initialStats, load]);
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">{t('loading')}</p>;

@@ -64,7 +64,7 @@ export function AdminSidebar({
   orgSlug,
   userEmail,
   userRole,
-  events,
+  initialEvents,
   activeEvent,
   canManageEvents,
   canCreateEvents,
@@ -73,7 +73,7 @@ export function AdminSidebar({
   orgSlug: string;
   userEmail: string;
   userRole: string;
-  events: SerializedEvent[];
+  initialEvents: SerializedEvent[];
   activeEvent: SerializedEvent | null;
   canManageEvents: boolean;
   canCreateEvents: boolean;
@@ -105,7 +105,7 @@ export function AdminSidebar({
         <AdminEventSwitcher
           locale={locale}
           orgSlug={orgSlug}
-          events={events}
+          initialEvents={initialEvents}
           activeEvent={activeEvent}
           canManage={canManageEvents}
           canCreate={canCreateEvents}
