@@ -1,16 +1,25 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { MousePointerClick, Percent, RefreshCw, Ticket } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ClicksSalesChart } from '@/components/admin/dashboard/clicks-sales-chart';
 import { DashboardKpiCard } from '@/components/admin/dashboard/dashboard-kpi-card';
+import { OverviewChartSkeleton } from '@/components/admin/overview/overview-content-skeleton';
 import { Button } from '@/components/ui/button';
 import type { AmbassadorStatsData } from '@/lib/stats/fetch-ambassador-stats';
 import { formatNumber } from '@/lib/i18n';
 import { formatOrgConversionRate } from '@/lib/dashboard/format-org-conversion';
 import { formatMoney, moneyFromCents } from '@/lib/money';
+
+const ClicksSalesChart = dynamic(
+  () =>
+    import('@/components/admin/dashboard/clicks-sales-chart').then((m) => ({
+      default: m.ClicksSalesChart,
+    })),
+  { ssr: false, loading: () => <OverviewChartSkeleton /> },
+);
 
 export function AmbassadorStatsDashboard({ locale }: { locale: string }) {
   const t = useTranslations('ambassador.stats');

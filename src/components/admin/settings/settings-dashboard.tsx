@@ -1,17 +1,32 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ComingSoonPanel } from '@/components/admin/settings/coming-soon-panel';
-import { IntegrationsPanel } from '@/components/admin/settings/integrations-panel';
-import { OrganizationPanel } from '@/components/admin/settings/organization-panel';
 import {
   SettingsSectionNav,
   type SettingsSection,
 } from '@/components/admin/settings/settings-section-nav';
 import type { IntegrationConnectionSummary } from '@/lib/integrations/list-connections';
 import type { OrgSettings } from '@/lib/org/org-settings';
+
+const OrganizationPanel = dynamic(
+  () =>
+    import('@/components/admin/settings/organization-panel').then((m) => ({
+      default: m.OrganizationPanel,
+    })),
+  { ssr: false, loading: () => <SettingsPanelSkeleton /> },
+);
+
+const IntegrationsPanel = dynamic(
+  () =>
+    import('@/components/admin/settings/integrations-panel').then((m) => ({
+      default: m.IntegrationsPanel,
+    })),
+  { ssr: false, loading: () => <SettingsPanelSkeleton /> },
+);
 
 function parseSection(value: string | null): SettingsSection {
   if (value === 'integrations' || value === 'team' || value === 'billing' || value === 'organization') {
@@ -20,8 +35,18 @@ function parseSection(value: string | null): SettingsSection {
   return 'organization';
 }
 
-function sectionPanelClass(active: SettingsSection, panel: SettingsSection): string | undefined {
-  return active === panel ? undefined : 'hidden';
+function SettingsPanelSkeleton() {
+  return (
+    <div className="ravo-glass-panel space-y-4 p-6 md:p-8">
+      <div className="h-5 w-40 animate-pulse rounded bg-white/[0.06]" />
+      <div className="h-4 w-72 max-w-full animate-pulse rounded bg-white/[0.05]" />
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="h-10 animate-pulse rounded bg-white/[0.05]" />
+        <div className="h-10 animate-pulse rounded bg-white/[0.05]" />
+        <div className="h-10 animate-pulse rounded bg-white/[0.05] md:col-span-2" />
+      </div>
+    </div>
+  );
 }
 
 export function SettingsDashboard({
@@ -81,7 +106,7 @@ export function SettingsDashboard({
         showBilling={canManageBilling}
       />
 
-      <div className={sectionPanelClass(section, 'organization')}>
+      {section === 'organization' && (
         <OrganizationPanel
           orgSlug={orgSlug}
           locale={locale}
@@ -89,23 +114,23 @@ export function SettingsDashboard({
           canEdit={canUpdateOrg}
           canEditBilling={canManageBilling}
         />
-      </div>
+      )}
 
-      <div className={sectionPanelClass(section, 'integrations')}>
+      {section === 'integrations' && (
         <IntegrationsPanel
           orgSlug={orgSlug}
           locale={locale}
           initialConnections={initialConnections}
         />
-      </div>
+      )}
 
-      <div className={sectionPanelClass(section, 'team')}>
+      {section === 'team' && (
         <ComingSoonPanel title={t('team.title')} description={t('team.description')} />
-      </div>
+      )}
 
-      <div className={sectionPanelClass(section, 'billing')}>
+      {section === 'billing' && (
         <ComingSoonPanel title={t('billing.title')} description={t('billing.description')} />
-      </div>
+      )}
     </div>
   );
 }

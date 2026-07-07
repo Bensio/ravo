@@ -1,11 +1,19 @@
 'use client';
 
-import { QRCodeSVG } from 'qrcode.react';
+import dynamic from 'next/dynamic';
 import { Check, Copy, QrCode, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+const QRCodeSVG = dynamic(
+  () => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })),
+  {
+    ssr: false,
+    loading: () => <div className="h-[180px] w-[180px] animate-pulse rounded-lg bg-white/[0.05]" />,
+  },
+);
 
 export type ShareLinkItem = {
   id: string;

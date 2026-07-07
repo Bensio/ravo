@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   prefetchAmbassadors,
@@ -79,16 +79,6 @@ export function AdminSidebar({
   canCreateEvents: boolean;
 }) {
   const t = useTranslations('admin.nav');
-
-  useEffect(() => {
-    void prefetchDashboard(orgSlug, 30);
-    void prefetchOrders(orgSlug);
-    void prefetchTracklinks(orgSlug);
-    void prefetchAmbassadors(orgSlug);
-    void prefetchRewards(orgSlug);
-    void prefetchEvents(orgSlug);
-    preloadAdminCachedRouteShell('overview');
-  }, [orgSlug]);
 
   const hoverPrefetch = useCallback(
     (key: AdminNavKey) => prefetchForNavKey(orgSlug, key),
